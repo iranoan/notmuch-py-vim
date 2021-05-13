@@ -32,8 +32,7 @@ License: GPL Ver.3.
 ==============================================================================
 概要                                              *notmuch-python-introduction*
 
-notmuch-python-vim は Notmuch (https://notmuchmail.org/) と連携して、メールの
-読み書きを手助けする
+notmuch-python-vim は Notmuch (https://notmuchmail.org/) と連携して、メールの読み書きを手助けする
 
 Notmuch には元々送受信機能がないので、送信には sendmail 等、受信には fetchmail
 等のプログラムが別途必要
