@@ -41,7 +41,7 @@ function s:new_buffer(type, search_term) abort
 		let s:buf_num[a:type][a:search_term] = bufnr('')
 	endif
 	" キーマップ
-	if a:type !=# 'draft' " draft 以外共通
+	if a:type !=# 'draft' && a:type !=# 'edit' " draft/edit 以外共通
 		nnoremap <buffer><silent><Tab> <C-w>w
 		nnoremap <buffer><silent><S-Tab> <C-w>W
 		nnoremap <buffer><silent><space> :Notmuch view-unread-page<CR>
@@ -57,6 +57,7 @@ function s:new_buffer(type, search_term) abort
 	endif
 	if a:type ==# 'folders'
 		nnoremap <buffer><silent>o :Notmuch open<CR>
+		nnoremap <buffer><silent>s :Notmuch search<CR>
 	elseif a:type ==# 'thread' || a:type ==# 'search'
 		nnoremap <buffer><silent>a :Notmuch tag-add<CR>
 		nnoremap <buffer><silent>A :Notmuch tag-delete<CR>
