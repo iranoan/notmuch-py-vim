@@ -1943,7 +1943,14 @@ def view_mail_info():  # メール情報表示
     if vim.bindeval('has("popupwin")'):
         info = '["' + '","'.join(info) + '"]'
         vim.command('call popup_atcursor(' + info +
-                    ',{"border": [1,1,1,1],"drag": 1, "close": "click", "moved": "any"})')
+                    ',{' +
+                    '"border": [1,1,1,1],' +
+                    '"drag": 1,' +
+                    '"close": "click",' +
+                    '"moved": "any",' +
+                    '"filter": function("s:close_popup"),' +
+                    '"mapping": 0' +
+                    '})')
     else:
         print('\n'.join(info))
 

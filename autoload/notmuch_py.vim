@@ -501,6 +501,15 @@ function s:view_mail_info(args) abort
 	py3 view_mail_info()
 endfunction
 
+function s:close_popup(id, key) abort
+	if a:key ==? 'x' || a:key ==? 'q' || a:key ==? 'c' || a:key ==? 'p' || a:key ==? "\<Esc>"
+		call popup_close(a:id)
+		return 1
+	else
+		return 0
+	endif
+endfunction
+
 function s:delete_tags(args) abort
 	py3 do_mail(delete_tags, delete_tags, vim.eval('a:args'))
 endfunction
@@ -620,6 +629,7 @@ function notmuch_py#notmuch_main(...) abort
 endfunction
 
 function s:start_notmuch() abort
+	let s:pop_id = 0
 	if !exists('s:buf_num')
 		let s:buf_num = {}
 	endif
