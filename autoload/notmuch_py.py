@@ -967,42 +967,60 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             header = "Del-" + header
         vim.current.buffer.append(header+name)
 
-    def add_attachment_list(part, b_attachments, part_num):  # 添付ファイルのリストに追加
+    def add_attachment_list(part, pre_part, b_attachments, part_num, pgp):  # 添付ファイルのリストに追加
         attachment = get_attach_name(part.get_filename())
-        if part.get_content_type().find('application/pgp-signature') != 0:
+        inline = False
+        signature = ''
+        d = part.get_all('Content-Disposition')
+        if d is not None:
+            for d in d:
+                if d.find('inline') != -1:
+                    inline = True
+                    break
+        if pgp:
+            header = 'Bad-Encrypted: '
+            if inline:
+                signature = part.get_payload()
+        elif part.get_content_type().find('application/pgp-signature') != 0:
             header = 'Attach: '
-        else:  # 電子署名の検証←やり方が解っていない
-            for delete_header in pre_part.keys():  # ヘッダー部を全て削除
-                pre_part.__delitem__(delete_header)
+        else:  # 電子署名の検証←やり方が解っていないので全て不正署名になってしまう
+            # 取り敢えず署名未検証とする処理始まり
+            print_attach_header('Signature: ', part, b_attachments, part_num, attachment)
+            if inline:
+                return '\n\n' + part.get_payload()
+            else:
+                return ''
+            # 取り敢えず署名未検証とする処理終わり
+            if shutil.which('gpg') is None:
+                print_attach_header('Signature: ', part, b_attachments, part_num, attachment)
+                if inline:
+                    return '\n\n' + part.get_payload()
+                else:
+                    return ''
             make_dir(TEMP_DIR)
             rm_file(TEMP_DIR)
             pgp_tmp = TEMP_DIR + 'pgp.tmp'
-            decrypt_tmp = TEMP_DIR + 'decrypt.tpm'
-            with open(decrypt_tmp, 'wb') as fp:
-                fp.write(pre_part.as_bytes())
-            for delete_header in part.keys():  # ヘッダー部を全て削除
-                part.__delitem__(delete_header)
-            with open(pgp_tmp, 'wb') as fp:
-                fp.write(part.as_bytes())
-            try:
-                ret = run(['gpg', '--verify', pgp_tmp, decrypt_tmp],
-                          stdout=PIPE, stderr=PIPE)
-            except FileNotFoundError:
-                header = 'Signature: '
-                rm_file(pgp_tmp)
-                rm_file(decrypt_tmp)
-                b_v['pgp_result'] = ''
-                print_attach_header(header, part, b_attachments, part_num, attachment)
-                return
+            decrypt_tmp = TEMP_DIR + 'decrypt.tmp'
+            with open(decrypt_tmp, 'w') as fp:
+                fp.write(pre_part.get_payload(decode=False))
+            with open(pgp_tmp, 'w') as fp:
+                fp.write(part.get_payload(decode=False))
+            ret = run(['gpg', '--verify', pgp_tmp, decrypt_tmp],
+                      stdout=PIPE, stderr=PIPE)
             if ret.returncode:
-                header = 'Bad-Signature: '
-                # Content-Disposition: inline では表示したほうが良い?
+                if ret.returncode == 1:
+                    header = 'Bad-Signature: '
+                else:
+                    header = 'Signature: '
+                if inline:  # Content-Disposition: inline では電子署名を本文に表示
+                    signature = '\n\n' + part.get_payload()
             else:
                 header = 'Good-Signature: '
-            rm_file(pgp_tmp)
-            rm_file(decrypt_tmp)
+            # rm_file(pgp_tmp)
+            # rm_file(decrypt_tmp)
             b_v['pgp_result'] = ret.stdout.decode('utf-8') + '\n' + ret.stderr.decode('utf-8')
         print_attach_header(header, part, b_attachments, part_num, attachment)
+        return signature
 
     def print_content(part, b, b_attachments, n, text, html, html_count):
         content_type = part.get_content_type()
@@ -1038,8 +1056,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     b_attachments[vim.eval('line("$")')] = ['index.html', n, '']
                     b.append('HTML: index.html')
             html_count += 1
-        else:  # あとは電子署名を分けるべきだがまだ手付かず
-            add_attachment_list(part, b_attachments, n)
+        else:
+            text += add_attachment_list(part, pre_part, b_attachments, n, False)
         return text, html, html_count
 
     not_search = vim.current.buffer.number
@@ -1101,59 +1119,57 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     html_count = 0       # text/html の個数
     b_v['notmuch_attachments'] = None
     b_v['pgp_result'] = ''
-    part_num = 0
+    part_num = -1
     pgp_encrypt = ''
+    pre_part = None
     for part in msg_file.walk():
+        part_num += 1
         if pgp_encrypt != '':
-            # for delete_header in pre_part.keys():  # ヘッダー部を全て削除
-            #     pre_part.__delitem__(delete_header)
+            if shutil.which('gpg') is None:
+                b.append('Encrypt-File: ' + pgp_encrypt)
+                content_text += add_attachment_list(part, pre_part, b_attachments, -2, True)
+                pgp_encrypt = ''
+                continue
             make_dir(TEMP_DIR)
             rm_file(TEMP_DIR)
             pgp_tmp = TEMP_DIR + 'pgp.tmp'
-            decrypt_tmp = TEMP_DIR + 'decrypt.tpm'
-            with open(pgp_tmp, 'wb') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
-                fp.write(part.as_bytes())
-            try:
-                ret = run(['gpg', '--yes', '--output', decrypt_tmp, '--decrypt', pgp_tmp],
-                          stdout=PIPE, stderr=PIPE)
-            except FileNotFoundError:
-                add_attachment_list(part, b_attachments, part_num)
-                part_num += 1
-                rm_file(pgp_tmp)
-                b.append('PGP-Encrypted: ' + pgp_encrypt)
-                pgp_encrypt = ''
-                continue  # gpg がなければ何もしない
+            decrypt_tmp = TEMP_DIR + 'decrypt.tmp'
+            with open(pgp_tmp, 'w') as fp:
+                fp.write(part.get_payload(decode=False))
+            ret = run(['gpg', '--yes', '--output', decrypt_tmp, '--decrypt', pgp_tmp],
+                      stdout=PIPE, stderr=PIPE)
             b_v['pgp_result'] = ret.stdout.decode('utf-8') + '\n' + ret.stderr.decode('utf-8')
-            if ret.returncode:
-                b.append('PGP-Encrypted: ' + pgp_encrypt)
-                add_attachment_list(part, b_attachments, part_num)
-                # Content-Disposition: inline では表示したほうが良い
-            else:
+            if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
                 with open(decrypt_tmp, 'rb') as fp:
                     decrypt_msg = email.message_from_binary_file(fp)
                     content_text, content_html, html_count = print_content(
                             decrypt_msg, b, b_attachments, part_num,
                             content_text, content_html, html_count)
                 b.append('PGP-Decrypted: ' + pgp_encrypt)
+            if ret.returncode:  # 署名未検証/失敗は ret.returncode >= 1 なので else/elif ではだめ
+                if ret.returncode == 1:
+                    b.append('Bad-Signature: ' + pgp_encrypt)
+                else:
+                    b.append('Encrypt-File: ' + pgp_encrypt)
+                content_text += add_attachment_list(part, pre_part, b_attachments, -2, True)
             pgp_encrypt = ''
             rm_file(pgp_tmp)
             rm_file(decrypt_tmp)
-            part_num += 1
             continue
         if part.is_multipart():
+            part_num -= 1
             continue
         if part.get_content_disposition() == 'attachment':  # 先に判定しないと、テキストや HTML ファイルが本文扱いになる
             if part.get_content_type().find('application/pgp-encrypted') == 0:
                 pgp_encrypt = get_mail_context(part, 'utf-8', '')
                 continue
             else:
-                add_attachment_list(part, b_attachments, part_num)
+                content_text += add_attachment_list(part, pre_part, b_attachments, part_num, False)
         else:
             content_text, content_html, html_count = \
                 print_content(part, b, b_attachments, part_num,
                               content_text, content_html, html_count)
         pre_part = part  # 電子署名は直前の part との比較になる
-        part_num += 1
     b.append('')  # ヘッダと本文区切り
     if content_text != '':
         vim_append_content(content_text[1:])
@@ -1713,6 +1729,8 @@ def delete_attachment(args):
                 tmp_name, part_num, tmpdir = b_attachments[line]
                 if part_num == -1:
                     print_warring('The header is vertulal.')
+                elif part_num == -2:
+                    print_warring('This is encripted context.')
                 else:
                     del b_attachments[line]
                     line = int(line)-1
@@ -1740,17 +1758,24 @@ def delete_attachment(args):
         def delete_attachment_all(fname):  # text/plin, text/html 以外の全て添付ファイルを削除
             with open(fname, 'r') as fp:
                 msg_file = email.message_from_file(fp)
-            i = 0
             m_time = get_modified_date_form()
             deleted = False
+            can_delete = True
+            next_can_delete = True
             for part in msg_file.walk():
                 if part.is_multipart():
                     continue
                 content_type = part.get_content_type()
+                if part.get_content_type().find('application/pgp-encrypted') == 0:
+                    can_delete = False
+                    next_can_delete = False
+                else:  # 直前が application/pgp-encrypted だと application/oct stream でも削除しない
+                    can_delete = next_can_delete
+                    next_can_delete = True  # 次は削除して良い可能背有り
                 if content_type.find('text/plain') != 0 \
-                        and content_type.find('text/html') != 0:
+                        and content_type.find('text/html') != 0 \
+                        and can_delete:
                     deleted = deleted | delete_attachment_core(part, m_time)
-                i += 1
             if deleted:
                 with open(fname, 'w') as fp:
                     fp.write(msg_file.as_string())
