@@ -60,7 +60,9 @@ function s:new_buffer(type, search_term) abort
 		nnoremap <buffer><silent>s :Notmuch search<CR>
 	elseif a:type ==# 'thread' || a:type ==# 'search'
 		nnoremap <buffer><silent>a :Notmuch tag-add<CR>
+		vnoremap <buffer><silent>a :Notmuch tag-add<CR>
 		nnoremap <buffer><silent>A :Notmuch tag-delete<CR>
+		vnoremap <buffer><silent>A :Notmuch tag-delete<CR>
 		nnoremap <buffer><silent>C :Notmuch thread-connect<CR>
 		nnoremap <buffer><silent>d :Notmuch tag-toggle Trash<CR>:Notmuch tag-delete unread<CR>:normal! jzO<CR>
 		vnoremap <buffer><silent>d :Notmuch tag-toggle Trash<CR>:'<,'>Notmuch tag-delete unread<CR>:normal! `>0jzO<CR>
@@ -71,6 +73,7 @@ function s:new_buffer(type, search_term) abort
 		nnoremap <buffer><silent>s :Notmuch search<CR>
 		nnoremap <buffer><silent>S :Notmuch mail-save<CR>
 		nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:normal! jzO<CR>
+		vnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:normal! `>0jzO<CR>
 		nnoremap <buffer><silent>zn <Nop>
 	elseif a:type ==# 'show' || a:type ==# 'view'
 		nnoremap <buffer><silent>a :Notmuch tag-add<CR>
@@ -169,11 +172,6 @@ function s:set_thread() abort
 	let b:msg_id = ''
 	setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:tags}%=%4{line('w$')*100/line('$')}%%
 	setlocal nomodifiable tabstop=1 cursorline nowrap nolist signcolumn=yes foldmethod=expr foldlevel=0 nonumber foldminlines=1
-	augroup NotmuchMarkSign
-		autocmd!
-		" autocmd FileType notmuch-thread,notmuch-search highlight notmuchMark term=bold cterm=bold gui=bold ctermfg=red guifg=red
-		autocmd VimEnter,ColorScheme * highlight notmuchMark term=bold cterm=bold gui=bold ctermfg=red guifg=red
-	augroup END
 	sign define notmuch text=* texthl=notmuchMark
 	" setlocal foldopen=block,mark,search " グローバルにしか設定できない
 	if exists('g:notmuch_display_item')
@@ -511,7 +509,7 @@ function s:close_popup(id, key) abort
 endfunction
 
 function s:delete_tags(args) abort
-	py3 do_mail(delete_tags, delete_tags, vim.eval('a:args'))
+	py3 do_mail(delete_tags, vim.eval('a:args'))
 endfunction
 
 function s:complete_tag_common(func, cmdLine, cursorPos, direct_command) abort
@@ -556,7 +554,7 @@ function Complete_delete_tag_input(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function s:add_tags(args) abort
-	py3 do_mail(add_tags, add_tags, vim.eval('a:args'))
+	py3 do_mail(add_tags, vim.eval('a:args'))
 endfunction
 
 function Complete_add_tag_input(ArgLead, CmdLine, CursorPos) abort
@@ -564,7 +562,7 @@ function Complete_add_tag_input(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function s:toggle_tags(args) abort
-	py3 do_mail(toggle_tags, toggle_tags, vim.eval('a:args'))
+	py3 do_mail(toggle_tags, vim.eval('a:args'))
 endfunction
 
 function Complete_tag_input(ArgLead, CmdLine, CursorPos) abort
@@ -591,7 +589,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['mail-edit']        = ['s:open_original', 0]
 				let g:notmuch_command['mail-export']      = ['s:export_mail', 0]
 				let g:notmuch_command['mail-forward']     = ['s:forward_mail', 0]
-				let g:notmuch_command['mail-import']      = ['s:import', 0]
+				let g:notmuch_command['mail-import']      = ['s:import_mail', 0]
 				let g:notmuch_command['mail-info']        = ['s:view_mail_info', 0]
 				let g:notmuch_command['mail-move']        = ['s:move_mail', 1]
 				let g:notmuch_command['mail-reply']       = ['s:reply_mail', 0]
@@ -656,9 +654,6 @@ function s:start_notmuch() abort
 		call s:make_thread_list()
 		call win_gotoid(bufwinid(s:buf_num['folders']))
 	endif
-	" syntax の追加
-	syntax match UnreadFolder /^.\+ *\([1-9]\|[1-9]\+[0-9]\)\+\/ *[0-9]\+| *[0-9]\+ \[[^]]\+\]$/
-	highlight UnreadFolder gui=bold term=bold cterm=bold
 	" guifg=red ctermfg=red
 	" 次の変数は Python スクリプトを読み込んでしまえばもう不要←一度閉じて再び開くかもしれない
 	" unlet s:script_root s:script
@@ -843,7 +838,7 @@ function s:swich_buffer(bufnr) abort " できるだけ指定されたバッフ�
 endfunction
 
 function s:open_original(args) abort
-	py3 do_mail(open_original, open_original, vim.eval('a:args'))
+	py3 do_mail(open_original, vim.eval('a:args'))
 endfunction
 
 function s:set_atime_now() abort
@@ -954,7 +949,7 @@ function s:save_mail(args) abort
 endfunction
 
 function s:move_mail(args) abort
-	py3 do_mail(move_mail, move_mail, vim.eval('a:args'))
+	py3 do_mail(move_mail, vim.eval('a:args'))
 endfunction
 
 function Complete_Folder(ArgLead, CmdLine, CursorPos) abort
@@ -964,23 +959,23 @@ function Complete_Folder(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function s:run_shell_program(args) abort
-	py3 do_mail(run_shell_program, run_shell_program, vim.eval('a:args'))
+	py3 do_mail(run_shell_program, vim.eval('a:args'))
 endfunction
 
 function s:reindex_mail(args) abort
-	py3 do_mail(reindex_mail, reindex_mail, vim.eval('a:args'))
+	py3 do_mail(reindex_mail, vim.eval('a:args'))
 endfunction
 
-function s:import(args) abort
+function s:import_mail(args) abort
 	py3 import_mail()
 endfunction
 
 function s:delete_mail(args) abort
-	py3 do_mail(delete_mail, delete_mail, vim.eval('a:args'))
+	py3 do_mail(delete_mail, vim.eval('a:args'))
 endfunction
 
 function s:export_mail(args) abort
-	py3 do_mail(export_mail, export_mail, vim.eval('a:args'))
+	py3 do_mail(export_mail, vim.eval('a:args'))
 endfunction
 
 function s:delete_attachment(args) abort
@@ -1349,7 +1344,6 @@ function s:is_one_snippet(snippet) abort  " 補完候補が 1 つの場合を分
 endfunction
 
 " Command
-" command -nargs=? -complete=customlist,Complete_Folder     NotmuchMove             call s:move_mail(<f-args>)
 " command -nargs=* -complete=shellcmd                       NotmuchRunProgram       call s:run_shell_program(<f-args>)
 
 augroup NotmuchFileType
