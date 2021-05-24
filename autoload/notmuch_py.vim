@@ -413,10 +413,13 @@ function s:set_defaults() abort
 	endif
 	if exists('g:notmuch_attachment_tmpdir')
 		py3 ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'] + '/attach/'
-		py3 TEMP_DIR = vim.vars['notmuch_tmpdir'] + '/temp/'
 	else
 		execute "py3 ATTACH_DIR = '" . s:script_root . "/attach/'"
-		execute "py3 TEMP_DIR = '" . s:script_root . "/temp/'"
+	endif
+	if exists('g:notmuch_tmpdir')
+		py3 TEMP_DIR = vim.vars['notmuch_tmpdir'] + '/.temp/'
+	else
+		execute "py3 TEMP_DIR = '" . s:script_root . "/.temp/'"
 	endif
 
 if exists('g:notmuch_mailbox_type')
@@ -644,12 +647,18 @@ function s:start_notmuch() abort
 	if exists('g:notmuch_folder_format')
 		py3 FOLDER_FORMAT = vim.vars['notmuch_folder_format']
 	else
-		py3 set_folder_format()
+		if !py3eval('set_folder_format()')
+			messages
+			return
+		endif
 	endif
 	py3 get_subject_length()
 	execute 'cd ' . py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
+	if !exists('g:notmuch_open_way')
+		return
+	endif
 	if g:notmuch_open_way['thread'] !=? 'enew' && g:notmuch_open_way['thread'] !=? 'tabedit'
 		call s:make_thread_list()
 		call win_gotoid(bufwinid(s:buf_num['folders']))
@@ -737,7 +746,7 @@ function s:make_title() abort
 		let l:a = ' (' . tabpagenr() . ' of ' . l:tablist . ')'
 	endif
 	if &filetype =~# '^notmuch-'
-		let l:title = 'Notmuch-Python.vim'
+		let l:title = 'Notmuch-Python-Vim'
 	" elseif &filetype ==# 'notmuch-edit' " tabline を変えているので、こちらは変えない
 	" ↓s:set_title_etc() の autocmd も次に書き換えが必要になる
 	" autocmd BufEnter,BufFilePost,WinEnter * let &titlestring=s:make_title()
