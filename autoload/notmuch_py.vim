@@ -68,7 +68,7 @@ function s:new_buffer(type, search_term) abort
 		vnoremap <buffer><silent>d :Notmuch tag-toggle Trash<CR>:'<,'>Notmuch tag-delete unread<CR>:normal! `>0jzO<CR>
 		nnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 		vnoremap <buffer><silent>D :Notmuch attach-delete<CR>
-		nnoremap <buffer><silent>o :normal! zA<CR>
+		nnoremap <buffer><silent>o :Notmuch thread-toggle<CR>
 		nnoremap <buffer><silent>O :Notmuch open<CR>
 		nnoremap <buffer><silent>s :Notmuch search<CR>
 		nnoremap <buffer><silent>S :Notmuch mail-save<CR>
@@ -614,6 +614,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['tag-toggle']       = ['s:toggle_tags', 1]
 				let g:notmuch_command['thread-connect']   = ['s:connect_thread', 0]
 				let g:notmuch_command['thread-cut']       = ['s:cut_thread', 0]
+				let g:notmuch_command['thread-toggle']    = ['s:toggle_thread', 0]
 				"}}}
 				call s:start_notmuch()
 			elseif l:sub_cmd ==# 'mail-new'
@@ -1349,6 +1350,24 @@ function s:is_one_snippet(snippet) abort  " 補完候補が 1 つの場合を分
 		return [l:snippet]
 	else
 		return [ l:snippet . ' ' ]
+	endif
+endfunction
+
+function s:toggle_thread(args) abort
+	if foldclosed(line('.')) == -1
+		let s:seletc_thread = line('.')
+		normal! zC
+		call cursor(foldclosed(s:seletc_thread), 1)
+	else
+		if exists('s:seletc_thread')
+			let l:seletc_thread = line('.')
+			if l:seletc_thread <= foldclosedend(l:seletc_thread) && l:seletc_thread >= foldclosed(l:seletc_thread)
+				call cursor(s:seletc_thread, 1)
+			else
+				call cursor(foldclosedend(l:seletc_thread), 1)
+			endif
+		endif
+		normal! zO
 	endif
 endfunction
 

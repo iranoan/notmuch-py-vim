@@ -988,7 +988,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         if encoding == '8bit':
             return part.get_payload()
         else:
-            return part.get_payload(decode=True).decode(charset, 'ignore')
+            try:
+                return part.get_payload(decode=True).decode(charset, 'ignore')
+            except LookupError:
+                print_warring('unknon encoding ' + charset + '.')
+                return part.get_payload()
 
     def print_attach_header(header, name):
         # 添付ファイル削除の有無を調べる もっと効率よい方法はないものか?
@@ -1743,7 +1747,7 @@ def delete_attachment(args):
         part.set_payload(header)
         return True
 
-    def delete_attachment_in_show():
+    def delete_attachment_in_show(args):
         def delete_attachment_only_part(fname, part_num):  # part_num 番目の添付ファイルを削除
             with open(fname, 'r') as fp:
                 msg_file = email.message_from_file(fp)
@@ -1768,7 +1772,8 @@ def delete_attachment(args):
         if msg_id == '':
             return
         DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
-        for i in args:
+        args = [int(s) for s in args[0:2]]
+        for i in range(args[0], args[1]+1):
             line = str(i)
             b = vim.current.buffer
             b_attachments = b.vars['notmuch_attachments']
@@ -1861,7 +1866,7 @@ def delete_attachment(args):
     if bufnr == vim.bindeval('s:buf_num["show"]') \
         or (vim.bindeval('exists(\'s:buf_num["view"]["' + search_term + '"]\')')
             and bufnr == vim.bindeval('s:buf_num["view"]["' + search_term + '"]')):
-        delete_attachment_in_show()
+        delete_attachment_in_show(args)
     elif bufnr == vim.bindeval('s:buf_num["thread"]') \
         or (vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')')
             and bufnr == vim.bindeval('s:buf_num["search"]["' + search_term + '"]')):
@@ -2522,6 +2527,9 @@ def reply_mail():  # 返信メールの作成
         exist = False
         dup = ''
         for x in x_ls:
+            if 'undisclosed recipients:;' == x.lower():
+                x_ls.remove(x)
+        for x in x_ls:
             if email2only_address(x) in y_ls:
                 if not exist:
                     dup = x.strip()
@@ -2529,15 +2537,22 @@ def reply_mail():  # 返信メールの作成
                 x_ls.remove(x)
         return exist, dup
 
-    def address2ls(address):  # To, Cc ヘッダのアドレス群をリストに
-        if address == '':
+    def address2ls(adr):  # To, Cc ヘッダのアドレス群をリストに
+        if adr == '':
             return []
-        address = address.split(',')
-        for i, x in enumerate(address):
-            if x.count('"') == 1 and x.count('@') == 0 and address[i+1].count('"') == 1:
-                address[i] = x+','+address[i+1]
-                del address[i+1]
-        return address
+        adr_ls = []
+        # ヘッダの「名前+アドレス」は " に挟まれた部分と、コメントの () で挟まれた部分以外では、, が複数個の区切りとなる
+        # また " で挟まれた部分も、() で挟まれた部分も \ がエスケープ・キャラクタ
+        for x in re.finditer(r'("(\\"|[^"])*"|\((\\\(|\\\)|[^()])*\)|[^,])+', adr):
+            adr_ls.append(re.sub(r'\s*(.+)\s*', r'\1', x.group()))
+        return adr_ls
+        # 以下以前のバージョン
+        # adr = adr.split(',')
+        # for i, x in enumerate(adr):
+        #     if x.count('"') == 1 and x.count('@') == 0 and adr[i+1].count('"') == 1:
+        #         adr[i] = x+','+adr[i+1]
+        #         del adr[i+1]
+        # return adr
 
     active_win, msg_id = check_org_mail()
     if not active_win:
