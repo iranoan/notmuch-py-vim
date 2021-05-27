@@ -1009,7 +1009,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         signature = ''
         inline = g_inline | is_inline(part)
         if pgp:
-            header = 'Bad-Encrypted: '
+            header = 'Encrypt-File: '
             if inline:
                 signature = part.get_payload()
         elif part.get_content_type().find('application/pgp-signature') != 0:
@@ -1171,7 +1171,6 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         part_num += 1
         if pgp_encrypt != '':
             if shutil.which('gpg') is None:
-                b.append('Encrypt-File: ' + pgp_encrypt)
                 content_text += add_attachment_list(-2, True)
                 pgp_encrypt = ''
                 continue
@@ -1194,7 +1193,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if ret.returncode == 1:
                     b.append('Bad-Signature: ' + pgp_encrypt)
                 else:
-                    b.append('Encrypt-File: ' + pgp_encrypt)
+                    b.append('PGP-Encrypted: ' + pgp_encrypt)
                 content_text += add_attachment_list(-2, True)
             pgp_encrypt = ''
             rm_file(pgp_tmp)
@@ -1653,11 +1652,23 @@ def get_attach_info(line):
 
 
 def open_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位置の添付ファイルを開く
+    def same_attach(fname):
+        fname = fname.decode('utf-8')
+        for i, ls in vim.current.buffer.vars['notmuch_attachments'].items():
+            name = ls[0].decode('utf-8')
+            if fname == name:
+                return get_attach_info(i.decode())
+        return None, None, None, None
+
     args = [int(s) for s in args]
     for i in range(args[0], args[1]+1):
         filename, attachment, decode, full_path = get_attach_info(i)
         if filename is None:
-            return
+            filename, attachment, decode, full_path = same_attach(vim.bindeval('expand("<cfile>>")'))
+            if filename is None:
+                if b'open' in vim.vars['notmuch_open_way'].keys():
+                    vim.command(vim.vars['notmuch_open_way']['open'])
+                return
         print('')  # もし下記の様な print_warning を出していればそれを消す
         if attachment is not None or decode is not None:
             if not os.path.isdir(full_path):
@@ -2292,7 +2303,10 @@ def send_str(msg_data):  # 文字列をメールとして保存し設定従い�
         # ファイル末尾の連続する改行は一旦全て削除
         mail_context = re.sub(r'\n+$', '', msg_data[match.end():])
         mail_context = re.sub(r'^\n+', '', mail_context) + '\n'  # 本文最初の改行は全て削除し、最後に改行追加
-    if re.search(r'^Attach:\s*[^\s]+', headers, re.MULTILINE) is None:
+    flag_attach = re.search(r'^Attach:\s*[^\s]+', headers, re.MULTILINE + re.IGNORECASE) is None
+    flag_encypt = re.search(r'^Encrypt:\s*[^\s]+', headers, re.MULTILINE + re.IGNORECASE) is None
+    flag_sig = re.search(r'^Signature:\s*[^\s]+', headers, re.MULTILINE + re.IGNORECASE) is None
+    if not (flag_attach or flag_encypt or flag_sig):
         attachments = None
         for charset in SENT_CHARSET:
             try:

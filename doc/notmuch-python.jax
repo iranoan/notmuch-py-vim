@@ -175,14 +175,14 @@ Vim packadd >
 |{S-WIN}|
 	* まず先頭に |g:notmuch_show_headers|、次に |g:notmuch_show_hide_headers|
 		に従いヘッダを表示する
-	* それに続いて、次の仮想的ヘッダを表示
+	* それに続いて、次の仮想的ヘッダを表示           *notmuch_virtual_haeder*
 			----------------+---------------------------------------------------~
 			追加するヘッダ	| 意味 ~
 			----------------+---------------------------------------------------~
 			PGP-Encrypted:	| 暗号化メール (Version. 1 などの記載)
 			PGP-Decrypted:	| 暗号化メールを復号化した時 (Version. 1 などの記載)
 			Encrypt-File:		| 暗号化メール復号ししていない時、そのファイル名
-			Bad-Signature:	| 署名の検証には失敗した時、そのファイル名
+			Bad-Signature:	| 暗号化メールの署名検証に失敗した時、そのファイル名
 			Signature:			| 電子署名ファイル (署名の検証はまだ未対応)
 			HTML:						| HTML メール (ファイル名の代わりに index.html)
 			Attach:					| 添付ファイル名 (添付ファイル数だけ)
@@ -419,14 +419,14 @@ g:notmuch_folder_format                               *g:notmuch_folder_format*
 g:notmuch_folders                                    *g:notmuch_folders*
 	Type: |List|
 	Default:`[
-		\ [ 'new',       'tag:inbox and tag:unread' ],
+		\ [ 'new',       '(tag:inbox and tag:unread)' ],
 		\ [ 'inbox',     'tag:inbox' ],
 		\ [ 'unread',    'tag:unread' ],
 		\ [ 'attach',    'tag:attachment' ],
 		\ [ '6 month',   'date:183days..now'],
 		\ [ '',          '' ],
 		\ [ 'All',       'folder:/./' ],
-		\ [ 'Trash',     'folder:.Trash or folder:Trash or tag:Trash' ],
+		\ [ 'Trash',     '(folder:.Trash or folder:Trash or tag:Trash)' ],
 		\ [ 'New Search','' ],
 		\ ]
 
@@ -447,7 +447,7 @@ g:notmuch_from                                       *g:notmuch_from*
 	Type: |List|
 	Default: `[]`
 
-	* 送信メールで本部分にカーソル移動した時に、From ヘッダが空の時に書き込む内容
+	* 送信メールで本部分にカーソル移動した時、From ヘッダが空の時に書き込む内容
 	* `[]` だと Notmuch の user.primary_email 設定 (~/.notmuch_config の次
 		のような記載部分) が使われる >
 			[user]
@@ -538,9 +538,12 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 							| search-thread (|notmuch-python-vim-search-thread|)
 			edit		| mail-edit (|notmuch-python-vim-mail-edit|)
 			view		| search/search-thread とペアになる |{S-WIN}|
+			open		| |{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
+							| に最後に試みるコマンド
+							| - URL を開くなど好みのコマンドを指定可能
 			--------+--------------------------------------------------~
-		- 値に指定できるのは、'new', 'vnew', 'tabedit', 'enew' と 'rightbelow',
-			'belowright', 'topleft', 'botright' 及び数値の組み合わせのみ
+		- open 以外で値に指定できるのは、'new', 'vnew', 'tabedit', 'enew' と
+			'rightbelow', 'belowright', 'topleft', 'botright' と数の組み合わせのみ
 	* Default の ?? は、デフォルト・レイアウト (|nomuch-python-vim-layout|) が
 		次を満たすように計算される
 			|{F-WIN}|	|g:notmuch_folders| の見出しだけ表示し |search-term| が隠れる
@@ -868,9 +871,13 @@ open
 	各種バッファや添付ファイルを開く
 		|{F-WIN}|	カーソル位置の条件で |{T-WIN}| を開きアクティブにする
 		|{T-WIN}|	カーソル位置のメールを |{S-WIN}| で開きアクティブにする
-		|{S-WIN}|	カーソル位置が Attach ヘッダなら、その添付ファイルを開く
 							新たなメールが開かれた時にメール末尾まで表示されていれば、
 							メールを既読に (unread タグを削除) する
+		|{S-WIN}|	* カーソル位置が Attach 等のヘッダ (|notmuch_virtual_haeder|)
+								なら、その添付ファイルを開く
+							* ヘッダでない本文部分で添付ファイル名ならそれを開く
+							* 添付ファイル名でもなく、|g:notmuch_open_way| の open キーに設
+								定があれば、それを実行する
 
                                             *notmuch-python-vim-view-previous*
 view-previous
@@ -915,7 +922,7 @@ search [|search-term|]
 		- この指定でも空だとキャンセルになる
 	* 実行時のコマンドラインにデフォルトで表示される |search-term| は
 			|{F-WIN}|		枠のカーソル位置に対応する |g:notmuch_folders| の |search-term|
-			|{T-WIN}|/|{S-WIN}| メールに対応した |search-term| になる
+			|{T-WIN}|/|{S-WIN}| メールに対応した |search-term|
 	* 検索の結果ヒットするメールがなければ、メッセージを表示のみおこない、|{T-WIN}|
 		を開かない
 
@@ -965,7 +972,9 @@ thread-cut
                                             *notmuch-python-vim-thread-toggle*
 thread-toggle
 	* メールのスレッドを開閉する
-	* 閉じた時はスレッドの先頭を、開いた時はできるだけ直前のメールを選択
+	* 閉じた時はスレッドの先頭選択
+	* 開いた時はできるだけ直前のメールを選択、適当なメールがない時は、同一スレッ
+		ド内の最後のメールを選択
 
 ==============================================================================
 作成動機                                           *notmuch-python-vim-how-make*
@@ -988,9 +997,9 @@ thread-toggle
 		will be removed in Mail 2.8.0. Use Mail::Field.parse instead.”と警告が出る
 		(メンテナンスされていない?)
 
-他のクライアントとしては、Mutt の vertial-folder だと
+他のクライアントとしては、Mutt の virtual-folder だと
 	* メールの移動が反映されない
-	* 未読等の情報が他の vertial-folder へ直ちに反映されない
+	* 未読等の情報が他の virtual-folder へ直ちに反映されない
 	* 返信メールをその返信元と同じフォルダに自動で入れる処理が面倒
 	* 送信メール編集中に他のメッセージを表示できない/煩雑
 
@@ -1056,13 +1065,19 @@ TODO                                                 *notmuch-python-vim-todo*
 * mark-command (|notmuch-python-vim-mark-command|) の区切りに <NL> (<C-V><C-J>)
 	も可能した
 	- |:bar| に有るように元々 <NL> で '|' で代わりにできるため
-2021/05/25 Ver.0.56
+2021/05/27 Ver.0.56
 * バグ修正
 	- |{S-WIN}| で複数選択したときの添付ファイル削除が選択した最初と最後のみの削
 		除になっていた
+	- 暗号化メールののヘッダ (|notmuch_virtual_haeder|) でドキュメントと実際の表示
+		に齟齬が有った
 * Content-Type: text/???; charset= が存在しない/Python 未対応の文字セットの時、
 	エラーではなく警告を出し、文字化けになってもそのまま表示に変更
 * スレッドの開閉には thread-toggle (|notmuch-python-vim-thread-toggle|) を作成し
 	キーマップ (o) しなおし
+* |{S-WIN}| での open (|notmuch-python-vim-open|) 使用時、本文部分で
+	- 添付ファイル名ならそれを開く
+	- そうでなければ |g:notmuch_open_way| の open キーの値を実行する
+
 
 vim:tw=78:ts=2:ft=help:norl:noet:fen:

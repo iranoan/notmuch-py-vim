@@ -271,43 +271,28 @@ function s:open_mail() abort
 	py3 open_mail(vim.eval('l:search_term'), vim.bindeval('l:mail_index'), vim.eval('l:buf_num'))
 endfunction
 
-function! s:set_open_way(len) abort
+function s:set_open_way(len) abort
+	let l:max_len = &columns - a:len
+	let l:height = &lines * 30 / 40 " スレッドは1/4
+	" ただし最低5件は表示する
+	let l:tab_status = 7 + (&showtabline != 0) + (&laststatus != 0)
+	if &lines - l:height < l:tab_status
+		let l:height = &lines - l:tab_status
+	endif
 	if !exists('g:notmuch_open_way')
-		" 設定がなければ、フォルダ・リストに表示する文字列長や columns/lines に依存させる
-		" let l:max_len = 0
-		" for l:folder in g:notmuch_folders
-		" 	let l:length = strchars(l:folder[0])
-		" 	if l:length > l:max_len
-		" 		let l:max_len = l:length
-		" 	endif
-		" endfor
-		" let l:max_len += 1 + 3 + 1 + 5 + 1 + 3 + 1 + 1 " 左側のフォルダ・リストはメールの未読3桁、総数5桁、フラグ3桁想定し、それ以外の1は区切り
-		let l:max_len = &columns - a:len
-		let l:height = &lines * 30 / 40 " スレッドは1/4
-		" ただし最低5件は表示する
-		let l:tab_status = 7 + (&showtabline != 0) + (&laststatus != 0)
-		if &lines - l:height < l:tab_status
-			let l:height = &lines - l:tab_status
-		endif
-		let g:notmuch_open_way = {
-			\ 'folders'    : 'tabedit',
-			\ 'thread'     : 'rightbelow ' . l:max_len . 'vnew',
-			\ 'show'       : 'belowright ' . height . 'new',
-			\ 'edit'       : 'tabedit' ,
-			\ 'draft'      : 'tabedit' ,
-			\ 'search'     : 'tabedit' ,
-			\ 'view': 'belowright ' . height . 'new',
-			\ }
-	else " 設定が有れば new, vnew, tabedit, enew 限定
-		let l:settables = ['new', 'vnew', 'tabedit', 'enew', 'rightbelow', 'belowright', 'topleft', 'botright']
-		for l:k in values(g:notmuch_open_way)
-			if match(l:k, '\(enew\|tabedit\)') != -1 && l:k !=# 'enew' && l:k !=# 'tabedit'
+		let g:notmuch_open_way = {}
+	endif
+	" 設定が有れば new, vnew, tabedit, enew 限定
+	let l:settables = ['new', 'vnew', 'tabedit', 'enew', 'rightbelow', 'belowright', 'topleft', 'botright']
+	for [l:k, l:v] in items(g:notmuch_open_way)
+		if l:k !=# 'open'
+			if match(l:v, '\(enew\|tabedit\)') != -1 && l:v !=# 'enew' && l:v !=# 'tabedit'
 				echohl WarningMsg
 							\ | echomsg "For g:notmuch_open_way, if the setting is 'tabedit/enew', no other words/spaces can\'t be included."
 							\ | echohl Non | echo ''
 				return v:false
 			endif
-			let l:ways = split(substitute(l:k, '[0-9 ]\+', ' ','g'))
+			let l:ways = split(substitute(l:v, '[0-9 ]\+', ' ','g'))
 			for l:settable in l:settables
 				let l:index = match(l:ways, l:settable)
 				if l:index != -1
@@ -320,7 +305,20 @@ function! s:set_open_way(len) abort
 							\ | echohl Non | echo ''
 				return v:false
 			endif
-		endfor
+		endif
+	endfor
+	call s:set_default_open_way('folders', 'tabedit',)
+	call s:set_default_open_way('thread' , 'rightbelow ' . l:max_len . 'vnew')
+	call s:set_default_open_way('show'   , 'belowright ' . height . 'new')
+	call s:set_default_open_way('edit'   , 'tabedit')
+	call s:set_default_open_way('draft'  , 'tabedit')
+	call s:set_default_open_way('search' , 'tabedit')
+	call s:set_default_open_way('view'   , 'belowright ' . height . 'new')
+endfunction
+
+function s:set_default_open_way(key, value) abort
+	if !has_key(g:notmuch_open_way,a:key)
+		let g:notmuch_open_way[a:key] = a:value
 	endif
 endfunction
 
@@ -328,14 +326,14 @@ function s:set_defaults() abort
 	let g:notmuch_save_draft = get(g:, 'notmuch_save_draft', 0)  " 下書きを一部書き換えたファイルを送信済みとして保存するか?
 	let g:notmuch_save_sent_mailbox = get(g:, 'notmuch_save_sent_mailbox', 'sent')
 	let g:notmuch_folders = get(g:, 'notmuch_folders', [
-				\ [ 'new',       'tag:inbox and tag:unread' ],
+				\ [ 'new',       '(tag:inbox and tag:unread)' ],
 				\ [ 'inbox',     'tag:inbox' ],
 				\ [ 'unread',    'tag:unread' ],
 				\ [ 'attach',    'tag:attachment' ],
 				\ [ '6 month',   'date:183days..now'],
 				\ [ '',          '' ],
 				\ [ 'All',       'folder:/./' ],
-				\ [ 'Trash',     'folder:.Trash or folder:Trash or tag:Trash' ],
+				\ [ 'Trash',     '(folder:.Trash or folder:Trash or tag:Trash)' ],
 				\ [ 'New Search','' ],
 				\ ]
 				\ )
@@ -1354,14 +1352,16 @@ function s:is_one_snippet(snippet) abort  " 補完候補が 1 つの場合を分
 endfunction
 
 function s:toggle_thread(args) abort
-	if foldclosed(line('.')) == -1
+	let l:seletc_thread = line('.')
+	if foldclosed(l:seletc_thread) == -1
 		let s:seletc_thread = line('.')
 		normal! zC
-		call cursor(foldclosed(s:seletc_thread), 1)
+		if foldclosed(l:seletc_thread) != -1  " 直前で再帰的に閉じたのに -1 なら単一メールのスレッド
+			call cursor(foldclosed(s:seletc_thread), 1)
+		endif
 	else
 		if exists('s:seletc_thread')
-			let l:seletc_thread = line('.')
-			if l:seletc_thread <= foldclosedend(l:seletc_thread) && l:seletc_thread >= foldclosed(l:seletc_thread)
+			if s:seletc_thread <= foldclosedend(l:seletc_thread) && s:seletc_thread >= foldclosed(l:seletc_thread)
 				call cursor(s:seletc_thread, 1)
 			else
 				call cursor(foldclosedend(l:seletc_thread), 1)
