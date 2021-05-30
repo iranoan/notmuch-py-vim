@@ -667,6 +667,10 @@ function s:start_notmuch() abort
 	" unlet s:script_root s:script
 endfunction
 
+function s:vim_escape(s) abort " Python に受け渡す時に \, ダブルクォートをエスケープ
+	return substitute(substitute(a:s, '\\', '\\\\', 'g'), '''', '\\\''', 'g')
+endfunction
+
 function! MakeGUITabline() abort
 	let l:bufnrlist = tabpagebuflist(v:lnum)
 	" ウィンドウが複数あるときにはその数を追加する
@@ -700,7 +704,7 @@ function! MakeGUITabline() abort
 				return '%N| ' . l:label . '%{b:subject} %{b:date}'
 			endif
 		elseif &filetype ==# 'notmuch-view' && has_key(l:vars, 'search_term')
-			if py3eval('is_same_tabpage("search", "'. b:search_term . '")')
+			if py3eval('is_same_tabpage("search", '''. s:vim_escape(b:search_term) . ''')')
 				return '%N| notmuch [' . b:search_term . ']%<'
 			else
 				return '%N| ' . l:label . '%{b:subject} %{b:date}'
@@ -733,7 +737,7 @@ function s:set_title_etc() abort
 		augroup END
 	endif
 	if has('gui_running') && &showtabline != 0 " && &guitablabel ==# ''
-			set guitablabel=%!MakeGUITabline()
+		set guitablabel=%!MakeGUITabline()
 	endif
 endfunction
 
@@ -896,7 +900,7 @@ function s:cursor_move_thread(search_term) abort
 	endif
 	py3 change_buffer_vars()
 	" call s:fold_open() " ←どんな時に展開すると便利か?
-	if py3eval('is_same_tabpage("show", "")') || py3eval('is_same_tabpage("view", "' . a:search_term . '")')
+	if py3eval('is_same_tabpage("show", "")') || py3eval('is_same_tabpage("view", ''' . s:vim_escape(a:search_term) . ''')')
 		echo ''
 		" ↑エラーなどのメッセージをクリア
 		call s:open_mail()

@@ -361,7 +361,7 @@ def initialize():
         return
     else:  # notmuch new の結果をクリア←redraw しないとメッセージが表示されるので、続けるためにリターンが必要
         if VIM_MODULE:
-            vim.command("redraw")
+            vim.command('redraw')
     make_dir(ATTACH_DIR)
     make_dir(TEMP_DIR)
     rm_file(ATTACH_DIR)
@@ -468,7 +468,7 @@ def make_thread_core(search_term):
     threadlist.sort(key=attrgetter('_newest_date'))
     THREAD_LISTS[search_term] = threadlist
     if VIM_MODULE:
-        vim.command("redraw")
+        vim.command('redraw')
     return True
 
 
@@ -495,7 +495,7 @@ def make_thread_core_multi(search_term):  # 作りかけ
     ls.sort(key=attrgetter('_newest_date'))
     THREAD_LISTS[search_term] = ls
     if VIM_MODULE:
-        vim.command("redraw")
+        vim.command('redraw')
 
 
 def make_single_thread(thread, search_term):
@@ -584,7 +584,7 @@ def print_folder():  # vim から呼び出された時にフォルダ・リス�
         DBASE.open(PATH)
     except NameError:
         return
-    b = vim.buffers[vim.bindeval('s:buf_num["folders"]')]
+    b = vim.buffers[vim.bindeval('s:buf_num')['folders']]
     b.options['modifiable'] = 1
     b[:] = None
     for folder_way in vim.vars['notmuch_folders']:
@@ -603,7 +603,7 @@ def print_folder():  # vim から呼び出された時にフォルダ・リス�
 
 def reprint_folder():
     # フォルダ・リストの再描画 (print_folder() の処理と似ているが、b[:] = None して書き直すとカーソル位置が変わる)
-    b = vim.buffers[vim.bindeval('s:buf_num["folders"]')]
+    b = vim.buffers[vim.bindeval('s:buf_num')['folders']]
     b.options['modifiable'] = 1
     for i, folder_way in enumerate(vim.vars['notmuch_folders']):
         folder = folder_way[0].decode()
@@ -657,7 +657,7 @@ def open_thread(line, select_unread, remake):  # フォルダ・リストから�
     folder, search_term = vim.vars['notmuch_folders'][line - 1]
     folder = folder.decode()
     search_term = search_term.decode()
-    b_num = vim.bindeval('s:buf_num["thread"]')
+    b_num = vim.bindeval('s:buf_num')['thread']
     if folder == '':
         vim.command('call sign_unplace("mark_thread", {"name": "notmuch", "buffer": ' + str(b_num) + ', })')
         b = vim.buffers[b_num]
@@ -756,22 +756,27 @@ def change_buffer_vars_core():
         b_v['tags'] = get_msg_tags(DBASE.find_message(msg_id))
 
 
+def vim_escape(s):  # Vim と文字列をやり取りする時に、' をエスケープする
+    # return s.replace('\\', '\\\\').replace("'", "''")
+    return s.replace("'", "''")
+
+
 def is_same_tabpage(kind, search_term):
     # おそらく vim.current.tabpage.number と比較する必要はないけど win_id2tabwin() の仕様変更などが起きた時用に念の為
+    if not (kind in vim.bindeval('s:buf_num')):
+        return False
     if kind == 'folders' or kind == 'thread' or kind == 'show':
-        if not vim.bindeval('exists(\'s:buf_num["' + kind + '"]\')'):
-            return False
-        return vim.bindeval('win_id2tabwin(bufwinid(s:buf_num["' + kind + '"]))')[0] == \
-            vim.current.tabpage.number
+        return vim.bindeval('win_id2tabwin(bufwinid(s:buf_num["' +
+                            kind + '"]))')[0] == vim.current.tabpage.number
+    # kind == search or view
+    elif search_term == '':
+        return False
     else:
-        # print(type(search_term))
-        # if type(search_term) is bytes:
-        #     search_term = search_term.decode()
-        if not vim.bindeval('exists(\'s:buf_num["' + kind + '"]["' + search_term + '"]\')'):
+        if not (search_term in vim.bindeval('s:buf_num')[kind]):
             return False
-        return vim.bindeval(
-            'win_id2tabwin(bufwinid(s:buf_num["' + kind + '"]["' + search_term + '"]))')[0] == \
-            vim.current.tabpage.number
+        return vim.bindeval('win_id2tabwin(bufwinid(' +
+                            str(vim.bindeval('s:buf_num')[kind][search_term]) +
+                            '))')[0] == vim.current.tabpage.number
 
 
 def reload_show():
@@ -803,7 +808,7 @@ def reload_thread():
     # else:  # 開いていれば notmuch-show を一旦空に←同一タブページの時は vim script 側メールを開くので不要
     # ただし、この関数内でその処理をすると既読にしてしまいかねないので、ここや print_thread() ではやらない
     if b[0] == '':  # リロードの結果からのスレッド空←スレッドなので最初の行が空か見れば十分
-        if vim.bindeval('exists(\'s:buf_num["show"]\')'):
+        if 'show' in vim.bindeval('s:buf_num'):
             empty_show()
         return
     # ウィンドウ下部にできるだけ空間表示がない様にする為一度最後のメールに移動後にウィンドウ最下部にして表示
@@ -831,7 +836,7 @@ def reload_thread():
 def reopen(kind, search_term):  # スレッド・リスト、メール・ヴューを開き直す
     if kind == 'search':  # or kind == 'view':
         search_term = search_term.decode()
-    vim.command('call s:change_exist_tabpage("' + kind + '", "' + search_term + '")')
+    vim.command('call s:change_exist_tabpage("' + kind + '", \'' + vim_escape(search_term) + '\')')
     # 他のタプページにもなかった
     if kind == 'search' or kind == 'view':
         buf_num = vim.eval('s:buf_num')[kind][search_term]
@@ -859,7 +864,7 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
         elif kind == 'search':
             open_way = vim.vars['notmuch_open_way']['view'].decode()
             if open_way != 'enew' and open_way != 'tabedit':
-                vim.command('call s:make_view("' + search_term + '")')
+                vim.command('call s:make_view(\'' + vim_escape(search_term) + '\')')
         vim.command('call win_gotoid(bufwinid(' + buf_num + '))')
 
 
@@ -1001,7 +1006,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         if len(part.as_string()) > 1:  # 中身が残っているので添付ファイル未削除
             b_attachments[vim.eval('line("$")')] = [name, part_num, '']
         else:
-            header = "Del-" + header
+            header = 'Del-' + header
         vim.current.buffer.append(header+name)
 
     def add_attachment_list(part_num, pgp):  # 添付ファイルのリストに追加
@@ -1094,6 +1099,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         disposition = part.get_all('Content-Disposition')
         if disposition is not None:
             for d in disposition:
+                if type(d) != 'str':
+                    continue
                 if d.find('inline') != -1:
                     return True
         return False
@@ -1104,12 +1111,12 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         thread_b_v['pgp_result'] = result
 
     not_search = vim.current.buffer.number
-    not_search = vim.bindeval('s:buf_num["thread"]') == not_search \
-        or vim.bindeval('s:buf_num["show"]') == not_search
+    not_search = vim.bindeval('s:buf_num')['thread'] == not_search \
+        or vim.bindeval('s:buf_num')['show'] == not_search
     if not_search:
-        thread_b_v = vim.buffers[vim.bindeval('s:buf_num["thread"]')].vars
+        thread_b_v = vim.buffers[vim.bindeval('s:buf_num')['thread']].vars
     else:
-        thread_b_v = vim.buffers[vim.bindeval('s:buf_num["search"]["' + search_term + '"]')].vars
+        thread_b_v = vim.buffers[vim.bindeval('s:buf_num')['search'][search_term]].vars
     # :+17 に書いた通り、この方はうまくいかないケースが有る
     # subject = thread_b_v['subject']
     # date = thread_b_v['date']
@@ -1118,11 +1125,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     if not_search:
         vim.command('call s:make_show()')
     else:
-        vim.command('call s:make_view("' + search_term + '")')
+        vim.command('call s:make_view(\'' + vim_escape(search_term) + '\')')
     b = vim.current.buffer
     b_v = b.vars
     if msg_id == '' or (mail_reload is False and msg_id == b_v['msg_id'].decode()):
-        vim.command("call win_gotoid(bufwinid("+active_win+"))")
+        vim.command('call win_gotoid(bufwinid('+active_win+'))')
         return
     # 以下実際の描画
     b.options['modifiable'] = 1
@@ -1139,7 +1146,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b.append('Already all mail file delete.')
         del b[0]
         b.options['modifiable'] = 0
-        vim.command("call win_gotoid(bufwinid("+active_win+"))")
+        vim.command('call win_gotoid(bufwinid('+active_win+'))')
         vim.command('redrawstatus!')
         return
     vim.options['guitabtooltip'] = 'tags['+get_msg_tags(msg)+']'
@@ -1236,12 +1243,12 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         msg = change_tags_before_core(msg.get_message_id())
         delete_msg_tags(msg, ['unread'])
         change_tags_after_core(msg, True)
-    vim.command("call win_gotoid(bufwinid("+active_win+"))")
+    vim.command('call win_gotoid(bufwinid('+active_win+'))')
     vim.command('redrawstatus!')
 
 
 def empty_show():
-    b = vim.buffers[vim.bindeval('s:buf_num["show"]')]
+    b = vim.buffers[vim.bindeval('s:buf_num')['show']]
     b.options['modifiable'] = 1
     b[:] = None
     b.options['modifiable'] = 0
@@ -1256,11 +1263,11 @@ def empty_show():
 
 
 def get_msg_id():  # notmuch-thread, notmuch-show で Message_ID 取得
+    if not ('buf_num' in vim.bindeval('s:')):  # Notmuch mail-new がいきなり呼び出された時
+        return ''
     b = vim.current.buffer
     bufnr = b.number
-    if not vim.bindeval('exists(\'s:buf_num\')'):  # Notmuch mail-new がいきなり呼び出された時
-        return ''
-    if bufnr == vim.bindeval('s:buf_num["folders"]') or vim.current.buffer[0] == '':
+    if bufnr == vim.bindeval('s:buf_num')['folders'] or vim.current.buffer[0] == '':
         # ↑notmuch-folder に加えて、その以外の notmuch-??? は最初の行が空なら全体が空
         return ''
     try:
@@ -1269,14 +1276,14 @@ def get_msg_id():  # notmuch-thread, notmuch-show で Message_ID 取得
         return ''
     if search_term == '':  # search_term が空ならスレッドやメール本文を開いていない
         return ''
-    if (vim.bindeval('exists(\'s:buf_num["show"]\')')
-        and bufnr == vim.bindeval('s:buf_num["show"]')) \
-        or (vim.bindeval('exists(\'s:buf_num["view"]["' + search_term + '"]\')')
-            and bufnr == vim.bindeval('s:buf_num["view"]["' + search_term + '"]')):
+    if ('show' in vim.bindeval('s:buf_num')
+        and bufnr == vim.bindeval('s:buf_num')['show']) \
+        or (search_term in vim.bindeval('s:buf_num')['view']
+            and bufnr == vim.bindeval('s:buf_num')['view'][search_term]):
         return b.vars['msg_id'].decode()
-    elif bufnr == vim.bindeval('s:buf_num["thread"]') \
-        or (vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')')
-            and bufnr == vim.bindeval('s:buf_num["search"]["' + search_term + '"]')):
+    elif bufnr == vim.bindeval('s:buf_num')['thread'] \
+        or (search_term in vim.bindeval('s:buf_num')['search']
+            and bufnr == vim.bindeval('s:buf_num')['search'][search_term]):
         return THREAD_LISTS[search_term][vim.current.window.cursor[0]-1].get_message_id()
     return ''
 
@@ -1288,6 +1295,8 @@ def change_tags_before(msg_id):  # タグ変更前の前処理
 
 def change_tags_before_core(msg_id):
     msg = DBASE.find_message(msg_id)
+    if msg is None:
+        print_err('Message-ID: ' + msg_id + ' don\'t find.\nDatabase is broken or emails have been deleted.')
     msg.freeze()
     return msg
 
@@ -1436,7 +1445,7 @@ def change_tags_after_core(msg, change_b_tags):  # statusline に使っている
                 continue
             if msg_id == b_msg_id:
                 b.vars['tags'] = tags
-    if vim.bindeval('exists(\'s:buf_num["folders"]\')'):
+    if 'folders' in vim.bindeval('s:buf_num'):
         reprint_folder()
 
 
@@ -1455,11 +1464,11 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         # search_term の検索方法で未読が有れば、そのスレッド/メールを開く
         search_term = search_term.decode()
         if search_term == '' or not notmuch.Query(DBASE, '('+search_term+') and tag:unread').count_messages():
-            vim.command("call win_gotoid(bufwinid("+active_win+"))")
+            vim.command('call win_gotoid(bufwinid('+active_win+'))')
             return False
         if vim.bindeval("win_gotoid(bufwinid(s:buf_num['folders']))"):
             vim.current.window.cursor = (index+1, 0)  # ここまではフォルダ・リストの順番としてindex使用
-        b_num = vim.bindeval('s:buf_num["thread"]')
+        b_num = vim.bindeval('s:buf_num')['thread']
         print_thread_core(b_num, search_term, False, False)
         # ここからはスレッド・リストの順番としてindex使用
         index = get_unread_in_THREAD_LISTS(search_term)
@@ -1476,14 +1485,14 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
             open_mail_by_msgid(search_term,
                                THREAD_LISTS[search_term][index].get_message_id(),
                                active_win, False)
-        vim.command("call win_gotoid(bufwinid("+active_win+"))")
+        vim.command('call win_gotoid(bufwinid('+active_win+'))')
         DBASE.close()
         return True
 
     if not ('search_term' in vim.current.buffer.vars):
-        if vim.current.buffer.number == vim.bindeval('s:buf_num["folders"]'):
+        if vim.current.buffer.number == vim.bindeval('s:buf_num')['folders']:
             msg_id = ''
-            active_win = vim.eval('s:buf_num["thread"]')
+            active_win = vim.bindeval('s:buf_num')['thread']
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1]
         else:
             msg_id = get_msg_id()
@@ -1496,7 +1505,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     search_term = search_term.decode()
     if is_same_tabpage('search', search_term) or is_same_tabpage('view', search_term):
         search_view = True  # 検索スレッドや検索ビューや否かのフラグ
-        # vim.command('call win_gotoid(bufwinid(s:buf_num["view"]["' + search_term + '"]))')
+        # vim.command('call win_gotoid(bufwinid(s:buf_num["view"][\\\'' + search_term + '\\\']))')
     else:
         search_view = False
         # vim.command('call win_gotoid(bufwinid(s:buf_num["show"]))')
@@ -1504,7 +1513,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
     if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合
         # if search_view:  # そもそも検索にヒットしなければ、search, view は開かれないはず
-        #     vim.command("call win_gotoid(bufwinid("+active_win+"))")
+        #     vim.command('call win_gotoid(bufwinid('+active_win+'))')
         #     return
         if vim.bindeval('win_getid(bufwinid(s:buf_num["thread"]))') == 0:
             reopen('thread', search_term)
@@ -1522,7 +1531,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         for index, folder_way in enumerate(folders):  # 見つからなかったので最初から
             if seach_and_open_unread(index, folder_way[1]):
                 return
-        vim.command("call win_gotoid(bufwinid("+active_win+"))")
+        vim.command('call win_gotoid(bufwinid('+active_win+'))')
         DBASE.close()
         return
     index = [i for i, x in enumerate(
@@ -1532,7 +1541,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     index = [i for i, i in enumerate(indexes) if i > index]
     if len(index):  # 未読メールが同一スレッド内の後ろに有る
         if search_view:
-            open_mail_by_index('["search"]["' + search_term + '"]', index[0])
+            open_mail_by_index('["search"][\\\'' + search_term + '\\\']', index[0])
         else:
             open_mail_by_index('["thread"]', index[0])
         return
@@ -1543,7 +1552,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     # 同一スレッド内に未読がない、または同一スレッド内に未読メールが有っても後ろには無い
     if search_view:  # search, view では先頭の未読に移動
         if len(indexes):
-            open_mail_by_index('["search"]["' + search_term + '"]', indexes[0])
+            open_mail_by_index('["search"][\\\'' + search_term + '\\\']', indexes[0])
         return
     folders = vim.vars['notmuch_folders']
     for index, folder_way in enumerate(folders):  # 同一検索方法までスキップ
@@ -1584,14 +1593,14 @@ def get_attach_name(f):
             except UnicodeDecodeError:  # コード外範囲の文字が有る時のエラー
                 print_warring('File name has out-of-code range characters.')
                 # if charset.lower() == 'iso-2022-jp':  # 丸付き数字対応
-                #     string = string.decode(charset, "backslashreplace")
+                #     string = string.decode(charset, 'backslashreplace')
                 #     for i in range(21, 41):
                 #         string.replace(r'\x2d\x' + str(i), chr(9291+i))
                 #         string.replace('\\x2d\\x' + str(i), chr(9291+i))
                 #     name += string
                 # else:
-                #     name += string.decode(charset, "backslashreplace")
-                name += string.decode(charset, "backslashreplace")
+                #     name += string.decode(charset, 'backslashreplace')
+                name += string.decode(charset, 'backslashreplace')
             except Exception:
                 name += string.decode('raw_unicode_escape')
     return name.replace('\n', ' ')
@@ -1604,9 +1613,9 @@ def get_attach_info(line):
     except KeyError:
         return None, None, None, None
     bufnr = vim.current.buffer.number
-    if bufnr != vim.bindeval('s:buf_num["show"]') and \
-        (not vim.bindeval('exists(\'s:buf_num["view"]["' + search_term + '"]\')')
-            or bufnr != vim.bindeval('s:buf_num["view"]["' + search_term + '"]')):
+    if bufnr != vim.bindeval('s:buf_num')['show'] \
+            and (not (search_term in vim.bindeval('s:buf_num')['view'])
+                 or bufnr != vim.bindeval('s:buf_num')['view'][search_term]):
         return None, None, None, None
     line = str(line)
     b_attachments = b_v['notmuch_attachments']
@@ -1853,12 +1862,12 @@ def delete_attachment(args):
                 delete_attachment_all(f)
         DBASE.close()
         bnum = vim.current.buffer.number
-        if bnum == vim.bindeval('s:buf_num["thread"]') \
+        if bnum == vim.bindeval('s:buf_num')['thread'] \
                 and is_same_tabpage('show', ''):
-            b = vim.buffers[vim.bindeval('s:buf_num["show"]')]
-        elif bnum == vim.bindeval('s:buf_num["search"]["' + search_term + '"]') \
+            b = vim.buffers[vim.bindeval('s:buf_num')['show']]
+        elif bnum == vim.bindeval('s:buf_num')["search"][search_term] \
                 and is_same_tabpage('view', search_term):
-            b = vim.buffers[vim.bindeval('s:buf_num["view"]["' + search_term + '"]')]
+            b = vim.buffers[vim.bindeval('s:buf_num')["view"][search_term]]
         else:
             return
         b_attachments = b.vars['notmuch_attachments']
@@ -1874,13 +1883,13 @@ def delete_attachment(args):
     b = vim.current.buffer
     bufnr = b.number
     search_term = b.vars['search_term'].decode()
-    if bufnr == vim.bindeval('s:buf_num["show"]') \
-        or (vim.bindeval('exists(\'s:buf_num["view"]["' + search_term + '"]\')')
-            and bufnr == vim.bindeval('s:buf_num["view"]["' + search_term + '"]')):
+    if bufnr == vim.bindeval('s:buf_num')['show'] \
+        or ((search_term in vim.bindeval('s:buf_num')['view'])
+            and bufnr == vim.bindeval('s:buf_num')['view'][search_term]):
         delete_attachment_in_show(args)
-    elif bufnr == vim.bindeval('s:buf_num["thread"]') \
-        or (vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')')
-            and bufnr == vim.bindeval('s:buf_num["search"]["' + search_term + '"]')):
+    elif bufnr == vim.bindeval('s:buf_num')['thread'] \
+        or ((search_term in vim.bindeval('s:buf_num')['search'])
+            and bufnr == vim.bindeval('s:buf_num')['search'][search_term]):
         delete_attachment_in_thread(args, search_term)
 
 
@@ -1890,7 +1899,7 @@ def cut_thread(msg_id, dumy):
         if msg_id == '':
             return
     bufnr = vim.current.buffer.number
-    if bufnr == vim.bindeval('s:buf_num["folders"]'):
+    if bufnr == vim.bindeval('s:buf_num')['folders']:
         return
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
@@ -1938,9 +1947,9 @@ def connect_thread_tree():
     bufnr = vim.current.buffer
     search_term = bufnr.vars['search_term'].decode()
     bufnr = bufnr.number
-    if bufnr != vim.bindeval('s:buf_num["thread"]') \
-            and not vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')') \
-            and bufnr != vim.bindeval('s:buf_num["search"]["' + search_term + '"]'):
+    if bufnr != vim.bindeval('s:buf_num')['thread'] \
+            and not (search_term in vim.bindeval('s:buf_num')['search']) \
+            and bufnr != vim.bindeval('s:buf_num')['search'][search_term]:
         print_warring('The command can only be used on thread/search.')
         return
     lines = get_mark_in_thread()
@@ -2026,7 +2035,7 @@ def view_mail_info():  # メール情報表示
         vc = vim.current
         b = vc.buffer
         bnum = b.number
-        if bnum == vim.bindeval('s:buf_num["folders"]'):
+        if bnum == vim.bindeval('s:buf_num')['folders']:
             search_term = vim.vars['notmuch_folders'][vc.window.cursor[0]-1][1].decode()
             return [search_term]
         msg_id = get_msg_id()
@@ -2041,9 +2050,9 @@ def view_mail_info():  # メール情報表示
         else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
             print('Already Delete/Move/Change folder/tag')
             msg = DBASE.find_message(msg_id)
-        if bnum == vim.bindeval('s:buf_num["thread"]') \
-            or (vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')')
-                and bnum == vim.bindeval('s:buf_num["search"]["' + search_term + '"]')):
+        if bnum == vim.bindeval('s:buf_num')['thread'] \
+            or ((search_term in vim.bindeval('s:buf_num')['search'])
+                and bnum == vim.bindeval('s:buf_num')['search'][search_term]):
             lists = ['search term: ' + search_term]
         else:
             lists = []
@@ -2069,7 +2078,7 @@ def view_mail_info():  # メール情報表示
     if vim.bindeval('has("popupwin")'):
         vim_ls = '["'
         for ls in info:
-            vim_ls += ls.replace('"', '\\"') + '","'
+            vim_ls += ls.replace('\\', '\\\\').replace('"', '\\"') + '","'
         # info = '["' + '","'.join(info) + '"]'
         vim_ls = vim_ls[:-2] + ']'
         vim.command('call popup_atcursor(' + vim_ls +
@@ -2705,13 +2714,12 @@ def check_org_mail():  # 返信・転送可能か? 今の bufnr() と msg_id を
     is_search = b.number
     b.vars['subject'] = ''
     active_win = str(is_search)
-    show_win = vim.bindeval('s:buf_num["show"]')
-    is_search = not(vim.bindeval('s:buf_num["folders"]') == is_search
-                    or vim.bindeval('s:buf_num["thread"]') == is_search
+    show_win = vim.bindeval('s:buf_num')['show']
+    is_search = not(vim.bindeval('s:buf_num')['folders'] == is_search
+                    or vim.bindeval('s:buf_num')['thread'] == is_search
                     or show_win == is_search)
     if is_search:
-        show_win = vim.bindeval('s:buf_num["view"]["' +
-                                vim.current.buffer.vars['search_term'].decode() + '"]')
+        show_win = vim.bindeval('s:buf_num')["view"][vim.current.buffer.vars['search_term'].decode()]
     if vim.bindeval('win_gotoid(bufwinid(' + str(show_win) + '))') == 0:
         return 0, ''
     msg_id = get_msg_id()
@@ -2920,7 +2928,7 @@ def move_mail(msg_id, s, args):  # move mail to other mbox
         else:
             print('Already Delte: ' + f)
     DBASE.close()
-    if vim.bindeval('exists(\'s:buf_num["folders"]\')'):
+    if 'folders' in vim.bindeval('s:buf_num'):
         # 閉じた後でないと、メール・ファイル移動の情報がデータベースに更新されていないので、エラーになる
         DBASE.open(PATH)
         reprint_folder()
@@ -3117,18 +3125,18 @@ def do_mail(cmd, args):  # mail に対しての処理、folders では警告表�
     if search_term == '':
         print_warring('Don\'t open mail or is done with \'folders\'.')
         return
-    if bnum == vim.bindeval('s:buf_num["thread"]') \
-        or (vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')')
-            and bnum == vim.bindeval('s:buf_num["search"]["' + search_term + '"]')):
+    if bnum == vim.bindeval('s:buf_num')['thread'] \
+        or ((search_term in vim.bindeval('s:buf_num')['search'])
+            and bnum == vim.bindeval('s:buf_num')['search'][search_term] + '\']'):
         args[0] = int(args[0])
         args[1] = int(args[1])
         for i in range(args[0], args[1]+1):
             msg_id = THREAD_LISTS[search_term][i-1].get_message_id()
             args = cmd(msg_id, search_term, args)
-    elif (vim.bindeval('exists(\'s:buf_num["show"]\')')
-            and bnum == vim.bindeval('s:buf_num["show"]')) \
-        or (vim.bindeval('exists(\'s:buf_num["view"]["' + search_term + '"]\')')
-            and bnum == vim.bindeval('s:buf_num["view"]["' + search_term + '"]')):
+    elif (('show' in vim.bindeval('s:buf_num'))
+            and bnum == vim.bindeval('s:buf_num')['show']) \
+        or ((search_term in vim.bindeval('s:buf_num')['view'])
+            and bnum == vim.bindeval('s:buf_num')['view'][search_term] + '\']'):
         args = cmd(b.vars['msg_id'].decode(), search_term, args)
 
 
@@ -3286,9 +3294,9 @@ def command_marked(cmdline):
     except KeyError:
         print_warring('Don\'t open mail or is done with \'folders\'.')
         return
-    if b.number != vim.bindeval('s:buf_num["thread"]') \
-            and not vim.bindeval('exists(\'s:buf_num["search"]["' + search_term + '"]\')') \
-            and b.number != vim.bindeval('s:buf_num["search"]["' + search_term + '"]'):
+    if b.number != vim.bindeval('s:buf_num')['thread'] \
+            and not (search_term in vim.bindeval('s:buf_num')['search']) \
+            and b.number != vim.bindeval('s:buf_num')['search'][search_term]:
         print_warring('The command can only be used on thread/search.')
         return
     if b[0] == '':
@@ -3360,7 +3368,7 @@ def command_marked(cmdline):
     vim.command(
         "call sign_unplace('mark_thread', {'name': 'notmuch', 'buffer': '', })")
     DBASE.open(PATH)
-    if vim.bindeval('exists(\'s:buf_num["folders"]\')'):
+    if 'folders' in vim.bindeval('s:buf_num'):
         reprint_folder()
     DBASE.close()
 
@@ -3368,7 +3376,7 @@ def command_marked(cmdline):
 def notmuch_search(search_term):
     search_term = search_term[2:]
     if search_term == '' or search_term == []:  # コマンド空
-        if vim.current.buffer.number == vim.bindeval('s:buf_num["folders"]'):
+        if vim.current.buffer.number == vim.bindeval('s:buf_num')['folders']:
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1]
             search_term = search_term.decode()
         else:
@@ -3391,8 +3399,8 @@ def notmuch_search(search_term):
         print_error('notmuch.errors.XapianError: Check search term: ' + search_term + '.')
         return
     DBASE.close()
-    vim.command('call s:make_search_list("' + search_term + '")')
-    b_num = vim.bindeval('s:buf_num["search"]["' + search_term + '"]')
+    vim.command('call s:make_search_list(\'' + vim_escape(search_term) + '\')')
+    b_num = vim.bindeval('s:buf_num')['search'][search_term]
     # if vim.bindeval('win_gotoid(bufwinid(' + str(b_num) + '))') \
     #         and vim.current.buffer.vars['search_term'].decode() == search_term:
     #     return
