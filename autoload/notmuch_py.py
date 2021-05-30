@@ -763,6 +763,8 @@ def vim_escape(s):  # Vim と文字列をやり取りする時に、' をエス�
 
 def is_same_tabpage(kind, search_term):
     # おそらく vim.current.tabpage.number と比較する必要はないけど win_id2tabwin() の仕様変更などが起きた時用に念の為
+    if not ('buf_num' in vim.bindeval('s:')):
+        return False
     if not (kind in vim.bindeval('s:buf_num')):
         return False
     if kind == 'folders' or kind == 'thread' or kind == 'show':
