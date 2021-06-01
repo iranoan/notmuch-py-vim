@@ -1494,7 +1494,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     if not ('search_term' in vim.current.buffer.vars):
         if vim.current.buffer.number == vim.bindeval('s:buf_num')['folders']:
             msg_id = ''
-            active_win = vim.bindeval('s:buf_num')['thread']
+            active_win = str(vim.bindeval('s:buf_num')['thread'])
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1]
         else:
             msg_id = get_msg_id()
