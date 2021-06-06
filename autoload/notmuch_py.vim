@@ -550,6 +550,41 @@ function s:get_snippet(func, cmdLine, cursorPos, direct_command) abort  " list �
 	return l:snippet
 endfunction
 
+function s:get_sort_snippet(cmdLine, cursorPos, direct_command) abort
+	let l:cmdLine = split(a:cmdLine[0:a:cursorPos-1], ' ')
+	echomsg l:cmdLine
+	if a:cmdLine[a:cursorPos-1] ==# ' '
+		let l:filter = ''
+		let l:prefix = join(l:cmdLine, ' ')
+	elseif a:cmdLine !=? ''
+		let l:filter = l:cmdLine[-1]
+		let l:prefix = join(l:cmdLine[0:-2], ' ')
+	else
+		let l:filter = ''
+		let l:prefix = ''
+	endif
+	if l:prefix !=?  ''
+		let l:prefix = l:prefix . ' '
+	endif
+	let l:list = ['list', 'tree', 'Date', 'date', 'From', 'from', 'Subject', 'subject']
+	let l:filter = printf('v:val =~# "^%s"', l:filter)
+	let l:snippet_org = filter(l:list, l:filter)
+	if a:direct_command  " input() 関数ではなく、command 直接の補完
+		return l:snippet_org
+	endif
+	" 補完候補にカーソル前の文字列を追加
+	let l:snippet = []
+	for l:v in l:snippet_org
+		call add(l:snippet, l:prefix . l:v)
+	endfor
+	return l:snippet
+endfunction
+
+function Complete_sort_input(ArgLead, CmdLine, CursorPos) abort
+	let l:snippet = s:get_sort_snippet(a:CmdLine, a:CursorPos, v:false)
+	return s:is_one_snippet(l:snippet)
+endfunction
+
 function Complete_delete_tag_input(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_tag_common('get_msg_tags_list', a:CmdLine, a:CursorPos, v:false)
 endfunction
@@ -613,6 +648,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['thread-connect']   = ['s:connect_thread', 0]
 				let g:notmuch_command['thread-cut']       = ['s:cut_thread', 0]
 				let g:notmuch_command['thread-toggle']    = ['s:toggle_thread', 0]
+				let g:notmuch_command['thread-sort']      = ['s:thread_change_sort', 1]
 				"}}}
 				call s:start_notmuch()
 			elseif l:sub_cmd ==# 'mail-new'
@@ -812,9 +848,7 @@ function s:end_notmuch() abort " 全て終了 (notmuch-folders が bwipeout さ�
 			return
 		endif
 	endfor
-	py3 rm_file(ATTACH_DIR)
-	py3 rm_file(TEMP_DIR)
-	py3 delete_gloval_variable()
+	py3 make_dump()
 	let l:bufnr = s:search_not_notmuch()
 	if l:bufnr == 0
 		cquit " →全終了
@@ -1249,6 +1283,9 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 			elseif l:cmd ==# 'search'
 				let l:snippet = s:get_snippet('get_search_snippet', a:CmdLine, a:CursorPos, v:true)
 				return s:is_one_snippet(l:snippet)
+			elseif l:cmd ==# 'thread-sort'
+				let l:snippet = s:get_sort_snippet(a:CmdLine, a:CursorPos, v:true)
+				return s:is_one_snippet(l:snippet)
 			endif
 		endif
 	endif
@@ -1373,6 +1410,10 @@ function s:toggle_thread(args) abort
 		endif
 		normal! zO
 	endif
+endfunction
+
+function s:thread_change_sort(args) abort
+	py3 thread_change_sort(vim.eval('a:args'))
 endfunction
 
 " Command
