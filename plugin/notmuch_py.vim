@@ -11,6 +11,11 @@ if !has('python3') || v:version < 800
 	finish
 endif
 
+if has('nvim')
+	echohl ErrorMsg | echomsg 'The plugin don''t work with NeoVim.' | echohl None
+	finish
+endif
+
 if exists('g:loaded_notmuch_py')
 	finish
 endif

@@ -37,8 +37,10 @@ function s:new_buffer(type, search_term) abort
 	endif
 	if a:type !=? 'search' && a:type !=? 'view'
 		let s:buf_num[a:type] = bufnr('')
+		let b:notmuch = {}
 	else
 		let s:buf_num[a:type][a:search_term] = bufnr('')
+		let b:notmuch = {}
 	endif
 	" キーマップ
 	if a:type !=# 'draft' && a:type !=# 'edit' " draft/edit 以外共通
@@ -88,7 +90,7 @@ function s:new_buffer(type, search_term) abort
 		nnoremap <buffer><silent>S :Notmuch mail-save<CR>
 		nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>
 	endif
-	setlocal buftype=nofile bufhidden=hide noequalalways fileencoding=utf-8 noswapfile nolist
+	setlocal modifiable buftype=nofile bufhidden=hide noequalalways fileencoding=utf-8 noswapfile nolist
 	keepjumps 0d
 	execute 'setlocal filetype=notmuch-' . a:type
 	" execute 'set syntax=notmuch-'. a:type  " まだ notmuch-mail→mail しか使っていないので、そちらで
@@ -122,7 +124,7 @@ function s:make_folders_list() abort
 	else
 		call s:new_buffer('folders', '')
 		silent file! notmuch-folder
-		setlocal statusline=%<%{b:unread_mail}/%{b:all_mail}\ [%{b:flag_mail}]\ %=%4l/%L
+		setlocal statusline=%<%{b:notmuch.unread_mail}/%{b:notmuch.all_mail}\ [%{b:notmuch.flag_mail}]\ %=%4l/%L
 		py3 print_folder()
 		setlocal cursorline nowrap winminwidth=20 nolist signcolumn=auto nonumber foldcolumn=0
 		augroup NotmuchMakeFolder
@@ -155,11 +157,12 @@ function s:make_search_list(search_term) abort
 		return
 	endif
 	call s:new_buffer('search', a:search_term)
-	execute 'silent file! notmuch-search [' . a:search_term . ']'
+	let l:s = substitute(a:search_term, '"', '\\"', 'g')
+	execute 'silent file! notmuch-search [' . l:s . ']'
 	call s:set_thread()
 	augroup NotmuchMakeSearch
 		" autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd BufWipeout <buffer> unlet s:buf_num['search'][b:search_term]
+		autocmd BufWipeout <buffer> unlet s:buf_num['search'][b:notmuch.search_term]
 	augroup END
 	if g:notmuch_open_way['view'] !=? 'enew' && g:notmuch_open_way['view'] !=? 'tabedit'
 		call s:make_view(a:search_term)
@@ -167,10 +170,10 @@ function s:make_search_list(search_term) abort
 endfunction
 
 function s:set_thread() abort
-	let b:tags = ''
-	let b:search_term = ''
-	let b:msg_id = ''
-	setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:tags}%=%4{line('w$')*100/line('$')}%%
+	let b:notmuch.tags = ''
+	let b:notmuch.search_term = ''
+	let b:notmuch.msg_id = ''
+	setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 	setlocal nomodifiable tabstop=1 cursorline nowrap nolist signcolumn=yes foldmethod=expr foldlevel=0 nonumber foldminlines=1
 	sign define notmuch text=* texthl=notmuchMark
 	" setlocal foldopen=block,mark,search " グローバルにしか設定できない
@@ -185,13 +188,15 @@ function s:set_thread() abort
 	endif
 	augroup NotmuchSetThread
 		" autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd CursorMoved <buffer> call s:cursor_move_thread(b:search_term)
+		autocmd CursorMoved <buffer> call s:cursor_move_thread(b:notmuch.search_term)
 	augroup END
 endfunction
 
 function s:open_something(args) abort
 	if &filetype ==# 'notmuch-folders'
+		" let l:s = reltime()
 		call s:open_thread(v:true, v:false)
+		" echomsg reltimestr(reltime(l:s))
 	elseif &filetype ==# 'notmuch-thread' || &filetype ==# 'notmuch-search'
 		call s:open_mail()
 	elseif &filetype ==# 'notmuch-show' || &filetype ==# 'notmuch-view'
@@ -228,28 +233,29 @@ function s:make_view(search_term) abort " メール・バッファを用意す�
 		return
 	endif
 	call s:new_buffer('view', a:search_term)
-	execute 'silent file! notmuch-view [' . a:search_term . ']'
+	let l:s = substitute(a:search_term, '"', '\\"', 'g')
+	execute 'silent file! notmuch-view [' . l:s . ']'
 	call s:set_show()
 	augroup NotmuchMakeView
 		" autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num['view'][b:search_term]
+		autocmd BufWipeout <buffer> unlet s:buf_num['view'][b:notmuch.search_term]
 	augroup END
 endfunction
 
 function s:set_show() abort
-	let b:msg_id = ''
-	let b:subject = ''
-	let b:date = ''
-	let b:tags = ''
+	let b:notmuch.msg_id = ''
+	let b:notmuch.subject = ''
+	let b:notmuch.date = ''
+	let b:notmuch.tags = ''
 	if &statusline !=? ''
 		let b:status = substitute(&statusline, '"', '''', 'g')
 		let b:status = substitute(b:status, '%[ymrhwq<]\c', '', 'g')
 		let b:status = substitute(b:status, ' \[%{(&fenc!=''''?&fenc:&enc)}:%{ff_table\[&ff\]}\]', '', 'g')
-		let b:status = substitute(b:status, '%f\c', '%{b:subject}%= %<%{b:date}', 'g')
+		let b:status = substitute(b:status, '%f\c', '%{b:notmuch.subject}%= %<%{b:notmuch.date}', 'g')
 		let b:status = substitute(b:status, ' \+', '\\ ', 'g')
 		execute 'setlocal statusline='. b:status
 	else
-		setlocal statusline=%{b:subject}%=\ %<%{b:date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
+		setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 	endif
 	setlocal nomodifiable signcolumn=auto expandtab nonumber
 	if &foldcolumn == 0
@@ -259,21 +265,21 @@ function s:set_show() abort
 endfunction
 
 function s:open_mail() abort
-	if b:search_term ==# '' || getline('.') ==# ''
+	if b:notmuch.search_term ==# '' || getline('.') ==# ''
 		if py3eval('is_same_tabpage("show", "")')
 			py3 empty_show()
 		endif
 		return
 	endif
 	let l:mail_index = line('.') - 1
-	let l:search_term = b:search_term
+	let l:search_term = b:notmuch.search_term
 	let l:buf_num = bufnr('')
 	py3 open_mail(vim.eval('l:search_term'), vim.bindeval('l:mail_index'), vim.eval('l:buf_num'))
 endfunction
 
 function s:set_open_way(len) abort
 	let l:max_len = &columns - a:len
-	let l:height = &lines * 30 / 40 " スレッドは1/4
+	let l:height = (&lines - (&showtabline == 2) - (&laststatus !=0)) * 3 / 4 " スレッドは1/4
 	" ただし最低5件は表示する
 	let l:tab_status = 7 + (&showtabline != 0) + (&laststatus != 0)
 	if &lines - l:height < l:tab_status
@@ -309,11 +315,11 @@ function s:set_open_way(len) abort
 	endfor
 	call s:set_default_open_way('folders', 'tabedit',)
 	call s:set_default_open_way('thread' , 'rightbelow ' . l:max_len . 'vnew')
-	call s:set_default_open_way('show'   , 'belowright ' . height . 'new')
+	call s:set_default_open_way('show'   , 'belowright ' . l:height . 'new')
 	call s:set_default_open_way('edit'   , 'tabedit')
 	call s:set_default_open_way('draft'  , 'tabedit')
 	call s:set_default_open_way('search' , 'tabedit')
-	call s:set_default_open_way('view'   , 'belowright ' . height . 'new')
+	call s:set_default_open_way('view'   , 'belowright ' . l:height . 'new')
 endfunction
 
 function s:set_default_open_way(key, value) abort
@@ -327,12 +333,13 @@ function s:set_defaults() abort
 	let g:notmuch_save_sent_mailbox = get(g:, 'notmuch_save_sent_mailbox', 'sent')
 	let g:notmuch_folders = get(g:, 'notmuch_folders', [
 				\ [ 'new',       '(tag:inbox and tag:unread)' ],
-				\ [ 'inbox',     'tag:inbox' ],
-				\ [ 'unread',    'tag:unread' ],
-				\ [ 'attach',    'tag:attachment' ],
-				\ [ '6 month',   'date:183days..now'],
+				\ [ 'inbox',     '(tag:inbox)' ],
+				\ [ 'unread',    '(tag:unread)' ],
+				\ [ 'draft',     '((folder:draft or folder:.draft or tag:draft) not tag:sent not tag:Trash not tag:Spam)'],
+				\ [ 'attach',    '(tag:attachment)' ],
+				\ [ '6 month',   '(date:183days..now'],
 				\ [ '',          '' ],
-				\ [ 'All',       'folder:/./' ],
+				\ [ 'All',       '(folder:/./)' ],
 				\ [ 'Trash',     '(folder:.Trash or folder:Trash or tag:Trash)' ],
 				\ [ 'New Search','' ],
 				\ ]
@@ -430,13 +437,16 @@ endfunction
 function s:next_unread_page(args) abort " メール最後の行が表示されていればスクロールしない+既読にする
 	let l:buf_num = bufnr('')
 	if win_gotoid(bufwinid(s:buf_num['show'])) == 0
-		if has_key(s:buf_num['view'], b:search_term)
-			call win_gotoid(bufwinid(s:buf_num['view'][b:search_term]))
-		else
-			return
+		if has_key(s:buf_num, 'view')
+					\ && has_key(b:notmuch, 'search_term')
+					\ && b:notmuch.search_term !=# ''
+					\ && has_key(s:buf_num.view, b:notmuch.search_term)
+			call win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
+		" else
+		" 	return
 		endif
 	endif
-	if !exists('b:msg_id') || b:msg_id ==# ''
+	if !exists('b:notmuch.msg_id') || b:notmuch.msg_id ==# ''
 		py3 next_unread(vim.eval('l:buf_num'))
 		return
 	endif
@@ -445,17 +455,17 @@ function s:next_unread_page(args) abort " メール最後の行が表示され�
 		if line('w0') == line('w$') " 最終行表示でも 表示先頭行=表示最終行 なら折り返し部分が非表示の可能性→カーソル移動
 			execute 'normal!' 2 * winheight(0) - winline() - 1 . 'gj'
 			if l:column == col('.')
-				py3 delete_tags(vim.current.buffer.vars['msg_id'].decode(), '', [0, 0, 'unread'])
+				py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 				py3 next_unread(vim.eval('l:buf_num'))
 			endif
 		else
-			py3 delete_tags(vim.current.buffer.vars['msg_id'].decode(), '', [0, 0, 'unread'])
+			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 			py3 next_unread(vim.eval('l:buf_num'))
 		endif
 	elseif line('w0') != line('w$') " 一行で 1 ページ全体だと、<PageDown> では折り返されている部分が飛ばされるので分ける
 		execute "normal! \<PageDown>"
 		if line('w0') != line('w$') && line('w$') == line('$') " 表示先頭行 != 最終行 かつ 表示最終行 = 最終行 なら最後まで表示
-			py3 delete_tags(vim.current.buffer.vars['msg_id'].decode(), '', [0, 0, 'unread'])
+			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 		endif
 	else
 		let l:pos=line('.')
@@ -482,8 +492,11 @@ endfunction
 function s:previous_page(args) abort
 	let l:buf_num = bufnr('')
 	if win_gotoid(bufwinid(s:buf_num['show'])) == 0
-		if has_key(s:buf_num['view'], b:search_term)
-			call win_gotoid(bufwinid(s:buf_num['view'][b:search_term]))
+		if has_key(s:buf_num, 'view')
+					\ && has_key(b:notmuch, 'search_term')
+					\ && b:notmuch.search_term !=# ''
+					\ && has_key(s:buf_num.view, b:notmuch.search_term)
+			call win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
 		else
 			return
 		endif
@@ -630,7 +643,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['mail-move']        = ['s:move_mail', 1]
 				let g:notmuch_command['mail-reply']       = ['s:reply_mail', 0]
 				let g:notmuch_command['mail-save']        = ['s:save_mail', 0]
-				let g:notmuch_command['mail-send']        = ['s:send_vim_buffer', 0]
+				let g:notmuch_command['mail-send']        = ['s:send_vim', 0]
 				let g:notmuch_command['mail-reindex']     = ['s:reindex_mail', 0]
 				let g:notmuch_command['mark']             = ['s:mark_in_thread', 0]
 				let g:notmuch_command['mark-command']     = ['s:command_marked', 1]
@@ -654,7 +667,7 @@ function notmuch_py#notmuch_main(...) abort
 			elseif l:sub_cmd ==# 'mail-new'
 				call remove(l:cmd, 0, 1)
 				if !has_key(g:notmuch_command, 'send')
-					let g:notmuch_command['mail-send'] = ['s:send_vim_buffer', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
+					let g:notmuch_command['mail-send'] = ['s:send_vim', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
 				endif
 				call s:new_mail(join(l:cmd, ' '))
 			else
@@ -679,21 +692,14 @@ function s:start_notmuch() abort
 		return
 	endif
 	execute 'py3file ' . s:script
-	if exists('g:notmuch_folder_format')
-		py3 FOLDER_FORMAT = vim.vars['notmuch_folder_format']
-	else
-		if !py3eval('set_folder_format()')
-			messages
-			return
-		endif
+	if !py3eval('set_folder_format()')
+		messages
+		return
 	endif
 	py3 get_subject_length()
 	execute 'cd ' . py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
-	if !exists('g:notmuch_open_way')
-		return
-	endif
 	if g:notmuch_open_way['thread'] !=? 'enew' && g:notmuch_open_way['thread'] !=? 'tabedit'
 		call s:make_thread_list()
 		call win_gotoid(bufwinid(s:buf_num['folders']))
@@ -732,27 +738,28 @@ function! MakeGUITabline() abort
 	else
 		let l:vars = getbufinfo(bufnr())[0]['variables']
 		if &filetype ==# 'notmuch-edit'
-			return '%N| ' . l:label . '%{b:subject} %{b:date}'
+			return '%N| ' . l:label . '%{b:notmuch.subject} %{b:notmuch.date}'
 		elseif &filetype ==# 'notmuch-show'
 			if py3eval('is_same_tabpage("thread", "")')
-				return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables'])
+				return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch'])
 			else
-				return '%N| ' . l:label . '%{b:subject} %{b:date}'
+				return '%N| ' . l:label . '%{b:notmuch.subject} %{b:notmuch.date}'
 			endif
-		elseif &filetype ==# 'notmuch-view' && has_key(l:vars, 'search_term')
-			if py3eval('is_same_tabpage("search", '''. s:vim_escape(b:search_term) . ''')')
-				return '%N| notmuch [' . b:search_term . ']%<'
+		elseif &filetype ==# 'notmuch-view' && has_key(l:vars['notmuch'], 'search_term')
+			if py3eval('is_same_tabpage("search", '''. s:vim_escape(b:notmuch.search_term) . ''')')
+				return '%N| notmuch [' . b:notmuch.search_term . ']%<'
 			else
-				return '%N| ' . l:label . '%{b:subject} %{b:date}'
+				return '%N| ' . l:label . '%{b:notmuch.subject} %{b:notmuch.date}'
 			endif
 		elseif &filetype ==# 'notmuch-draft'
-			return '%N| ' . l:label . 'notmuch %t %{b:subject}%<'
+			" return '%N| ' . l:label . 'notmuch %t %{b:notmuch.subject}%<'
+			return '%N| ' . l:label . 'notmuch [Draft] %{b:notmuch.subject}%<'
 		elseif &filetype ==# 'notmuch-search'
-			return s:get_gui_tab(l:vars)
+			return s:get_gui_tab(l:vars['notmuch'])
 		elseif exists('s:buf_num["thread"]') " notmuch-folder では notmuch-search と同じにするのを兼ねている
-			return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables'])
+			return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch'])
 		else
-			return s:get_gui_tab(l:vars)
+			return s:get_gui_tab(l:vars['notmuch'])
 		endif
 	endif
 endfunction
@@ -760,7 +767,7 @@ endfunction
 function s:get_gui_tab(vars) abort
 	if has_key(a:vars, 'search_term')
 		return '%N| notmuch [' . a:vars['search_term'] . ']%<'
-	else  " notmuch-search 作成直後は b:search_term 未定義
+	else  " notmuch-search 作成直後は b:notmuch.search_term 未定義
 		return '%N| notmuch []%<'
 	endif
 endfunction
@@ -789,7 +796,7 @@ function s:make_title() abort
 	" elseif &filetype ==# 'notmuch-edit' " tabline を変えているので、こちらは変えない
 	" ↓s:set_title_etc() の autocmd も次に書き換えが必要になる
 	" autocmd BufEnter,BufFilePost,WinEnter * let &titlestring=s:make_title()
-	" 	let l:title = '%{b:subject} %{b:date}%< %m ' . '(' . expand('%:~') . ')'
+	" 	let l:title = '%{b:notmuch.subject} %{b:notmuch.date}%< %m ' . '(' . expand('%:~') . ')'
 	elseif &filetype ==# 'qf'
 		let l:title = '%t'
 	elseif &filetype ==# 'help'
@@ -816,12 +823,14 @@ function s:change_title() abort
 	endif
 endfunction
 
-function! s:search_not_notmuch() abort " nomuch-? 以外の隠れていない、もしくは隠れていれも更新されているバッファを探す
+function! s:search_not_notmuch() abort " nomuch-? 以外のリストされていて隠れていない、もしくは隠れていても更新されているバッファを探す
 	let l:notmuch_kind = ['notmuch-folders', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft', 'notmuch-search', 'notmuch-view']
 	let l:changed = 0
 	for l:buf in getbufinfo()
 		if count(l:notmuch_kind, getbufvar(l:buf.bufnr, '&filetype')) == 0
-			if l:buf.hidden
+			if !l:buf.listed
+				continue
+			elseif l:buf.hidden
 				if l:buf.changed
 					let l:changed = l:buf.bufnr
 				endif
@@ -841,10 +850,10 @@ function s:end_notmuch() abort " 全て終了 (notmuch-folders が bwipeout さ�
 	for l:buf in l:bufinfo
 		let l:bufnr = l:buf.bufnr
 		let l:ftype = getbufvar(l:bufnr, '&filetype')
-		if l:ftype ==# 'notmuch-draft' || ( l:ftype ==# 'notmuch-edit' && l:buf.changed )
-			unlet s:buf_num.folders
+		if l:ftype ==# 'notmuch-draft' && l:buf.changed || ( l:ftype ==# 'notmuch-edit' && l:buf.changed )
 			call s:swich_buffer(l:bufnr)
 			echohl WarningMsg | echo 'Editing ' . l:ftype . '.' | echohl None
+			unlet s:buf_num.folders
 			return
 		endif
 	endfor
@@ -854,9 +863,8 @@ function s:end_notmuch() abort " 全て終了 (notmuch-folders が bwipeout さ�
 		cquit " →全終了
 	endif
 	call s:swich_buffer(l:bufnr)
-	" notmuch-folder は削除済みなので、他の notmuch-?? バッファを削除
-	let l:notmuch_kind = ['notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft', 'notmuch-search', 'notmuch-view']
-	" call remove(l:notmuch_kind, index(l:notmuch_kind, 'notmuch-folders'))
+	" notmuch-* バッファ削除
+	let l:notmuch_kind = ['notmuch-folder', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft', 'notmuch-search', 'notmuch-view']
 	for l:buf in l:bufinfo
 		let l:bufnr = l:buf.bufnr
 		if count(l:notmuch_kind, getbufvar(l:bufnr, '&filetype'))
@@ -879,7 +887,24 @@ function s:swich_buffer(bufnr) abort " できるだけ指定されたバッフ�
 		execute l:tabpage . 'tabnext'
 	endif
 	if win_gotoid(bufwinid(a:bufnr)) == 0
-		execute a:bufnr . 'buffer'
+		let l:type = getbufvar(a:bufnr, '&filetype')
+		if l:type ==# 'notmuch-edit' || l:type ==# 'notmuch-draft'
+			let l:open_way = g:notmuch_open_way[strpart(l:type, 8)]
+			if l:open_way ==# 'enew'
+				execute 'silent buffer ' . a:bufnr
+			elseif l:open_way ==# 'tabedit'
+				execute 'silent tab sbuffer ' . a:bufnr
+			else
+				let l:open_way = substitute(l:open_way, '\<new\>',        'split',   '')
+				let l:open_way = substitute(l:open_way, '\([0-9]\)new\>', '\1split', '')
+				let l:open_way = substitute(l:open_way, '\<vnew\>',       'vsplit',  '')
+				let l:open_way = substitute(l:open_way, '\([0-9]\)vnew\>','\1vsplit','')
+				execute l:open_way
+				execute 'silent buffer ' . a:bufnr
+			endif
+		else
+			execute a:bufnr . 'buffer'
+		endif
 	endif
 endfunction
 
@@ -893,7 +918,7 @@ endfunction
 
 function s:reload(args) abort
 	if &filetype ==# 'notmuch-show' || &filetype ==# 'notmuch-view'
-		if !exists('b:search_term') || !exists('b:msg_id')
+		if !exists('b:notmuch.search_term') || !exists('b:notmuch.msg_id')
 			return
 		endif
 		py3 reload_show()
@@ -901,7 +926,7 @@ function s:reload(args) abort
 	endif
 	if &filetype ==# 'notmuch-folders'
 		if py3eval('is_same_tabpage("thread", "")')
-			if getbufinfo(s:buf_num['thread'])[0]['variables']['search_term'] == g:notmuch_folders[line('.') - 1][1] " search_term が folder, thread で同じならリロード
+			if getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch']['search_term'] == g:notmuch_folders[line('.') - 1][1] " search_term が folder, thread で同じならリロード
 				call win_gotoid(bufwinid(s:buf_num['thread']))
 				py3 reload_thread()
 			else " search_term が folder, thread で異なるなら開く (同じ場合はできるだけ開いているメールを変えない)
@@ -929,11 +954,10 @@ function s:cursor_move_thread(search_term) abort
 	else
 		return
 	endif
-	if bufnr('') != l:buf_num || py3eval('get_msg_id()') ==# '' || b:msg_id == py3eval('get_msg_id()')
+	if bufnr('') != l:buf_num || py3eval('get_msg_id()') ==# '' || b:notmuch.msg_id == py3eval('get_msg_id()')
 		return
 	endif
 	py3 change_buffer_vars()
-	" call s:fold_open() " ←どんな時に展開すると便利か?
 	if py3eval('is_same_tabpage("show", "")') || py3eval('is_same_tabpage("view", ''' . s:vim_escape(a:search_term) . ''')')
 		echo ''
 		" ↑エラーなどのメッセージをクリア
@@ -966,8 +990,8 @@ function s:reply_mail(args) abort
 	py3 reply_mail()
 endfunction
 
-function s:send_vim_buffer(args) abort
-	py3 send_vim_buffer()
+function s:send_vim(args) abort
+	py3 send_vim()
 endfunction
 
 function s:save_mail(args) abort
@@ -977,7 +1001,7 @@ function s:save_mail(args) abort
 			return
 		endif
 	elseif &filetype ==# 'notmuch-search'
-		if !win_gotoid(bufwinid(s:buf_num['view'][b:search_term]))
+		if !win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
 			return
 		endif
 	endif
@@ -1085,6 +1109,15 @@ function s:au_forward_mail() abort " 転送メールでファイル末尾移動�
 	augroup END
 endfunction
 
+function s:au_write_draft() abort " draft mail の保存
+	let l:bufnr = bufnr()
+	execute 'augroup NotmuchSaveDraft' . l:bufnr
+		autocmd!
+		execute 'autocmd BufWritePost <buffer> py3 reprint_folder2()'
+		execute 'autocmd BufWipeout <buffer> autocmd! NotmuchSaveDraft' . l:bufnr
+	augroup END
+endfunction
+
 function s:fold_mail_header() abort " g:notmuch_show_headers 以外の連続するヘッダを閉じる
 	let l:i = 1
 	let l:close_start = 1
@@ -1119,7 +1152,7 @@ function s:fold_mail_header() abort " g:notmuch_show_headers 以外の連続す�
 	endfor
 	if l:multi_flag
 		call s:close_boundary(l:i, l:close_start, l:boundary_start)
-	else
+	elseif l:i - l:close_start > 1
 		execute printf('%d', l:close_start) . ',' printf('%d', l:i - 1) . 'fold'
 	endif
 endfunction
@@ -1214,9 +1247,9 @@ function s:mark_in_thread(args) range abort
 	let l:beg = a:args[0]
 	let l:end = a:args[1]
 	let l:bufnr = bufnr('')
-	" echomsg l:bufnr . ', ' . &filetype . ', ' . s:buf_num['search'][b:search_term]
+	" echomsg l:bufnr . ', ' . &filetype . ', ' . s:buf_num['search'][b:notmuch.search_term]
 	if !( l:bufnr == s:buf_num['thread']
-				\ || ( &filetype ==# 'notmuch-search' && l:bufnr != s:buf_num['search'][b:search_term] )
+				\ || ( &filetype ==# 'notmuch-search' && l:bufnr != s:buf_num['search'][b:notmuch.search_term] )
 				\ || py3eval('get_msg_id()') !=? '' )
 				return
 	endif

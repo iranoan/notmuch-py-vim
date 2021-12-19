@@ -6,23 +6,23 @@ notmuch-python-vim は [Notmuch](https://notmuchmail.org/) と連携して、メ
 
 Notmuch には元々送受信機能がないので、送信には sendmail 等、受信には fetchmail等のプログラムが別途必要
 
-同種のプラグインとしては、[notmuch-vim](https://github.com/felipec/notmuch-vim) が有るが、自分が使いたい機能がなかったので作成
+同種のプラグインとしては、[notmuch-vim](https://github.com/felipec/notmuch-vim) が有るが、自分の使いたい機能がなかったので作成
 
 ### 欠点
 
 メール数が多い検索条件だとスレッド一覧の表示に時間がかかる
 
-* Ubuntu 20.10
-* Linux kernel 5.8.0-50
-* VIM - Vi IMproved 8.2 (2019 Dec 12, compiled Aug 11 2020 17:00:59)
+* Ubuntu 21.10
+* Linux kernel 5.13.0
+* VIM - Vi IMproved 8.2 (2019 Dec 12, compiled Nov 08 2021 14:17:01)
 * CPU: Intel&reg; Core&trade; i7-6500U CPU @ 2.50&nbsp;GHz
 * Memory: 8&nbsp;GB
 
-の環境で、約 25000 通にヒットする検索条件のスレッド一覧の表示に 30 秒ほどかかる
+の環境で、約 27000 通にヒットする検索条件のスレッド一覧の表示に 25 秒ほどかかる
 
 個人的には今の所、普段は 3 ヶ月以内のメールのみ一覧するように *search-term* を指定している
 
-タグの操作で複数指定をできるようにしたため、通常 Vim では | (バー) で区切ることで複数個のコマンド指定ができるが、それができない
+タグの操作で複数指定をできるようにしたため、通常 Vim では | (バー) で区切ると複数個のコマンド指定ができるが、それができない
 
 ## 要件
 
@@ -66,25 +66,25 @@ $ python3 -m pip install notmuch html2text
 
 使用しているパッケージ・マネージャに従えば良い
 
-### Vundle (https://github.com/gmarik/vundle)
+### [Vundle](https://github.com/gmarik/vundle)
 
 ```vim
 Plug 'iranoan/notmuch-py-vim'
 ```
 
-### Vm-Plug (https://github.com/junegunn/vim-plug)
+### [Vm-Plug](https://github.com/junegunn/vim-plug)
 
 ```vim
 Plug 'iranoan/notmuch-py-vim'
 ```
 
-### NeoBundle (https://github.com/Shougo/neobundle.vim)
+### [NeoBundle](https://github.com/Shougo/neobundle.vim)
 
 ```vim
 NeoBundle 'iranoan/notmuch-py-vim'
 ```
 
-### dein.nvim (https://github.com/Shougo/dein.vim)
+### [dein.nvim](https://github.com/Shougo/dein.vim)
 
 ```vim
 call dein#add('iranoan/notmuch-py-vim')
@@ -111,7 +111,6 @@ augroup loadNotmuchPy
 augroup END
 ```
 
-
 ## 使用方法
 
 次のように起動する
@@ -121,6 +120,7 @@ $ vim +'Notmuch start'
 ```
 
 Vim 起動後なら
+
 ```vim
 :Notmuch start
 ```
