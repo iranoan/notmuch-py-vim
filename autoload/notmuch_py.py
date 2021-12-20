@@ -1227,11 +1227,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if shutil.which('nkf') is None or charset != 'iso-2022-jp':
                     return payload.decode(charset, 'replace'), decode_payload
                 else:
-                    nkf_tmp = TEMP_DIR + 'nkf_tmp'
-                    with open(nkf_tmp, 'wb') as fp:
-                        fp.write(payload)
-                    ret = run(['nkf', '-w', '-J', nkf_tmp], stdout=PIPE)
-                    # rm_file_core(nkf_tmp)  # 本文ファイルを直ちに削除する必要はない
+                    print('nkf')
+                    ret = run(['nkf', '-w', '-J'], input=payload, stdout=PIPE)
                     return ret.stdout.decode(), decode_payload
             except LookupError:
                 print_warring('unknon encoding ' + charset + '.')
@@ -3274,10 +3271,7 @@ def send_str(msg_data):  # 文字列をメールとして保存し設定従い�
     del msg_send['Date']
     msg_date = email.utils.formatdate(localtime=True)
     msg_send['Date'] = msg_date
-    # with open('/home/hiroyuki/downloads/send.eml', 'w') as fp:  # データが作成できているかの確認 (普段はこのブロックはコメントアウト)
-    #     fp.write(msg_send.as_string())
-    #     return True
-    # # 送信
+    # 送信
     try:
         pipe = Popen(SEND_PARAM, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
     except Exception as err:
@@ -3650,9 +3644,7 @@ def after_make_draft(b):
     now = email.utils.localtime()
     msg_id = email.utils.make_msgid()
     b_v = vim.current.buffer.vars
-    b_v['notmuch'] = {}
     b_v = b_v['notmuch']
-    b_v['subject'] = ''
     b_v['date'] = now.strftime(DATE_FORMAT)
     b_v['msg_id'] = msg_id[1:-1]
     b_v['tags'] = 'draft'

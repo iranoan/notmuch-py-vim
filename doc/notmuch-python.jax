@@ -1154,7 +1154,11 @@ TODO ~
                                                     *notmuch-python-vim-history*
 更新履歴 ~
 
-2021/12/09 Ver.0.59 ~
+2021/12/20 Ver.0.60 ~
+* バグ修正
+	- mail-reply, mail-forward エラー
+
+2021/12/19 Ver.0.59 ~
 * スレッド・データ作成をマルチプロセス化などの処理変更←2 割弱高速化
 * open (|notmuch-python-vim-open|) に |{S-WIN}| 内の折りたたみの開閉も追加
 * OpenPGP, S/MIME の復号・電子署名検証対応
@@ -1205,7 +1209,6 @@ TODO ~
 	- |g:notmuch_folder_format| が使えなくなっていた
 	- UTF-8 以外のテキスト・ファイルを添付するとエラーになるバグ修正
 		→他と同じ様に Base64 で送る
-
 
 2022/06/06 Ver.0.58 ~
 * thread-sort (|notmuch-python-vim-thread-sort|) 追加
