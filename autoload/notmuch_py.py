@@ -3235,7 +3235,8 @@ def send_str(msg_data):  # 文字列をメールとして保存し設定従い�
     msg_data = ''  # 送信済みとして下書きを使う場合に備えたデータ初期化
     send_headers = ['from', 'to', 'cc', 'bcc', 'reply-to',
                     'resent-to', 'resent-cc', 'resent-bcc']
-    ignore_msg_data = ['date', 'content-type', 'content-transfer-encoding']
+    ignore_msg_data = ['date', 'content-type', 'content-transfer-encoding', 'message-id']
+    # ↑下書きを出来る限りそのままで送信済みとして保存する場合でも必ず付け直しをするヘッダ
     fcc = ''
     x_header = {}
     for header_term, h_data in header_data.items():
@@ -3299,11 +3300,11 @@ def send_str(msg_data):  # 文字列をメールとして保存し設定従い�
             msg_data = msg_data[1:]
             msg_data += '\nDate: ' + msg_date + \
                 '\nContent-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: 8bit'
-            if re.search(r'^Message-ID:\s*', headers, re.MULTILINE) is None:
-                msg_data += '\nMessage-ID: ' + msg_id
+            msg_data += '\nMessage-ID: ' + msg_id
             if attachments is not None:
                 for attachment in attachments:
                     msg_data += '\nX-Attach: ' + attachment
+            print(msg_data)
             msg_data += '\n\n' + mail_context
             fp.write(msg_data)
         else:

@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 0.59
+Version: 0.61
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -1154,9 +1154,14 @@ TODO ~
                                                     *notmuch-python-vim-history*
 更新履歴 ~
 
+2021/12/21 Ver.0.62 ~
+* バグ修正
+	- g:notmuch_save_draft (|g:notmuch_save_draft|) が 1 の時に送信時にエラーになる
+
 2021/12/20 Ver.0.60 ~
 * バグ修正
-	- mail-reply, mail-forward エラー
+	- mail-reply (|notmuch-python-vim-mail-reply|), mail-forward
+		(|notmuch-python-vim-mail-forward|) エラー
 
 2021/12/19 Ver.0.59 ~
 * スレッド・データ作成をマルチプロセス化などの処理変更←2 割弱高速化
