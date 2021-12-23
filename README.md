@@ -1,4 +1,4 @@
-# notmuch-python-vim.txt
+# notmuch-python-vim
 
 ## 概要
 
@@ -166,10 +166,10 @@ Vim 起動後なら
   > HTML: index.html
 
   が表示される
-* さらに添付ファイルが有れば、その個数分だけ
+* さらに添付ファイルが有る時などに
   > Attach: file\_name.zip
 
-  等と表示される
+  等の追加情報が表示される
 * どちらも
   * **o** で開く
   * 削除されていれば、HTML:→Del-HTML:, Attach:→Del-Attach: と表示
