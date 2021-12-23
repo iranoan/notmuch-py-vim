@@ -284,7 +284,7 @@ Vim packadd ~
 
 ------------------------------------------------------------------------------
                                                      *notmuch-python-vim-keymap*
-デフォルト・キーマップ ~
+デフォルト・キーマップ ({F-WIN}, {T-WIN}, {S-WIN})~
 
 a					タグの追加 (Add tag)            |notmuch-python-vim-tag-add|
 A					タグの削除 (add tag の逆)       |notmuch-python-vim-tag-delete|
@@ -324,9 +324,24 @@ u					未読/既読トグル (toggle Unread) |notmuch-python-vim-tag-toggle|
 					                                |CTRL-W_w|
 <S-Tab>		ウィンドウを |{F-WIN}|→|{S-WIN}|→|{T-WIN}| とサイクリックに切り替え
 					                                |CTRL-W_W|
+<leader>s	メール送信 (mail-send)          |notmuch-python-vim-mail-send|
 
+-------------------------------------------------------------------------------
+                                               *notmuch-python-vim-draft-keymap*
+デフォルト・キーマップ (送信メール)~
 
---------------------------------------------------------------------------------
+mail-new (|notmuch-python-vim-mail-new|), mail-reply
+(|notmuch-python-vim-mail-reply|), mail-forward (|notmuch-python-vim-mail-forward|)
+で開いた送信メール・バッファで次をキーマップしている
+
+<Leader>s	バッファをメール送信 (Send)     |notmuch-python-vim-mail-send|
+<leader>a	タグの追加 (Add tag)            |notmuch-python-vim-tag-add|
+<leader>t	タグの追加/削除をトグル (Toggle tag)
+                                          |notmuch-python-vim-tag-toggle|
+<leader>d	タグの削除 (Delete tag)         |notmuch-python-vim-tag-delete|
+<leader>q バッファを閉じる (Quit)         |:bwipeout|!
+
+-------------------------------------------------------------------------------
                                                     *notmuch-python-not-use-key*
 編集系で使っていない一文字キー ~
 `~`
@@ -336,7 +351,7 @@ x
 X
 .
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
                                                   *notmuch-python-nokey-command*
 キーマップのないサブコマンド ~
 start					|notmuch-python-vim-start|
@@ -344,7 +359,6 @@ close					|notmuch-python-vim-close|
 mail-delete		|notmuch-python-vim-mail-delete|
 mail-edit			|notmuch-python-vim-mail-edit|
 mail-move			|notmuch-python-vim-mail-move|
-mail-send			|notmuch-python-vim-mail-send|
 mail-reindex	|notmuch-python-vim-mail-reindex|
 mark					|notmuch-python-vim-mark|
 mark-command	|notmuch-python-vim-mark-command|
@@ -1153,6 +1167,18 @@ TODO ~
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴 ~
+
+2021/12/23 Ver.0.63 ~
+* start (|notmuch-python-vim-start|) しないで mail-new
+  (|notmuch-python-vim-mail-new|) した時送信エラーになるバグ修正
+* 送信メールバッファ (notmuch-draft) でタグ追加/削除/トグル対応
+* 送信メールバッファにもデフォルト・キーマップ
+* 添付ファイル名に対しても、iso-2022-jp で送られているにも関わらず、Ⅰといった
+  ローマ数字等 iso-2022-jp 範囲外の文字が使われている場合、nkf が実行可能なら
+  nkf で変換する
+* |{S-WIN}| では Attach: ヘッダが空なら非表示
+* 保存された下書きメールでは mail-edit (|notmuch-python-vim-mail-edit|) で開い
+  てもヘッダを閉じない
 
 2021/12/21 Ver.0.62 ~
 * バグ修正
