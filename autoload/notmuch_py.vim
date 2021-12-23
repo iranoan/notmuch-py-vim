@@ -43,20 +43,20 @@ function s:new_buffer(type, search_term) abort
 		let b:notmuch = {}
 	endif
 	" キーマップ
-	if a:type !=# 'draft' && a:type !=# 'edit' " draft/edit 以外共通
-		nnoremap <buffer><silent><Tab> <C-w>w
-		nnoremap <buffer><silent><S-Tab> <C-w>W
-		nnoremap <buffer><silent><space> :Notmuch view-unread-page<CR>
-		nnoremap <buffer><silent><S-space> :Notmuch view-previous<CR>
-		nnoremap <buffer><silent>J :Notmuch view-unread-mail<CR>
-		nnoremap <buffer><silent><C-R> :Notmuch reload<CR>
-		nnoremap <buffer><silent>p :Notmuch mail-info<CR>
-		nnoremap <buffer><silent>I :Notmuch mail-export<CR>
-		nnoremap <buffer><silent>R :Notmuch mail-forward<CR>
-		nnoremap <buffer><silent>c :Notmuch mail-new<CR>
-		nnoremap <buffer><silent>i :Notmuch mail-import<CR>
-		nnoremap <buffer><silent>r :Notmuch mail-reply<CR>
-	endif
+	" draft/edit 以外共通
+	nnoremap <buffer><silent><Leader>s :Notmuch mail-send<CR>
+	nnoremap <buffer><silent><Tab> <C-w>w
+	nnoremap <buffer><silent><S-Tab> <C-w>W
+	nnoremap <buffer><silent><space> :Notmuch view-unread-page<CR>
+	nnoremap <buffer><silent><S-space> :Notmuch view-previous<CR>
+	nnoremap <buffer><silent>J :Notmuch view-unread-mail<CR>
+	nnoremap <buffer><silent><C-R> :Notmuch reload<CR>
+	nnoremap <buffer><silent>p :Notmuch mail-info<CR>
+	nnoremap <buffer><silent>I :Notmuch mail-export<CR>
+	nnoremap <buffer><silent>R :Notmuch mail-forward<CR>
+	nnoremap <buffer><silent>c :Notmuch mail-new<CR>
+	nnoremap <buffer><silent>i :Notmuch mail-import<CR>
+	nnoremap <buffer><silent>r :Notmuch mail-reply<CR>
 	if a:type ==# 'folders'
 		nnoremap <buffer><silent>o :Notmuch open<CR>
 		nnoremap <buffer><silent>s :Notmuch search<CR>
@@ -667,7 +667,10 @@ function notmuch_py#notmuch_main(...) abort
 			elseif l:sub_cmd ==# 'mail-new'
 				call remove(l:cmd, 0, 1)
 				if !has_key(g:notmuch_command, 'send')
-					let g:notmuch_command['mail-send'] = ['s:send_vim', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
+					let g:notmuch_command['mail-send']  = ['s:send_vim', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
+					let g:notmuch_command['tag-add']    = ['s:add_tags', 1]
+					let g:notmuch_command['tag-delete'] = ['s:delete_tags', 1]
+					let g:notmuch_command['tag-toggle'] = ['s:toggle_tags', 1]
 				endif
 				call s:new_mail(join(l:cmd, ' '))
 			else
@@ -1113,7 +1116,7 @@ function s:au_write_draft() abort " draft mail の保存
 	let l:bufnr = bufnr()
 	execute 'augroup NotmuchSaveDraft' . l:bufnr
 		autocmd!
-		execute 'autocmd BufWritePost <buffer> py3 reprint_folder2()'
+		execute 'autocmd BufWritePost <buffer> py3 save_draft()'
 		execute 'autocmd BufWipeout <buffer> autocmd! NotmuchSaveDraft' . l:bufnr
 	augroup END
 endfunction

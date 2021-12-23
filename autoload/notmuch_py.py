@@ -1152,7 +1152,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             else:
                 name = f[match.end():]
                 tmp_dir = f[:match.end()]
-            if os.path.isfile(f):
+            if f == '':
+                continue
+            elif os.path.isfile(f):
                 header = 'Attach: '
                 b_attachments[str(len(vim.current.buffer))] = [name, [-1], tmp_dir]
             else:
@@ -1227,7 +1229,6 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if shutil.which('nkf') is None or charset != 'iso-2022-jp':
                     return payload.decode(charset, 'replace'), decode_payload
                 else:
-                    print('nkf')
                     ret = run(['nkf', '-w', '-J'], input=payload, stdout=PIPE)
                     return ret.stdout.decode(), decode_payload
             except LookupError:
@@ -1761,11 +1762,14 @@ def add_msg_tags(msg, tags):  # メールのタグ追加→フォルダ・リス
 
 
 def delete_msg_tags(msg, tags):  # メールのタグ削除→フォルダ・リスト書き換え
-    for tag in tags:
-        msg.remove_tag(tag, sync_maildir_flags=True)
+    try:  # 同一 Messag-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
+        for tag in tags:
+            msg.remove_tag(tag, sync_maildir_flags=True)
+    except notmuch.NotInitializedError:
+        pass
 
 
-def add_tags(msg_id, s, args):  # vim から呼び出しで Message_ID を引数で渡さないヴァージョン
+def add_tags(msg_id, s, args):  # vim から呼び出しで tag 追加
     if args is None:
         return
     tags = args[2:]
@@ -1773,6 +1777,14 @@ def add_tags(msg_id, s, args):  # vim から呼び出しで Message_ID を引数
         tags = vim.eval('input("Add tag: ", "", "customlist,Complete_add_tag_input")')
         tags = tags.split()
     if tags == [] or tags is None:
+        return
+    if is_draft():
+        b_v = vim.current.buffer.vars['notmuch']
+        b_tags = b_v['tags'].decode().split(' ')
+        for t in tags:
+            if not (t in b_tags):
+                b_tags.append(t)
+        b_v['tags'] = ' '.join(b_tags)
         return
     msg = change_tags_before(msg_id)
     if msg is None:
@@ -1782,7 +1794,7 @@ def add_tags(msg_id, s, args):  # vim から呼び出しで Message_ID を引数
     return [0, 0] + tags
 
 
-def delete_tags(msg_id, s, args):  # vim から呼び出しで Message_ID を引数で渡さないヴァージョン
+def delete_tags(msg_id, s, args):  # vim から呼び出しで tag 削除
     if args is None:
         return
     tags = args[2:]
@@ -1790,6 +1802,14 @@ def delete_tags(msg_id, s, args):  # vim から呼び出しで Message_ID を引
         tags = vim.eval('input("Delete tag: ", "", "customlist,Complete_delete_tag_input")')
         tags = tags.split()
     if tags == [] or tags is None:
+        return
+    if is_draft():
+        b_v = vim.current.buffer.vars['notmuch']
+        b_tags = b_v['tags'].decode().split(' ')
+        for t in tags:
+            if t in b_tags:
+                b_tags.remove(t)
+        b_v['tags'] = ' '.join(b_tags)
         return
     msg = change_tags_before(msg_id)
     if msg is None:
@@ -1808,15 +1828,26 @@ def toggle_tags(msg_id, s, args):  # vim からの呼び出しで tag をトグ�
         tags = tags.split()
     if tags == []:
         return
-    msg = change_tags_before(msg_id)
-    if msg is None:
+    if is_draft():
+        b_v = vim.current.buffer.vars['notmuch']
+        b_tags = b_v['tags'].decode().split(' ')
+        for t in tags:
+            if t in b_tags:
+                b_tags.remove(t)
+            else:
+                b_tags.append(t)
+        b_v['tags'] = ' '.join(b_tags)
         return
-    for tag in tags:
-        if tag in msg.get_tags():
-            delete_msg_tags(msg, [tag])
-        else:
-            add_msg_tags(msg, [tag])
-    change_tags_after(msg, True)
+    else:
+        msg = change_tags_before(msg_id)
+        if msg is None:
+            return
+        for tag in tags:
+            if tag in msg.get_tags():
+                delete_msg_tags(msg, [tag])
+            else:
+                add_msg_tags(msg, [tag])
+        change_tags_after(msg, True)
     return [0, 0] + tags
 
 
@@ -1824,12 +1855,15 @@ def get_msg_tags_list(tmp):  # vim からの呼び出しでメールのタグを
     msg_id = get_msg_id()
     if msg_id == '':
         return []
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
-    tags = []
-    for tag in msg.get_tags():
-        tags.append(tag)
-    DBASE.close()
+    if is_draft():
+        tags = vim.current.buffer.vars['notmuch']['tags'].decode().split(' ')
+    else:
+        DBASE.open(PATH)
+        msg = DBASE.find_message(msg_id)
+        tags = []
+        for tag in msg.get_tags():
+            tags.append(tag)
+        DBASE.close()
     return sorted(tags, key=str.lower)
 
 
@@ -1839,9 +1873,13 @@ def get_msg_tags_diff(tmp):  # メールに含まれていないタグ取得
         return []
     DBASE.open(PATH)
     tags = get_msg_all_tags_list_core()
-    msg = DBASE.find_message(msg_id)
-    for tag in msg.get_tags():
-        tags.remove(tag)
+    if is_draft():
+        for t in vim.current.buffer.vars['notmuch']['tags'].decode().split(' '):
+            tags.remove(t)
+    else:
+        msg = DBASE.find_message(msg_id)
+        for tag in msg.get_tags():
+            tags.remove(tag)
     DBASE.close()
     return sorted(tags, key=str.lower)
 
@@ -2034,6 +2072,11 @@ def decode_header(f):
                 name += string.decode('raw_unicode_escape')
             else:  # デコードされず bytes 型でないのでそのまま
                 name += string
+        elif charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
+            # Content-Type: text/plain; charset="gb2312"
+            # で送ってくるのに対する対策
+            # filename にも該当するか不明だが、念の為
+            charset = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
         elif charset == 'unknown-8bit':
             name += string.decode('utf-8')
         else:
@@ -2041,15 +2084,11 @@ def decode_header(f):
                 name += string.decode(charset)
             except UnicodeDecodeError:  # コード外範囲の文字が有る時のエラー
                 print_warring('File name has out-of-code range characters.')
-                # if charset.lower() == 'iso-2022-jp':  # 丸付き数字対応
-                #     string = string.decode(charset, 'backslashreplace')
-                #     for i in range(21, 41):
-                #         string.replace(r'\x2d\x' + str(i), chr(9291+i))
-                #         string.replace('\\x2d\\x' + str(i), chr(9291+i))
-                #     name += string
-                # else:
-                #     name += string.decode(charset, 'backslashreplace')
-                name += string.decode(charset, 'backslashreplace')
+                if shutil.which('nkf') is None or charset != 'iso-2022-jp':
+                    name += string.decode(charset, 'backslashreplace')
+                else:
+                    ret = run(['nkf', '-w', '-J'], input=string, stdout=PIPE)
+                    name += ret.stdout.decode()
             except Exception:
                 name += string.decode('raw_unicode_escape')
     return name.replace('\n', ' ')
@@ -2743,7 +2782,6 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
     if filename == '':
         message = 'Already Delete/Move/Change folder/tag'
         filename = find_mail_file('id:"' + msg_id + '"')
-    DBASE.close()
     if filename == '':
         message = 'Not found file.'
     else:
@@ -2794,14 +2832,15 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
         b_v['msg_id'] = msg_id
         b_v['tags'] = tags
         vim.command('call s:augroup_notmuch_select(' + active_win + ', 1)')
-        vim.command('call s:fold_mail_header() | set foldtext=FoldHeaderText()')
         if MAILBOX_TYPE == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
             draft_dir = PATH + os.sep + 'draft'
-        if filename.startswith(draft_dir + os.sep):
+        if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
             vim.command('setlocal filetype=notmuch-draft noswapfile')
+            vim.command('call s:au_write_draft()')
         else:
+            vim.command('call s:fold_mail_header() | set foldtext=FoldHeaderText()')
             vim.command('setlocal filetype=notmuch-edit')
     if message != '':
         vim.command('redraw')  # redraw しないと次のメッセージがすぐに消えてしまう
@@ -2830,13 +2869,17 @@ def send_mail(filename):  # ファイルをメールとして送信←元のフ�
     with open(filename, 'r') as fp:
         msg_data = fp.read()
         # msg_file = email.message_from_file(fp) を用いるとヘッダがエンコードされる+不正なヘッダ書式をチェック出来ない
-    if send_str(msg_data):
+    msg_id = []
+    if send_str(msg_data, msg_id):
         os.remove(filename)
 
 
 def send_vim_buffer():
     msg_data = '\n'.join(vim.current.buffer[:])
-    if send_str(msg_data):
+    msg_id = []
+    if send_str(msg_data, msg_id):
+        if len(msg_id):  # タグの反映
+            marge_tag(msg_id[0], True)
         if vim.bindeval('len(getbufinfo())') == 1:  # 送信用バッファのみ
             vim.command('cquit')
         f = vim.current.buffer.name
@@ -2846,7 +2889,40 @@ def send_vim_buffer():
         rm_file_core(f)
 
 
-def send_str(msg_data):  # 文字列をメールとして保存し設定従い送信済みに保存
+def marge_tag(msg_id, send):   # 下書きバッファと notmuch databae のタグをマージ
+    # send 送信時か?→draft, unread タグは削除
+    b = vim.current.buffer
+    DBASE.open(PATH)
+    msg = change_tags_before(msg_id)
+    if msg is None:
+        DBASE.close()
+    else:
+        b_v = b.vars['notmuch']
+        b_tag = b_v['tags'].decode().split(' ')
+        if send:
+            if 'draft' in b_tag:
+                b_tag.remove('draft')
+            if 'unread' in b_tag:
+                b_tag.remove('unread')
+            del_tag = ['draft', 'unread']
+        else:
+            del_tag = []
+        add_tag = []
+        m_tag = []
+        for t in msg.get_tags():
+            m_tag.append(t)
+        for t in m_tag:
+            if not (t in b_tag):
+                del_tag.append(t)
+        delete_msg_tags(msg, del_tag)
+        for t in b_tag:
+            if not (t in m_tag):
+                add_tag.append(t)
+        add_msg_tags(msg, add_tag)
+        change_tags_after(msg, False)
+
+
+def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定従い送信済みに保存
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
     from email.message import EmailMessage
@@ -3330,8 +3406,10 @@ def send_str(msg_data):  # 文字列をメールとして保存し設定従い�
     if msg is not None:
         add_tag.append(msg.get_tags())
         add_tag.remove('draft')
+        add_tag.remove('unread')
     DBASE.close()
-    move_mail_main(msg_id, send_tmp, sent_dir, ['draft'], add_tag, True)  # 送信済み保存
+    move_mail_main(msg_id, send_tmp, sent_dir, ['draft', 'unread'], add_tag, True)  # 送信済み保存
+    msgid.append(msg_id)
     return True
 
 
@@ -3357,27 +3435,29 @@ def send_vim():
     b = vim.current.buffer
     bufnr = b.number
     b_v = b.vars['notmuch']
-    buf_num = vim.bindeval('s:buf_num')
-    if bufnr == buf_num['folders']:
-        send_search('(folder:draft or folder:.draft or tag:draft) ' +
-                    'not tag:sent not tag:Trash not tag:Spam')
-    elif 'search_term' in b_v:
-        s = b_v['search_term'].decode()
-        if bufnr == buf_num['thread'] \
-                or (s in buf_num['search'] and bufnr == buf_num['search'][s]):
-            send_search(s +
-                        ' ((folder:draft or folder:.draft or tag:draft) ' +
-                        'not tag:sent not tag:Trash not tag:Spam)')
-        else:  # buf_num['show'] または buf_num['view'][s]
-            msg_id = get_msg_id()
-            if msg_id == '':
-                return
-            send_search('id:' + msg_id +
-                        ' ((folder:draft or folder:.draft or tag:draft) ' +
-                        'not tag:sent not tag:Trash not tag:Spam)')
-    elif b.options['filetype'] == b'notmuch-draft':
+    if b.options['filetype'] == b'notmuch-draft':
         send_vim_buffer()
-    reprint_folder2()
+    else:
+        buf_num = vim.bindeval('s:buf_num')
+        if bufnr == buf_num['folders']:
+            send_search('(folder:draft or folder:.draft or tag:draft) ' +
+                        'not tag:sent not tag:Trash not tag:Spam')
+        elif 'search_term' in b_v:
+            s = b_v['search_term'].decode()
+            if bufnr == buf_num['thread'] \
+                    or (s in buf_num['search'] and bufnr == buf_num['search'][s]):
+                send_search(s +
+                            ' ((folder:draft or folder:.draft or tag:draft) ' +
+                            'not tag:sent not tag:Trash not tag:Spam)')
+            else:  # buf_num['show'] または buf_num['view'][s]
+                msg_id = get_msg_id()
+                if msg_id == '':
+                    return
+                send_search('id:' + msg_id +
+                            ' ((folder:draft or folder:.draft or tag:draft) ' +
+                            'not tag:sent not tag:Trash not tag:Spam)')
+    if 'buf_num' in vim.bindeval('s:'):
+        reprint_folder2()
 
 
 def new_mail(s):  # 新規メールの作成 s:mailto プロトコルを想定
@@ -3654,6 +3734,23 @@ def after_make_draft(b):
     b.append('Message-ID: ' + msg_id, i + 1)
     b.options['modified'] = 0
     vim.command('call s:au_write_draft()')
+
+
+def save_draft():  # 下書きバッファと notmuch databae のタグをマージと notmuch-folders の更新
+    # 下書き保存時に呼び出される
+    notmuch_new(False)
+    b = vim.current.buffer
+    msg_id = b.vars['notmuch']['msg_id'].decode()
+    marge_tag(msg_id, False)
+    # Maildir だとフラグの変更でファイル名が変わり得るので、その時はバッファのファイル名を変える
+    DBASE.open(PATH)
+    m_f = DBASE.find_message(msg_id).get_filename()
+    b_f = b.name
+    if m_f != b_f:
+        b.name = m_f
+        vim.command('write! | bwipeout! ' + b_f)
+    reprint_folder()
+    DBASE.close()
 
 
 def set_new_after(n):  # 新規メールの From ヘッダの設定や署名の挿入
@@ -4109,11 +4206,27 @@ def select_file(msg_id, question):  # get mail file list
         return [files[s-1]], subject, len(files)
 
 
+def is_draft():
+    b = vim.current.buffer
+    if b.options['filetype'] == b'notmuch-draft':
+        if MAILBOX_TYPE == 'Maildir':
+            draft_dir = PATH + os.sep + '.draft'
+        else:
+            draft_dir = PATH + os.sep + 'draft'
+        if b.name.startswith(draft_dir + os.sep) \
+                or 'draft' in b.vars['notmuch']['tags'].decode().split(' '):
+            return True
+    return False
+
+
 def do_mail(cmd, args):  # mail に対しての処理、folders では警告表示
     # 行番号などのコマンド引数
     b = vim.current.buffer
     bnum = b.number
     b_v = b.vars['notmuch']
+    if is_draft():
+        args = cmd(b_v['msg_id'].decode(), '', args)
+        return
     try:
         search_term = b_v['search_term'].decode()
     except KeyError:
@@ -4454,10 +4567,8 @@ GLOBALS = globals()
 initialize()
 if not VIM_MODULE:
     SEND_PARAM = ['msmtp', '-t', '-a', 'Nifty', '-X', '-']
-    with open('/home/hiroyuki/downloads/sample.txt', 'r') as fp:
-        msg_data = fp.read()
-        # msg_file = email.message_from_file(fp) を用いるとヘッダがエンコードされる+不正なヘッダ書式をチェック出来ない
-    send_str(msg_data)
+    send_search('(folder:draft or folder:.draft or tag:draft) ' +
+                'not tag:sent not tag:Trash not tag:Spam')
     # import time
     # s = time.time()
     # # print_thread_view('tag:inbox not tag:Trash and not tag:Spam')
