@@ -603,6 +603,11 @@ def print_folder():  # vim から呼び出された時にフォルダ・リス�
 
 def reprint_folder():
     # フォルダ・リストの再描画 (print_folder() の処理と似ているが、b[:] = None して書き直すとカーソル位置が変わる)
+    # s:start_notmuch() が呼ぼれずに mail-new がされていると s:buf_num が未定義なので直ちに処理を返す
+    if not ('buf_num' in vim.bindeval('s:')):
+        return
+    if not ('folders' in vim.bindeval('s:buf_num')):
+        return
     b = vim.buffers[vim.bindeval('s:buf_num')['folders']]
     b.options['modifiable'] = 1
     for i, folder_way in enumerate(vim.vars['notmuch_folders']):
@@ -1925,8 +1930,7 @@ def change_tags_after_core(msg, change_b_tags):  # statusline に使っている
                 continue
             if msg_id == b_msg_id:
                 b_v['tags'] = tags
-    if 'folders' in vim.bindeval('s:buf_num'):
-        reprint_folder()
+    reprint_folder()
 
 
 def next_unread(active_win):  # 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない)

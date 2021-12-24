@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 0.63
+Version: 0.64
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -1189,6 +1189,11 @@ TODO ~
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴 ~
+
+2021/12/24 Ver.0.64 ~
+* start (|notmuch-python-vim-start|) しないで mail-new
+  (|notmuch-python-vim-mail-new|) し保存するとエラーになるバグ修正
+
 
 2021/12/23 Ver.0.63 ~
 * start (|notmuch-python-vim-start|) しないで mail-new
