@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 0.61
+Version: 0.63
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -1028,6 +1028,14 @@ tag-add [{tags}]
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 	* {tags} を指定していないと、コマンドラインで指定になる
 		- この指定でも空だとキャンセルになる
+	* mail-new (|notmuch-python-vim-mail-new|),
+	* mail-new (|notmuch-python-vim-mail-new|),
+		mail-reply (|notmuch-python-vim-mail-reply|),
+		mail-forward (|notmuch-python-vim-mail-forward|),
+		mail-edit (|notmuch-python-vim-mail-edit|) で開いた送信メールで・バッファで
+		は、notmuch database は直ちに反映されず、保存・送信時に反映される
+		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
+			される
 
                                                  *notmuch-python-vim-tag-delete*
 tag-delete [{tags}]
@@ -1036,6 +1044,13 @@ tag-delete [{tags}]
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 	* {tags} を指定していないと、コマンドラインで指定になる
 		- この指定でも空だとキャンセルになる
+	* mail-new (|notmuch-python-vim-mail-new|),
+		mail-reply (|notmuch-python-vim-mail-reply|),
+		mail-forward (|notmuch-python-vim-mail-forward|),
+		mail-edit (|notmuch-python-vim-mail-edit|) で開いた送信メールで・バッファで
+		は、notmuch database は直ちに反映されず、保存・送信時に反映される
+		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
+			される
 
                                                  *notmuch-python-vim-tag-toggle*
 tag-toggle [{tags}]
@@ -1044,6 +1059,13 @@ tag-toggle [{tags}]
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 	* {tags} を指定していないと、コマンドラインで指定になる
 		- この指定でも空だとキャンセルになる
+	* mail-new (|notmuch-python-vim-mail-new|),
+		mail-reply (|notmuch-python-vim-mail-reply|),
+		mail-forward (|notmuch-python-vim-mail-forward|),
+		mail-edit (|notmuch-python-vim-mail-edit|) で開いた送信メールで・バッファで
+		は、notmuch database は直ちに反映されず、保存・送信時に反映される
+		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
+			される
 
                                              *notmuch-python-vim-thread-connect*
 thread-connect
