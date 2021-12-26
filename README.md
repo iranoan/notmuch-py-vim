@@ -4,7 +4,7 @@
 
 notmuch-python-vim は [Notmuch](https://notmuchmail.org/) と連携して、メールの読み書きを手助けする
 
-Notmuch には元々送受信機能がないので、送信には sendmail 等、受信には fetchmail等のプログラムが別途必要
+Notmuch には元々送受信機能がないので、送信には sendmail 等、受信には fetchmail 等のプログラムが別途必要
 
 同種のプラグインとしては、[notmuch-vim](https://github.com/felipec/notmuch-vim) が有るが、自分の使いたい機能がなかったので作成
 
@@ -141,6 +141,8 @@ Vim 起動後なら
 </table>
 
 ### デフォルト環境の主な使用法
+
+***&lt;F1&gt;*** でデフォルト・キーマップを表示
 
 上の ***F-WIN***, ***T-WIN***, ***S-WIN*** の意味と操作法ははそれぞれ次のとおり
 
