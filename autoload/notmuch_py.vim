@@ -44,6 +44,7 @@ function s:new_buffer(type, search_term) abort
 	endif
 	" キーマップ
 	" draft/edit 以外共通
+	nnoremap <buffer><silent><F1> :topleft help notmuch-python-vim-keymap<CR>
 	nnoremap <buffer><silent><Leader>s :Notmuch mail-send<CR>
 	nnoremap <buffer><silent><Tab> <C-w>w
 	nnoremap <buffer><silent><S-Tab> <C-w>W
@@ -248,12 +249,12 @@ function s:set_show() abort
 	let b:notmuch.date = ''
 	let b:notmuch.tags = ''
 	if &statusline !=? ''
-		let b:status = substitute(&statusline, '"', '''', 'g')
-		let b:status = substitute(b:status, '%[ymrhwq<]\c', '', 'g')
-		let b:status = substitute(b:status, ' \[%{(&fenc!=''''?&fenc:&enc)}:%{ff_table\[&ff\]}\]', '', 'g')
-		let b:status = substitute(b:status, '%f\c', '%{b:notmuch.subject}%= %<%{b:notmuch.date}', 'g')
-		let b:status = substitute(b:status, ' \+', '\\ ', 'g')
-		execute 'setlocal statusline='. b:status
+		let l:status = substitute(&statusline, '"', '''', 'g')
+		let l:status = substitute(l:status, '%[ymrhwq<]\c', '', 'g')
+		let l:status = substitute(l:status, ' \[%{(&fenc!=''''?&fenc:&enc)}:%{ff_table\[&ff\]}\]', '', 'g')
+		let l:status = substitute(l:status, '%f\c', '%{b:notmuch.subject}%= %<%{b:notmuch.date}', 'g')
+		let l:status = substitute(l:status, ' \+', '\\ ', 'g')
+		execute 'setlocal statusline='. l:status
 	else
 		setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 	endif
@@ -662,15 +663,21 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['thread-cut']       = ['s:cut_thread', 0]
 				let g:notmuch_command['thread-toggle']    = ['s:toggle_thread', 0]
 				let g:notmuch_command['thread-sort']      = ['s:thread_change_sort', 1]
+				let g:notmuch_command['set-fcc']          = ['s:set_fcc', 1]
+				let g:notmuch_command['set-attach']       = ['s:set_attach', 1]
+				let g:notmuch_command['set-encrypt']      = ['s:set_encrypt', 1]
 				"}}}
 				call s:start_notmuch()
 			elseif l:sub_cmd ==# 'mail-new'
 				call remove(l:cmd, 0, 1)
-				if !has_key(g:notmuch_command, 'send')
-					let g:notmuch_command['mail-send']  = ['s:send_vim', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
-					let g:notmuch_command['tag-add']    = ['s:add_tags', 1]
-					let g:notmuch_command['tag-delete'] = ['s:delete_tags', 1]
-					let g:notmuch_command['tag-toggle'] = ['s:toggle_tags', 1]
+				if !has_key(g:notmuch_command, 'mail-send')
+					let g:notmuch_command['mail-send']   = ['s:send_vim', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
+					let g:notmuch_command['tag-add']     = ['s:add_tags', 1] " 以下それ以外も追加
+					let g:notmuch_command['tag-delete']  = ['s:delete_tags', 1]
+					let g:notmuch_command['tag-toggle']  = ['s:toggle_tags', 1]
+					let g:notmuch_command['set-fcc']     = ['s:set_fcc', 1]
+					let g:notmuch_command['set-attach']  = ['s:set_attach', 1]
+					let g:notmuch_command['set-encrypt'] = ['s:set_encrypt', 1]
 				endif
 				call s:new_mail(join(l:cmd, ' '))
 			else
@@ -1304,13 +1311,12 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 			if match(a:CmdLine, 'Notmuch \+mark-command *') != -1
 				let l:match = matchend(a:CmdLine, 'Notmuch \+mark-command *')
 				return s:complete_command(strpart(a:CmdLine, l:match), a:CursorPos - l:match, v:true)
-			elseif l:cmd ==# 'mail-move'
+			elseif l:cmd ==# 'mail-move' || l:cmd ==# 'set-fcc'
 				if l:last[1] " 既に引数が有る
 					return []
 				endif
 				let l:snippet = py3eval('get_mail_folders()')
 			elseif l:cmd ==# 'tag-add'
-				let b:snip = s:complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:true)
 				return s:complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:true)
 			elseif l:cmd ==# 'tag-delete'
 				return s:complete_tag_common('get_msg_tags_list', a:CmdLine, a:CursorPos, v:true)
@@ -1322,6 +1328,25 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 			elseif l:cmd ==# 'thread-sort'
 				let l:snippet = s:get_sort_snippet(a:CmdLine, a:CursorPos, v:true)
 				return s:is_one_snippet(l:snippet)
+			elseif l:cmd ==# 'set-encrypt'
+				let l:snippet = [ 'Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP' ]
+			elseif l:cmd ==# 'set-attach'
+				let l:dir = substitute(a:CmdLine, '^Notmuch\s\+set-attach\s\+', '', '')
+				if l:dir ==# ''
+					let l:snippet = glob(py3eval('os.path.expandvars(''$USERPROFILE\\'') if os.name == ''nt'' else os.path.expandvars(''$HOME/'')') . '*', 1, 1)
+				else
+					if isdirectory(l:dir)
+						let l:dir = l:dir . '/*'
+					else
+						let l:dir =  l:dir . '*'
+					endif
+					let l:snippet = glob(l:dir, 1, 1)
+				endif
+				if len(l:snippet) == 1
+					if isdirectory(l:snippet[0])
+						let l:snippet = glob(l:dir . '/*', 1, 1)
+					endif
+				endif
 			endif
 		endif
 	endif
@@ -1358,7 +1383,6 @@ function s:complete_command(CmdLine, CursorPos, direct_command) abort
 	let l:cmdline = substitute(a:CmdLine, '[\n\r]\+', ' ', 'g')
 	let l:pos = a:CursorPos + 1
 	let l:last = py3eval('get_last_cmd(get_mark_cmd_name(), " ' . l:cmdline . '", '. l:pos . ')')
-	let b:last = l:last
 	if l:last == []
 		let l:list = py3eval('get_mark_cmd_name()')
 	else
@@ -1385,7 +1409,6 @@ function s:complete_command(CmdLine, CursorPos, direct_command) abort
 	endif
 	let l:filter = printf('v:val =~ "^%s"', l:filter)
 	let l:snippet_org = filter(l:list, l:filter)
-	let b:snippet = copy(l:snippet_org)
 	if a:direct_command  " input() 関数ではなく、command 直接の補完
 		if len(l:snippet_org) == 1
 			return [ l:snippet_org[0] . ' ' ]
@@ -1450,6 +1473,18 @@ endfunction
 
 function s:thread_change_sort(args) abort
 	py3 thread_change_sort(vim.eval('a:args'))
+endfunction
+
+function s:set_fcc(s) abort
+	py3 set_fcc(vim.eval('a:s'))
+endfunction
+
+function s:set_attach(s) abort
+	py3 set_attach(vim.eval('a:s'))
+endfunction
+
+function s:set_encrypt(s) abort
+	py3 set_encrypt(vim.eval('a:s'))
 endfunction
 
 " Command

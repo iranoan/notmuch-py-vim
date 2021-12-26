@@ -1778,10 +1778,7 @@ def add_tags(msg_id, s, args):  # vim から呼び出しで tag 追加
     if args is None:
         return
     tags = args[2:]
-    if tags == []:
-        tags = vim.eval('input("Add tag: ", "", "customlist,Complete_add_tag_input")')
-        tags = tags.split()
-    if tags == [] or tags is None:
+    if vim_input(tags, "'Add tag: ', '', 'customlist,Complete_add_tag_input'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -1803,10 +1800,7 @@ def delete_tags(msg_id, s, args):  # vim から呼び出しで tag 削除
     if args is None:
         return
     tags = args[2:]
-    if tags == []:
-        tags = vim.eval('input("Delete tag: ", "", "customlist,Complete_delete_tag_input")')
-        tags = tags.split()
-    if tags == [] or tags is None:
+    if vim_input(tags, "'Delete tag: ', '', 'customlist,Complete_delete_tag_input'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -1828,10 +1822,7 @@ def toggle_tags(msg_id, s, args):  # vim からの呼び出しで tag をトグ�
     if args is None:
         return
     tags = args[2:]
-    if tags == []:
-        tags = vim.eval('input("Toggle tag: ", "", "customlist,Complete_tag_input")')
-        tags = tags.split()
-    if tags == []:
+    if vim_input(tags, "'Toggle tag: ', '', 'customlist,Complete_tag_input'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -1887,6 +1878,16 @@ def get_msg_tags_diff(tmp):  # メールに含まれていないタグ取得
             tags.remove(tag)
     DBASE.close()
     return sorted(tags, key=str.lower)
+
+
+def vim_input(ls, s):  # vim のインプット関数を呼び出しリストで取得
+    # リストが空なら True
+    if ls == []:
+        for i in vim.eval('input(' + s + ')').split():
+            ls.append(i)
+    if ls == [] or ls is None:
+        return True
+    return False
 
 
 def get_search_snippet(word):  # word によって補完候補を切り替える
@@ -2671,12 +2672,18 @@ def get_save_dir():
 
 def get_save_filename(path):  # 保存ファイル名の取得 (既存ファイルなら上書き確認)
     while True:
-        path = vim.eval('input("Save as: ", "'+path+'", "file")')
+        if use_browse():
+            path = vim.eval('browse(1, "Save", "' +
+                            os.path.dirname(path) + '", "' +
+                            os.path.basename(path) + '")')
+        else:
+            path = vim.eval('input("Save as: ", "'+path+'", "file")')
         if path == '':
             return ''
         elif os.path.isfile(path):
-            over_write = vim.eval('input("Overwrite '+path+'? [y/N]: ","")').lower()
-            if over_write == 'yes' or over_write == 'y':
+            over_write = vim.bindeval(
+                    'confirm("Overwrite?", "&Yes\n&No", 1, "Question")')
+            if over_write == 1:
                 return path
         elif os.path.isdir(path):
             print_warring('\'' + path + '\' is directory.')
@@ -2926,6 +2933,10 @@ def marge_tag(msg_id, send):   # 下書きバッファと notmuch databae のタ
         change_tags_after(msg, False)
 
 
+def get_flag(s, search):  # s に search があるか?
+    return re.search(search, s, re.IGNORECASE) is not None
+
+
 def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定従い送信済みに保存
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
@@ -3129,9 +3140,6 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         return True, ret.stdout
 
     def get_header_ls():  # ヘッダ文字列情報をリストに変換
-        def get_flag(search):  # ヘッダー部分に search があるか?
-            return re.search(search, h_item, re.IGNORECASE) is not None
-
         h_data = {}
         pre_h = ''
         attach = []
@@ -3152,17 +3160,17 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                     if h_term_l == 'attach':
                         attach.append(h_item)
                     elif h_term_l == 'encrypt':
-                        flag_check = (get_flag(r'\bS[/-]?MIME\b') * SMIME_ENCRYPT) \
-                             | (get_flag(r'\bPGP\b') * PGP_ENCRYPT) \
-                             | (get_flag(r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT)
+                        flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_ENCRYPT) \
+                             | (get_flag(h_item, r'\bPGP\b') * PGP_ENCRYPT) \
+                             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT)
                         if not flag_check:
                             print_error('The encryption method is wrong.')
                             return None, None, None
                         flag |= flag_check
                     elif h_term_l == 'signature':
-                        flag_check = (get_flag(r'\bS[/-]?MIME\b') * SMIME_SIGNATURE) \
-                             | (get_flag(r'\bPGP\b') * PGP_SIGNATURE) \
-                             | (get_flag(r'\bPGP[/-]?MIME\b') * PGPMIME_SIGNATURE)
+                        flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_SIGNATURE) \
+                             | (get_flag(h_item, r'\bPGP\b') * PGP_SIGNATURE) \
+                             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_SIGNATURE)
                         if not flag_check:
                             print_error('The signature method is wrong.')
                             return None, None, None
@@ -3813,7 +3821,7 @@ def set_reference(b, msg, flag):  # References, In-Reply-To, Fcc 追加
         fcc = re.sub(r'/(new|tmp|cur)/[^/]+', '', fcc)
     else:
         fcc = re.sub('/[^/]+$', '', fcc)
-    b.append('Fcc:' + fcc)
+    b.append('Fcc: ' + fcc)
 
 
 def set_reply_after(n):  # 返信メールの From ヘッダの設定や引用本文・署名の挿入
@@ -3961,11 +3969,17 @@ def insert_signature(to_name, from_name):  # 署名挿入
         if 'notmuch_signature' in vim.vars:
             sigs = vim.vars['notmuch_signature']
             from_to = email2only_address(from_to)
-            sig = sigs.get(from_to, sigs.get('*', b'$HOME/.signature'))
+            if os.name == 'nt':
+                sig = sigs.get(from_to, sigs.get('*', b'$USERPROFILE\\.signature'))
+            else:
+                sig = sigs.get(from_to, sigs.get('*', b'$HOME/.signature'))
             sig = os.path.expandvars(os.path.expanduser(sig.decode()))
             if os.path.isfile(sig):
                 return sig
-        sig = os.path.expandvars('$HOME/.signature')
+        if os.name == 'nt':
+            sig = os.path.expandvars('$USERPROFILE\\.signature')
+        else:
+            sig = os.path.expandvars('$HOME/.signature')
         if os.path.isfile(sig):
             return sig
         return ''
@@ -3999,21 +4013,16 @@ def get_config(config):  # get notmuch setting
 def move_mail(msg_id, s, args):  # move mail to other mbox
     if args is None:  # 複数選択してフォルダを指定しなかった時の 2 つ目以降
         return
-    mbox = args[2:]
     if opened_mail(False):
         print_warring('Please save and close mail.')
         return
-    if mbox == []:
-        if MAILBOX_TYPE == 'Maildir':  # 入力初期値に先頭「.」付加
-            mbox = "input('Move Mail folder: ', '.', 'customlist,Complete_Folder')"
-        else:
-            mbox = "input('Move Mail folder: ', '', 'customlist,Complete_Folder')"
-        mbox = vim.eval(mbox)
-        mbox = mbox.split()
-    if mbox == [] or mbox is None:
+    mbox = args[2:]
+    if vim_input(mbox, "'Move Mail folder: ', '" +
+                 ('.' if MAILBOX_TYPE == 'Maildir' else '') +
+                 "', 'customlist,Complete_Folder'"):
         return
     mbox = mbox[0]
-    if mbox == '' or mbox == '.':
+    if mbox == '.':
         return
     DBASE.open(PATH)  # 呼び出し元で開く処理で書いてみたが、それだと複数メールの処理で落ちる
     msg = DBASE.find_message(msg_id)
@@ -4097,8 +4106,12 @@ def import_mail():
     elif MAILBOX_TYPE == 'MH':
         mbox = mailbox.MH(import_dir)
     mbox.lock()
-    f = vim.eval(
-        'input("Import: ", "'+os.path.expandvars('$HOME/')+'", "file")')
+    if os.name == 'nt':
+        f = vim.eval(
+            'input("Import: ", "'+os.path.expandvars('$USERPROFILE\\')+'", "file")')
+    else:
+        f = vim.eval(
+            'input("Import: ", "'+os.path.expandvars('$HOME/')+'", "file")')
     if f == '':
         return
     if os.path.isdir(f):  # ディレクトリならサブ・ディレクトリまで含めてすべてのファイルを対象とする
@@ -4257,12 +4270,10 @@ def do_mail(cmd, args):  # mail に対しての処理、folders では警告表�
 def delete_mail(msg_id, s, args):  # s, args はダミー
     files, tmp, num = select_file(msg_id, 'Select delete file')
     if num == 1:
-        while True:
-            s = vim.eval('input("Delete ' + files[0] + '? [Y]es/[N]o? ", "Y")')
-            if s == '' or s == 'N' or s == 'n':
-                return
-            elif s == 'Y' or s == 'y':
-                break
+        s = vim.bindeval(
+                'confirm("Delete ' + files[0] + '?", "&Yes\n&No", 2, "Question")')
+        if s != 1:
+            return
     for f in files:
         os.remove(f)
     if not notmuch_new(True):
@@ -4421,12 +4432,8 @@ def command_marked(cmdline):
     if marked_line == []:
         print_warring('Mark the email that you want to command. (:Notmuch mark)')
         return
-    if cmdline == []:  # コマンド空
-        cmdline = vim.eval(
-            "input('Command: ', '', 'customlist,Complete_command')")
-        if cmdline == '':
-            return
-        cmdline = cmdline.split()
+    if vim_input(cmdline, "'Command: ', '', 'customlist,Complete_command'"):
+        return
     # コマンドの区切りである改行の前後に空白がない場合に対処
     arg_ls = []
     for cmd in cmdline:
@@ -4564,6 +4571,235 @@ def check_search_term(s):
         print_warring('Error: \'()\', round bracket is not pared.')
         return False
     return True
+
+
+def set_header(b, i, s):  # バッファ b の i 行が空行なら s を追加し、空行でなければ s に置き換える
+    if b[i] == '':
+        b.append(s, i)
+    else:
+        b[i] = s
+
+
+def delete_header(b, h):
+    i = 0
+    for s in b:
+        if s.lower().startswith(h):
+            b[i] = None
+        i += 1
+
+
+def set_fcc(args):
+    if not is_draft():
+        return
+    b = vim.current.buffer
+    if MAILBOX_TYPE == 'Maildir':  # 入力初期値に先頭「.」付加
+        fcc = '.'
+    else:
+        fcc = ''
+    i = 0
+    for s in b:
+        if s.lower().startswith('fcc:'):
+            if fcc == '' or fcc == '.':
+                match = re.match(r'^Fcc:\s*', s, re.IGNORECASE)
+                fcc = s[match.end():]
+            else:  # 複数有った時は 2 つ目以降削除
+                b[i] = None
+        elif s == '':
+            break
+        i += 1
+    mbox = args[2:]
+    if vim_input(mbox, "'Save Mail folder: ', '" + fcc + "', 'customlist,Complete_Folder'"):
+        delete_header(b, 'fcc')
+    else:
+        mbox = mbox[0]
+        if mbox == '' or mbox == '.':
+            delete_header(b, 'fcc')
+        else:
+            i = 0
+            for s in b:
+                if s.lower().startswith('fcc:') or s == '':
+                    break
+                i += 1
+            set_header(b, i, 'Fcc: ' + mbox)
+
+
+def set_attach(args):
+    if not is_draft():
+        return
+    attach = args[2:]
+    b = vim.current.buffer
+    l_attach = vim.current.window.cursor[0] - 1
+    h_last = 0
+    for s in b:
+        if s == '':
+            break
+        h_last += 1
+    if h_last < l_attach:
+        l_attach = -1
+    if os.name == 'nt':
+        home = os.path.expandvars('$USERPROFILE\\')
+    else:
+        home = os.path.expandvars('$HOME/')
+    while True:
+        if use_browse():
+            if attach == []:
+                attach = vim.eval("browse(v:false, 'select attachement file', '" + home + "', '')")
+                if attach == '':
+                    return
+        else:
+            if vim_input(attach, "'Select Attach: ', '" + home + "', 'file'"):
+                return
+            attach = attach[0]
+        attach = os.path.expanduser(os.path.expandvars(attach))
+        if not os.path.exists(attach):
+            print_error('Not exist: ' + attach)
+        elif os.path.isdir(attach):
+            print_error('Directory: ' + attach)
+        elif os.access(attach, os.R_OK):
+            break
+        else:
+            print_error('Do not read: ' + attach)
+    for s in b:
+        match = re.match(r'^Attach:\s*', s)
+        if match is not None:
+            if os.path.expanduser(os.path.expandvars(s[match.end():])) == attach:
+                return
+    if l_attach >= 0 and b[l_attach].lower().startswith('attach:'):
+        b[l_attach] = 'Attach: ' + attach
+        return
+    while h_last >= 0:  # 空の Attach ヘッダ削除
+        if re.match(r'^Attach:\s*$', b[h_last]):
+            b[h_last] = None
+        h_last -= 1
+    i = 0
+    l_attach = -1
+    for s in b:
+        if s.lower().startswith('attach:'):
+            l_attach = i
+        if s == '':
+            break
+        i += 1
+    b.append('Attach: ' + attach, i)
+
+
+def use_browse():
+    return vim.bindeval('has("browse")') \
+            and (not ('notmuch_use_commandline' in vim.vars)
+                 or vim.vars['notmuch_use_commandline'] == 0)
+
+
+def set_encrypt(args):
+    ENCRYPT = 0x01
+    SIGNATURE = 0x02
+    PGP = 0x10
+    PGPMIME = 0x20
+    SMIME = 0x40
+    if not is_draft():
+        return
+    encrypt = []
+    for i in args[2:]:
+        encrypt.append(i.lower())
+    b = vim.current.buffer
+    flag = 0
+    h_last = 0
+    for s in b:
+        match = re.match(r'^(Encrypt|Signature):\s*', s, flags=re.IGNORECASE)
+        if s == '':
+            break
+        h_last += 1
+        if match is None:
+            continue
+        h_term = s[:s.find(':')].lower()
+        h_item = s[match.end():]
+        if h_term == 'encrypt':
+            flag = flag | ENCRYPT \
+             | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
+             | (get_flag(h_item, r'\bPGP\b') * PGP) \
+             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME)
+        elif h_term == 'signature':
+            flag = flag | SIGNATURE \
+             | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
+             | (get_flag(h_item, r'\bPGP\b') * PGP) \
+             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME)
+    if encrypt != []:
+        if 'encrypt' in encrypt:
+            flag = ENCRYPT
+        else:
+            flag = 0
+        if 'signature' in encrypt:
+            flag = flag | SIGNATURE
+        if ('s/mime' in encrypt) or ('s-mime' in encrypt) or ('smime' in encrypt):
+            flag = flag | SMIME
+        elif ('pgp/mime' in encrypt) or ('pgp-mime' in encrypt) or ('pgpmime' in encrypt):
+            flag = flag | PGPMIME
+        elif 'pgp' in encrypt:
+            flag = flag | PGP
+        else:
+            flag = flag | SMIME
+    else:
+        # 暗号化・署名が複数指定されていた時、暗号化と署名方法に矛盾していた時のために flag を指定し直す
+        if flag & SMIME:
+            flag = flag & ~(PGP | PGPMIME)
+        elif flag & PGPMIME:
+            flag = flag & ~PGP
+        while True:
+            if flag & ENCRYPT:
+                encrypt = 'ON'
+            else:
+                encrypt = 'OFF'
+            if flag & SIGNATURE:
+                signature = 'ON'
+            else:
+                signature = 'OFF'
+            if flag & SMIME:
+                method = 'S/MIME'
+            elif flag & PGPMIME:
+                method = 'PGP/MIME'
+            elif flag & PGP:
+                method = 'PGP'
+            else:
+                flag |= SMIME
+                method = 'S/MIME'
+            applies = vim.bindeval(
+                'confirm("Encrypt: ' + encrypt +
+                ' | Signature: ' + signature +
+                ' | Method: ' + method +
+                '", "&Encrypt\n&Signature\n&Method\n&Apply", 4, "Question")')
+            if applies == 0 or applies == b'':
+                return
+            elif applies == 1 or applies == b'E' or applies == b'e':
+                flag ^= ENCRYPT
+            elif applies == 2 or applies == b'S' or applies == b's':
+                flag ^= SIGNATURE
+            elif applies == 3 or applies == b'M' or applies == b'm':
+                if flag & SMIME:
+                    flag = flag ^ SMIME | PGP
+                elif flag & PGPMIME:
+                    flag = flag ^ PGPMIME | SMIME
+                else:
+                    flag = flag ^ PGP | PGPMIME
+            elif applies == 4 or applies == b'A' or applies == b'a':
+                break
+    l_encrypt = h_last
+    while h_last >= 0:  # 全ての Encrypt/Signature ヘッダ削除と Encrypt/Signature が最初に有った位置の取得
+        if re.match(r'^(Encrypt|Signature):', b[h_last]):
+            l_encrypt = h_last
+            b[h_last] = None
+        h_last -= 1
+    if flag & SIGNATURE:
+        if flag & SMIME:
+            b.append('Signature: S/MIME', l_encrypt)
+        elif flag & PGPMIME:
+            b.append('Signature: PGP/MIME', l_encrypt)
+        else:
+            b.append('Signature: PGP', l_encrypt)
+    if flag & ENCRYPT:
+        if flag & SMIME:
+            b.append('Encrypt: S/MIME', l_encrypt)
+        elif flag & PGPMIME:
+            b.append('Encrypt: PGP/MIME', l_encrypt)
+        else:
+            b.append('Encrypt: PGP', l_encrypt)
 
 
 GLOBALS = globals()
