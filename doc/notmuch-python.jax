@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 0.65
+Version: 0.66
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -15,11 +15,11 @@ License: GPL Ver.3.
 	* インストール                                  |notmuch-python-vim-install|
 	* 使用方法                                      |notmuch-python-vim-use|
 		- デフォルト・レイアウト                      |notmuch-python-vim-layout|
-		- デフォルトの主な使用法                      |notmuch-python-vim-default-use|
-		- 送信メール                                  |notmuch-python-vim-sendmail|
 		- デフォルト・キーマップ                      |notmuch-python-vim-keymap|
-		- 編集系で使っていない一文字キー              |notmuch-python-not-use-key|
-		- キーマップのないサブコマンド                |notmuch-python-nokey-command|
+		- デフォルト・キーマップ (送信メール)         |notmuch-python-vim-draft-keymap|
+		- {S-WIN} 詳細                                |notmuch_virtual_haeder|
+		- 送信メール・バッファの使用法                |notmuch-python-vim-sendmail|
+		- 関連付け                                    |notmuch-python-vim-associate|
 	* 設定/オプション                               |notmuch-python-vim-custom|
 		- deoplete.nvim 使用時の注意                  |notmuch-python-vim-deoplete|
 		- オプション                                  |notmuch-python-vim-option|
@@ -160,136 +160,28 @@ Vim packadd ~
 	|           |                                                |
 	+-----------+------------------------------------------------+
 
-------------------------------------------------------------------------------
-                                                *notmuch-python-vim-default-use*
-デフォルト環境の主な使用法 ~
-
-上の |{F-WIN}|, |{T-WIN}|, |{S-WIN}| の意味はそれぞれ次のとおり
-
 |{F-WIN}|
 	* 擬似的なメール・フォルダのフォルダー・ツリー
-	* |g:notmuch_folders| の見出し部分を表示し |search-term| 部分が隠れた状態
-		で開かれる
-	* o で |{T-WIN}| にメール一覧を表示                 |notmuch-python-vim-open|
-	* |:bwipeout| すると他の |{T-WIN}|/|{S-WIN}| や未編集の送信バッファも閉じられる
+	* |g:notmuch_folders| の見出し部分を表示し |search-term| 部分が |{T-WIN}|/|{S-WIN}|
+	  に隠れた状態で開かれる
+	* |:bwipeout| すると他の |{T-WIN}|/|{S-WIN}| や未編集の送信メール・バッファ
+	  (|notmuch-python-vim-sending-buffer|) も閉じる
 |{T-WIN}|
 	* スレッド・ツリー
 	* デフォルトでは全体の 1/4 程度の高さ
 	* |{S-WIN}| のウィンドウが有れば、カーソル位置のメールを |{S-WIN}| に表示する
-	* o でスレッド開閉                         |notmuch-python-vim-thread-toggle|
 	* ステータス・バーにタグなどの情報を表示
 	* |zn| を無効にしている
 |{S-WIN}|
-	* まず先頭に |g:notmuch_show_headers|、次に |g:notmuch_show_hide_headers|
-		に従い From, To, Subject, Date 等のヘッダを表示する
-	* それに続いて、次の仮想ヘッダを表示                *notmuch_virtual_haeder*
-			----------------+---------------------------------------------------~
-			 追加するヘッダ	|                 意味 ~
-			----------------+---------------------------------------------------~
-			Attach:					| 添付ファイル名 (添付ファイル数だけ)
-			HTML:						| HTML メール (ファイル名の代わりに index.html)
-			PGP-Decrypted:	| 暗号化メールを復号化した時の情報 (以下が主な例)
-											| S/MIME
-											| OpenPGP/MIME
-											| inline
-			PGP-Encrypted:	| 暗号化メールの復号化していない時の上記情報
-			Encrypt:				| 暗号化メールを復号していない時、そのファイル名
-			PGP-Public-Key: | 添付された公開鍵
-			Good-Signature:	| 正しい署名と検証された時、そのファイル名
-			Bad-Signature:	| 不正な署名と判定された時、そのファイル名
-			Signature:			| 対応する鍵がない時、その電子署名ファイル
-			----------------+---------------------------------------------------~
-			Example: >
-				HTML: index.html
-				Attach: attachment.zip
-<		- どちらも削除されていれば、HTML:→Del-HTML: 等と Del- が先頭に付く
-	* これらのヘッダの後に本文が続き、text/plain と text/html パートの両方が含
-		まれている時は、text/plain の後の >
-			HTML part
-<		に続いて text/html パートが折り畳まれた状態で表示される
-	* text/html しか無いメールの場合、折り畳まれずに表示される
-
-------------------------------------------------------------------------------
-                                                   *notmuch-python-vim-sendmail*
-送信メール ~
-
-	:Notmuch start をしていなくとも、送信メールは >
-		$ vim +'Notmuch mail-new'
-<	ではじめられる >
-		$ vim +'Notmuch mail-new vim@user.com'
-		$ vim +'Notmuch mail-new mailto:vim-jp@user.com'
-<	とメールアドレス付きで起動すれば、To ヘッダに指定される
-
-	Notmuch start 済みなら >
-		:Notmuch mail-new
-<	この時 |{F-WIN}| ならカーソル位置、他なら開いているメールと |g:notmuch_to| の
-	組み合わせで、To ヘッダが入力済みになる
-
-	送信メールに                                         *notmuch-python-vim-head*  >
-		From:
-		To:
-		Cc:
-		Bcc:
-		Subject:
-		Reply-To:
-		Attach:
-<	のような内容が入力済みなので送信先や件名を書き込む
-
-	バッファを開いたお気にどのヘッダ名が入力済みかは、|g:notmuch_draft_header|
-	で設定できる
-
-	送信時はどのヘッダも「:」以降の内容がなければそのヘッダ自身がないものとし
-	て処理する
-
-	実際に送信されない仮想ヘッダとして次のヘッダがある
-			----------------+---------------------------------------------------~
-			 追加するヘッダ	|                 意味 ~
-			----------------+---------------------------------------------------~
-			Attach:					| 添付ファイルのパスを指定
-											| 複数添付する場合は、その数だけ指定する
-											|                            *notmuch-pytho-vim-attach*
-			Fcc:						| 送信メールの保存先メール・フォルダの指定
-											|                               *notmuch-pytho-vim-fcc*
-			Encrypt:				| 暗号化の方法指定           *notmuch-pytho-vim-encrypt*
-			Signature:			| 電子署名の方法指定
-			----------------+---------------------------------------------------~
-		* Fcc の指定がなければ |g:notmuch_save_sent_mailbox| に従う
-		* Encrypt, Signature で使えるのは次の通り
-			------------------------+-------------------------------------------~
-			 暗号化・電子署名の方法	| Encrypt, Signature で意味を持つ指定方法 ~
-			 (複数指定時の優先順)		| (大文字・小文字の区別はなし) ~
-			------------------------+-------------------------------------------~
-			S/MIME									| S/MIME
-															| SMIME
-															| S-MIME
-			PGP/MIME								| PGP/MIME
-															| PGPMIME
-															| PGP-MIME
-			PGP											| PGP
-															| (通常の text/plain として暗号化・電子署名済
-															|  みの内容が書き込まれ、添付ファイルは暗号化・
-															|  電子署名の対象にならない)
-			------------------------+-------------------------------------------~
-			- Encrypt, Signature 両方の指定があれば暗号化+電子署名両方を行う
-			- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
-
-	本文部分にカーソルが移動すると
-		* |g:notmuch_from| などによって From ヘッダ
-		* |g:notmuch_signature| によって連絡先などの署名
-	が入力される
-
-	実際の送信は mail-send (|notmuch-python-vim-mail-send|) を用いる
-
-	下書きの保存は普通に >
-	:w
-<	(|:write|)などを使えばよく、再編集は mail-edit (|notmuch-python-vim-mail-edit|)
+	* メールのヘッダ・本文表示
 
 ------------------------------------------------------------------------------
                                                      *notmuch-python-vim-keymap*
 デフォルト・キーマップ ({F-WIN}, {T-WIN}, {S-WIN})~
 
 <F1>			ヘルプでこの項目を開く
-<Space>		未読ページ                      |notmuch-python-vim-view-unread-mail|
+<leader>h
+<Space>		未読ページダウン                |notmuch-python-vim-view-unread-mail|
 <S-Space>	メールのページアップ            |notmuch-python-vim-view-previous|
 o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
 					|{F-WIN}|	|{T-WIN}| を開く
@@ -333,51 +225,145 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
                                                *notmuch-python-vim-draft-keymap*
 デフォルト・キーマップ (送信メール)~
 
-mail-new (|notmuch-python-vim-mail-new|), mail-reply
-(|notmuch-python-vim-mail-reply|), mail-forward (|notmuch-python-vim-mail-forward|)
-で開いた送信メール・バッファで次をキーマップしている
+送信メール・バッファ (|notmuch-python-vim-sending-buffer|) のデフォルト・キー
+マップは次の通り
 
+<F1>			ヘルプでこの項目を開く (Help)
+<leader>h
 <Leader>s	バッファをメール送信 (Send)     |notmuch-python-vim-mail-send|
 <leader>f Fcc の設定                      |notmuch-python-vim-set-fcc|
 <leader>c 添付ファイルの追加/変更         |notmuch-python-vim-set-attach|
 <leader>e 暗号化/電子署名の設定           |notmuch-python-vim-set-encrypt|
 <leader>a	タグの追加 (Add tag)            |notmuch-python-vim-tag-add|
-<leader>A
 <leader>d	タグの削除 (Delete tag)         |notmuch-python-vim-tag-delete|
+<leader>A
 <leader>t	タグの追加/削除をトグル (Toggle tag)
                                           |notmuch-python-vim-tag-toggle|
 <leader>p	Message-ID 等メールの各種情報表示 (Popup information)
                                           |notmuch-python-vim-mail-info|
 <leader>q バッファを閉じる (Quit)         |:bwipeout|!
-<leader>h
-<F1>			ヘルプでこの項目を開く (Help)
 
--------------------------------------------------------------------------------
-                                                    *notmuch-python-not-use-key*
-編集系で使っていない一文字キー ~
-`~`
-P
-U
-x
-X
-.
+------------------------------------------------------------------------------
+                                                  *notmuch_virtual_haeder*
+{S-WIN} 詳細 ~
 
--------------------------------------------------------------------------------
-                                                  *notmuch-python-nokey-command*
-キーマップのないサブコマンド ~
-start					|notmuch-python-vim-start|
-close					|notmuch-python-vim-close|
-mail-delete		|notmuch-python-vim-mail-delete|
-mail-edit			|notmuch-python-vim-mail-edit|
-mail-move			|notmuch-python-vim-mail-move|
-mail-reindex	|notmuch-python-vim-mail-reindex|
-mark					|notmuch-python-vim-mark|
-mark-command	|notmuch-python-vim-mark-command|
-reload				|notmuch-python-vim-reload|
-run						|notmuch-python-vim-run|
-search-thread	|notmuch-python-vim-search-thread|
-thread-cut		|notmuch-python-vim-thread-cut|
-thread-sort		|notmuch-python-vim-thread-sort|
+* まず先頭に |g:notmuch_show_headers|、次に |g:notmuch_show_hide_headers|
+	に従い From, To, Subject, Date 等のヘッダを表示する
+* それに続いて、次の仮想ヘッダを表示
+		----------------+---------------------------------------------------~
+		 追加するヘッダ	|                 意味 ~
+		----------------+---------------------------------------------------~
+		Attach:					| 添付ファイル名 (添付ファイル数だけ)
+		HTML:						| HTML メール (ファイル名の代わりに index.html)
+		Decrypted:			| 暗号化メールを復号化した時の情報 (以下が主な例)
+										| S/MIME
+										| OpenPGP/MIME
+										| inline
+		Not-Decrypted:	| 暗号化メールの復号化していない時の上記情報
+		Encrypt:				| 暗号化メールを復号していない時、そのファイル名
+		PGP-Public-Key: | 添付された公開鍵
+		Good-Signature:	| 正しい署名と検証された時、そのファイル名
+		Bad-Signature:	| 不正な署名と判定された時、そのファイル名
+		Signature:			| 対応する鍵がない時、その電子署名ファイル
+		----------------+---------------------------------------------------~
+		Example: >
+			HTML: index.html
+			Attach: attachment.zip
+<		- どちらも削除されていれば、HTML:→Del-HTML: 等と Del- が先頭に付く
+* これらのヘッダの後に本文が続き、text/plain と text/html パートの両方が含
+	まれている時は、text/plain の後の >
+		HTML part
+<		に続いて text/html パートが折り畳まれた状態で表示される
+* text/html しか無いメールの場合、折り畳まれずに表示される
+
+------------------------------------------------------------------------------
+                                                   *notmuch-python-vim-sendmail*
+送信メール・バッファの使用法 ~
+
+* mail-new (|notmuch-python-vim-mail-new|)     *notmuch-python-vim-sending-buffer*
+* mail-reply (|notmuch-python-vim-mail-reply|)
+* mail-forward (|notmuch-python-vim-mail-forward|)
+で送信メール・バッファが開く
+
+開く時に呼び出し元が |{F-WIN}| ならカーソル位置、他なら開いているメールと
+|g:notmuch_to| の等の組み合わせで、To ヘッダが入力済みになる
+	- この時点では署名は書き込まれない
+
+送信メール・バッファに                                 *notmuch-python-vim-head*  >
+	From:
+	To:
+	Cc:
+	Bcc:
+	Subject:
+	Reply-To:
+	Attach:
+<のような内容が入力済みなので送信先や件名を書き込む
+
+バッファを開いた時にどのヘッダ名が入力済みかは、|g:notmuch_draft_header|
+で設定できる
+
+実際に送信されない仮想ヘッダとして次のヘッダがある
+		----------------+---------------------------------------------------~
+		 追加するヘッダ	|                 意味 ~
+		----------------+---------------------------------------------------~
+		Attach:					| 添付ファイルのパスを指定
+										| 複数添付する場合は、その数だけ指定する
+										|                            *notmuch-pytho-vim-attach*
+		Fcc:						| 送信メールの保存先メール・フォルダの指定
+										|                               *notmuch-pytho-vim-fcc*
+		Encrypt:				| 暗号化の方法指定           *notmuch-pytho-vim-encrypt*
+		Signature:			| 電子署名の方法指定
+		----------------+---------------------------------------------------~
+	* Attach は <leader>c でも指定可能    |notmuch-python-vim-set-attach|
+	* Fcc の指定がなければ |g:notmuch_save_sent_mailbox| に従う
+		- <leader>f でも指定可能            |notmuch-python-vim-set-fcc|
+				Fcc ヘッダの編集でも可能
+	* Encrypt/Signature は <leader>e で設定可能 |notmuch-python-vim-set-encrypt|
+		- 直接編集する時に指定できる値は次の通り
+			------------------------+------------------------------------------~
+			 暗号化・電子署名の方法	| Encrypt, Signature で意味を持つ指定方法 ~
+			 (複数指定時の優先順)		| (大文字・小文字の区別はなし) ~
+			------------------------+------------------------------------------~
+			S/MIME									| S/MIME
+															| SMIME
+															| S-MIME
+			PGP/MIME								| PGP/MIME
+															| PGPMIME
+															| PGP-MIME
+			PGP											| PGP
+															| (通常の text/plain として暗号化・電子署
+															|  名済みの内容が書き込まれ、添付ファイル
+															|  は暗号化・電子署名の対象にならない)
+			------------------------+------------------------------------------~
+		- Encrypt, Signature 両方の指定があれば暗号化+電子署名両方を行う
+		- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
+
+本文部分にカーソルが移動すると
+	* |g:notmuch_from| などによって From ヘッダ
+	* |g:notmuch_signature| によって連絡先などの署名
+が入力される
+
+実際の送信は <leader>s                  |notmuch-python-vim-mail-send|
+	* 送信時はどのヘッダも「:」以降の内容がなければそのヘッダ自身がないものとし
+		て処理する
+
+下書きの保存は普通に >
+	:w
+<(|:write|) などを使えばよく、再編集は mail-edit (|notmuch-python-vim-mail-edit|)
+
+------------------------------------------------------------------------------
+                                                  *notmuch-python-vim-associate*
+関連付け ~
+
+:Notmuch start をしていなくとも、送信メール・バッファ
+(|notmuch-python-vim-sending-buffer|) は >
+	$ vim +'Notmuch mail-new'
+<でも開く >
+	$ vim +'Notmuch mail-new vim@user.com'
+	$ vim +'Notmuch mail-new mailto:vim-jp@user.com'
+<とメールアドレス付きで起動すれば、To ヘッダに指定される
+
+よってコマンド・オプション付きで、それぞれの環境に応じて関連付ければ良い
 
 ==============================================================================
                                                      *notmuch-python-vim-custom*
@@ -387,9 +373,9 @@ thread-sort		|notmuch-python-vim-thread-sort|
                                                    *notmuch-python-vim-deoplete*
 deoplete.nvim 使用時の注意 ~
 
-
-送信メールはデフォルトでは deoplete による snippet を用いた補完の対象外補完の
-対象にする設定が必要
+送信メール・バッファ (|notmuch-python-vim-sending-buffer|) はデフォルトでは
+deoplete (https://github.com/Shougo/deoplete.nvim) による snippet を用いた補完
+の対象外補完の対象にする設定が必要
 
 	Example: >
 		call deoplete#custom#option({
@@ -414,12 +400,17 @@ g:notmuch_command                                    *g:notmuch_command*
 	* 通常変更する必要はないが、自作コマンドを追加した時に登録が必要
 
 	Example: >
-		let g:notmuch_command['subcommand']    = ['Funcref', mark_cmd]
+		let g:notmuch_command['subcommand']    = ['Funcref', executable]
 <
 		subcommand:	サブコマンド名
 		Funcref:		実際に呼び出される関数名 (ラムダ式は未対応)
-		mark_cmd:		mark-command (|notmuch-python-vim-mark-command|) で呼び出
-								し可能 (|v:true|) か? 不可能 (|v:false|) か?
+		executable:	実行される条件を次のビットごとの OR 演算で指定
+								- 0x01:	引数を持つ、もしくは持てるか?
+								- 0x02:	mark-command (|notmuch-python-vim-mark-command|) で
+												呼び出し可能か?
+								- 0x04:	|{F-WIN}|/|{T-WIN}|/|{S-WIN}| で使用可能か?
+								- 0x08:	送信メール・バッファ
+									(|notmuch-python-vim-sending-buffer|) で使用可能か?
 
 g:notmuch_date_format                                *g:notmuch_date_format*
 	Type: |String|
@@ -470,7 +461,8 @@ g:notmuch_draft_header                                *g:notmuch_draft_header*
 	Type: |List|
 	Default: `['From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach']`
 
-	* 送信メールの編集バッファを開いた時、入力済みにしておくヘッダの順序
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) を開いた時、入力
+	  済みにしておくヘッダの順序
 	* Attach ヘッダのみは、含まれていれば順序に関係なく、ヘッダの最後に入力
 
 g:notmuch_folder_format                               *g:notmuch_folder_format*
@@ -541,7 +533,9 @@ g:notmuch_from                                       *g:notmuch_from*
 	Type: |List|
 	Default: `[]`
 
-	* 送信メールで本部分にカーソル移動した時、From ヘッダが空の時に書き込む内容
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で本文部分にカーソ
+	  ル移動した時、From ヘッダが空の時に書き
+	  込む内容
 	* `[]` だと Notmuch の user.primary_email 設定 (~/.notmuch_config の次
 		のような記載部分) が使われる >
 			[user]
@@ -735,7 +729,8 @@ g:notmuch_signature                                  *g:notmuch_signature*
 			\ 'vim@user.com'   : '~/.signature/vim',
 			\ }
 <
-	* 送信メールの To の指定送信先/From の送信元別に使用する署名ファイル
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の To の指定送信先/From
+	  の送信元別に使用する署名ファイル
 	* キーにそのメール・アドレスを、値に署名ファイルを指定
 	* 複数設定が有る時のデフォルト署名ファイルはキーに `'*'` を設定する
 	* すべての条件に一致する To アドレスがなければ、From のアドレスも確認する
@@ -794,8 +789,8 @@ g:notmuch_use_commandline                            *g:notmuch_use_commandline*
 	Type: |Number|
 	Default: `0`
 
-	* GUI でファイル選択時にダイアログを使用可能な環境でもコマンドラインを使用す
-	  るか
+	* GUI でファイル選択時にダイアログを使用可能な環境でもコマンドラインモード
+	  (|CmdLine|) を使用するか
 
 g:notmuch_view_attachment                            *g:notmuch_view_attachment*
 	Type: |String|
@@ -851,7 +846,7 @@ mail-delete
 	* |{T-WIN}| ではカーソル位置、もしくは選択しているメールの元となるメール・
 		ファイルを削除
 	* |{S-WIN}| では表示しているメール元となるメール・ファイルを削除
-	* 実行しても |{T-WIN}| の情報は更新されない
+	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 	* 複数のメール・ファイルがある場合は、
 		- 更新日時
@@ -883,9 +878,9 @@ mail-import
 	* ディレクトリが選ばれた時は、サブフォルダも含めて、そこに含まれるメール・
 		ファイルをインポート
 	* ファイル/ディレクトリの両選択に対応するため、ダイアログを使用可能な環境で
-	  も必ずコマンドライン使用
+	  も必ずコマンドラインモード (|CmdLine|) 使用
 	* Message-ID ヘッダがなければ、メッセージを表示しインポートしない
-	* 実行しても |{T-WIN}| の情報は更新されない
+	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 
                                                   *notmuch-python-vim-mail-info*
@@ -906,16 +901,16 @@ mail-info
 			+ C/c/X/x/Q/q/P/p/<Esc> タイプ
 			+	カーソル移動
 			+	ポップアップ部のクリック
-	* ポップアップ未対応環境は、コマンドラインで表示
+	* ポップアップ未対応環境は、コマンドラインモード (|CmdLine|) で表示
 
                                                   *notmuch-python-vim-mail-move*
 mail-move [{mailbox}]
 	* メール・ファイルを別のメール・フォルダ {mailbox} に移動
-	* {mailbox} が無ければコマンドラインで指定になる
+	* {mailbox} が無ければコマンドラインモード (|CmdLine|) で指定になる
 		- この指定でも空だとキャンセルになる
 	* 複数指定は最初以外を無視する
 	* |{T-WIN}| では、カーソル位置、もしくは選択メールの移動
-	* 実行しても |{T-WIN}| の情報は更新されない
+	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 
                                                    *notmuch-python-vim-mail-new*
@@ -948,13 +943,10 @@ mail-save
 mail-send
 	* メールを |g:notmuch_send_param| にしたがって送信
 	* |g:notmuch_send_param| で指定しているプログラムの設定が予め必要
-	* 実行しても |{T-WIN}| の情報は更新されない
+	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 	* バッファの種類によって送信対象になるメールが変わる
-		- mail-new (|notmuch-python-vim-mail-new|),
-			mail-reply (|notmuch-python-vim-mail-reply|),
-			mail-forward (|notmuch-python-vim-mail-forward|) で開いた送信メール
-			(|notmuch-python-vim-sendmail|) はそのバッファの内容
+		- 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) はそのバッファの内容
 		- |{F-WIN}| では
 			(folder:draft or folder:.draft or tag:draft) not tag:sent not tag:Trash not tag:Spam
 			条件に一致するメール
@@ -1021,9 +1013,9 @@ run [{arglist}]
                                                      *notmuch-python-vim-search*
 search [|search-term|]
 	* Notmuch を用いて検索し、ヒットしたメール一覧を新たな |{T-WIN}| に表示する
-	* |search-term| を指定していないと、コマンドラインで指定になる
+	* |search-term| を指定していないと、コマンドラインモード (|CmdLine|) で指定になる
 		- この指定でも空だとキャンセルになる
-	* 実行時のコマンドラインにデフォルトで表示される |search-term| は
+	* 実行時のコマンドラインモード (|CmdLine|) のデフォルト |search-term| は
 			|{F-WIN}|		枠のカーソル位置に対応する |g:notmuch_folders| の |search-term|
 			|{T-WIN}|/|{S-WIN}| メールに対応した |search-term|
 	* 検索の結果ヒットするメールがなければ、メッセージを表示のみおこない、|{T-WIN}|
@@ -1035,15 +1027,17 @@ search-thread
 
                                                  *notmuch-python-vim-set-attach*
 set-attach [{attachment}]
-	* 送信メール・バッファ添付ファイルとして {attachment} に変更/追加
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で添付ファイルとし
+	  て {attachment} に変更/追加
 	* {attachment} が無ければファイル選択になる
 		- この指定でも <Esc> だとキャンセル
-			o コマンドラインでは空の入力でもキャンセル
+			o コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
 	* カーソル位置が Attach: (|notmuch-pytho-vim-attach|) ヘッダなら変更
 
                                                 *notmuch-python-vim-set-encrypt*
 set-encrypt [{encrypt/signature}]
-	* 送信メール・バッファの暗号化/電子署名 {encrypt/signature} 設定
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
+	  {encrypt/signature} 設定
 	* {encrypt/signature} に指定できるのは大文字小文字の区別なしで次の通り
 			------------------+------------------------------------~
 			 指定できる文字列-+-意味~
@@ -1065,12 +1059,13 @@ set-encrypt [{encrypt/signature}]
 		- M/m:   暗号化/電子署名の方法 (Method) をサイクリックに切り替え
 		- A/a:   バッファへ反映
 		- <Esc>: キャンセル
-			o コマンドラインでは空の入力でもキャンセル
+			o コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
 
                                                     *notmuch-python-vim-set-fcc*
 set-fcc [{mailbox}]
-	* 送信メール・バッファで {mailbox} を Fcc: (|notmuch-pytho-vim-fcc|) に設定
-	* {mailbox} が無ければコマンドラインで指定になる
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で {mailbox}
+	  を Fcc: (|notmuch-pytho-vim-fcc|) に設定
+	* {mailbox} が無ければコマンドラインモード (|CmdLine|) で指定になる
 		- この指定でも空だとキャンセルになる
 
                                                       *notmuch-python-vim-start*
@@ -1084,46 +1079,54 @@ start
                                                     *notmuch-python-vim-tag-add*
 tag-add [{tags}]
 	* メールにタグを追加
-	* 実行しても |{T-WIN}| の情報は更新されない
-		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* {tags} を指定していないと、コマンドラインで指定になる
+	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
 		- この指定でも空だとキャンセルになる
-	* mail-new (|notmuch-python-vim-mail-new|),
-	* mail-new (|notmuch-python-vim-mail-new|),
-		mail-reply (|notmuch-python-vim-mail-reply|),
-		mail-forward (|notmuch-python-vim-mail-forward|),
-		mail-edit (|notmuch-python-vim-mail-edit|) で開いた送信メールで・バッファで
-		は、notmuch database は直ちに反映されず、保存・送信時に反映される
+	* 実行しても |{T-WIN}| のリストは更新されない
+		- 更新するには reload (|notmuch-python-vim-reload|) が必要
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
                                                  *notmuch-python-vim-tag-delete*
 tag-delete [{tags}]
 	* メールのタグを削除
-	* 実行しても |{T-WIN}| の情報は更新されない
-		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* {tags} を指定していないと、コマンドラインで指定になる
+	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
 		- この指定でも空だとキャンセルになる
-	* mail-new (|notmuch-python-vim-mail-new|),
-		mail-reply (|notmuch-python-vim-mail-reply|),
-		mail-forward (|notmuch-python-vim-mail-forward|),
-		mail-edit (|notmuch-python-vim-mail-edit|) で開いた送信メールで・バッファで
-		は、notmuch database は直ちに反映されず、保存・送信時に反映される
+	* 実行しても |{T-WIN}| のリストは更新されない
+		- 更新するには reload (|notmuch-python-vim-reload|) が必要
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	  database は直ちに反映されず、保存・送信時に反映される
+		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
+			される
+
+                                                 *notmuch-python-vim-tag-set*
+tag-set [{tags}]
+	* メールのタグを追加/削除/トグル
+		- タグ名の前に + を付けると追加
+		- タグ名の前に - を付けると削除
+		- タグ名の前に何も付け無いとトグル
+		- 例:
+			+add -delete toggle
+		- 追加/削除/トグルが矛盾すると、追加 > 削除 > トグルで優先される
+	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
+		- この指定でも空だとキャンセルになる
+	* 実行しても |{T-WIN}| のリストは更新されない
+		- 更新するには reload (|notmuch-python-vim-reload|) が必要
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
                                                  *notmuch-python-vim-tag-toggle*
 tag-toggle [{tags}]
 	* メールのタグをトグル
-	* 実行しても |{T-WIN}| の情報は更新されない
-		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* {tags} を指定していないと、コマンドラインで指定になる
+	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
 		- この指定でも空だとキャンセルになる
-	* mail-new (|notmuch-python-vim-mail-new|),
-		mail-reply (|notmuch-python-vim-mail-reply|),
-		mail-forward (|notmuch-python-vim-mail-forward|),
-		mail-edit (|notmuch-python-vim-mail-edit|) で開いた送信メールで・バッファで
-		は、notmuch database は直ちに反映されず、保存・送信時に反映される
+	* 実行しても |{T-WIN}| のリストは更新されない
+		- 更新するには reload (|notmuch-python-vim-reload|) が必要
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
@@ -1150,7 +1153,8 @@ thread-sort [{list}/{tree} {sorting-way}]
 									 示の切り替えのみ行う
 		{sorting-way}: ソート方法の変更
 									 {list}/{tree} が無ければ {tree} 扱い
-	* {list}/{tree}, {sorting-way} を指定していないと、コマンドラインで指定になる
+	* {list}/{tree}, {sorting-way} を指定していないと、コマンドラインモード
+	  (|CmdLine|) で指定になる
 		- この指定でも空だとキャンセルになる
 	* mark (|notmuch-python-vim-mark|) によるマークが削除される
 
@@ -1250,24 +1254,30 @@ TODO ~
                                                     *notmuch-python-vim-history*
 更新履歴 ~
 
+2021/12/30 Ver.0.66 ~
+* |g:notmuch_command| の説明修正
+* 使用できないサブコマンドはできる限り補完候補に表示しない
+* メールのタグを追加/削除/トグルを全て一度に指定できる tag-set
+	(|notmuch-python-vim-tag-set|) 追加
+* タグ指定時に既に引数に含まれていれば補完候補から除外
+
 2021/12/26 Ver.0.65 ~
 * Fcc の設定する set-fcc (|notmuch-python-vim-set-fcc|) 追加
 * 添付ファイルの追加/変更する set-attach (|notmuch-python-vim-set-attach|) 追加
 * 暗号化/電子署名の設定する set-encrypt (|notmuch-python-vim-set-encrypt|) 追加
 * 可能ならファイル選択時はダイアログを使用する
 * |g:notmuch_use_commandline| を追加
-	- 上を無視して必ずコマンドラインを使用する
+	- 上を無視して必ずコマンドラインモード (|CmdLine|) を使用する
 
 2021/12/24 Ver.0.64 ~
 * start (|notmuch-python-vim-start|) しないで mail-new
   (|notmuch-python-vim-mail-new|) し保存するとエラーになるバグ修正
 
-
 2021/12/23 Ver.0.63 ~
 * start (|notmuch-python-vim-start|) しないで mail-new
   (|notmuch-python-vim-mail-new|) した時送信エラーになるバグ修正
-* 送信メールバッファ (notmuch-draft) でタグ追加/削除/トグル対応
-* 送信メールバッファにもデフォルト・キーマップ
+* 送信メール・バッファ (notmuch-draft) でタグ追加/削除/トグル対応
+* 送信メール・バッファにもデフォルト・キーマップ
 * 添付ファイル名に対しても、iso-2022-jp で送られているにも関わらず、Ⅰといった
   ローマ数字等 iso-2022-jp 範囲外の文字が使われている場合、nkf が実行可能なら
   nkf で変換する
