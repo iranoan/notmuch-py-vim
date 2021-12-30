@@ -1466,12 +1466,12 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         ret = run([cmd, '--decrypt'], input=decrypt, stdout=PIPE, stderr=PIPE)
         set_pgp_result(b_v, thread_b_v, ret)
         if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
-            b.append('PGP-Decrypted: ' + pgp_info)
+            b.append('Decrypted: ' + pgp_info)
         if ret.returncode:  # 署名未検証/失敗は ret.returncode >= 1 なので else/elif ではだめ
             if ret.returncode == 1:
                 b.append('Bad-Signature: ' + pgp_info)
             else:
-                b.append('PGP-Encrypted: ' + pgp_info)
+                b.append('Not-Decrypted: ' + pgp_info)
         return ret
 
     def decrypt(cmd, part, part_ls, part_num, pre_part, output, pgp_info):
@@ -1774,6 +1774,57 @@ def delete_msg_tags(msg, tags):  # メールのタグ削除→フォルダ・リ
         pass
 
 
+def set_tags(msg_id, s, args):  # vim から呼び出しで tag 追加/削除/トグル
+    if args is None:
+        return
+    tags = args[2:]
+    if vim_input(tags, "'Set tag: ', '', 'customlist,Complete_set_tag_input'"):
+        return
+    add_tags = []
+    delete_tags = []
+    toggle_tags = []
+    for t in tags:
+        if t[0] == '+':
+            add_tags.append(t[1:])
+        elif t[0] == '-':
+            delete_tags.append(t[1:])
+        else:
+            toggle_tags.append(t)
+    if is_draft():
+        b_v = vim.current.buffer.vars['notmuch']
+        b_tags = b_v['tags'].decode().split(' ')
+        for t in add_tags:
+            if not (t in b_tags):
+                b_tags.append(t)
+        for t in delete_tags:
+            if t in b_tags:
+                b_tags.remove(t)
+        for t in toggle_tags:
+            if t in b_tags:
+                b_tags.remove(t)
+            else:
+                b_tags.append(t)
+        b_v['tags'] = ' '.join(b_tags)
+        return
+    msg = change_tags_before(msg_id)
+    if msg is None:
+        return
+    msg_tags = []
+    for t in msg.get_tags():
+        msg_tags.append(t)
+    for tag in toggle_tags:
+        if tag in msg_tags:
+            if tag not in add_tags:
+                delete_tags.append(tag)
+        else:
+            if tag not in delete_tags:
+                add_tags.append(tag)
+    delete_msg_tags(msg, delete_tags)
+    add_msg_tags(msg, add_tags)
+    change_tags_after(msg, True)
+    return [0, 0] + tags
+
+
 def add_tags(msg_id, s, args):  # vim から呼び出しで tag 追加
     if args is None:
         return
@@ -1838,8 +1889,11 @@ def toggle_tags(msg_id, s, args):  # vim からの呼び出しで tag をトグ�
         msg = change_tags_before(msg_id)
         if msg is None:
             return
+        msg_tags = []
+        for t in msg.get_tags():
+            msg_tags.append(t)
         for tag in tags:
-            if tag in msg.get_tags():
+            if tag in msg_tags:
                 delete_msg_tags(msg, [tag])
             else:
                 add_msg_tags(msg, [tag])
@@ -1861,6 +1915,29 @@ def get_msg_tags_list(tmp):  # vim からの呼び出しでメールのタグを
             tags.append(tag)
         DBASE.close()
     return sorted(tags, key=str.lower)
+
+
+def get_msg_tags_any_kind(tmp):  # メールに含まれていないタグ取得には +を前置、含まれうタグには - を前置したリスト
+    msg_id = get_msg_id()
+    if msg_id == '':
+        return []
+    DBASE.open(PATH)
+    tags = get_msg_all_tags_list_core()
+    if is_draft():
+        msg_tags = vim.current.buffer.vars['notmuch']['tags'].decode().split(' ')
+    else:
+        msg = DBASE.find_message(msg_id)
+        msg_tags = []
+        for t in msg.get_tags():
+            msg_tags.append(t)
+    DBASE.close()
+    add_tags = []
+    for t in tags:
+        if t not in msg_tags:
+            add_tags.append('+' + t)
+    for t in msg_tags:
+        tags.append('-' + t)
+    return sorted(tags + add_tags, key=str.lower)
 
 
 def get_msg_tags_diff(tmp):  # メールに含まれていないタグ取得
@@ -2898,6 +2975,8 @@ def send_vim_buffer():
         if MAILBOX_TYPE == 'Maildir':
             f = re.sub('[DFPRST]+$', '', f) + '*'
         rm_file_core(f)
+        return True
+    return False
 
 
 def marge_tag(msg_id, send):   # 下書きバッファと notmuch databae のタグをマージ
@@ -3448,7 +3527,8 @@ def send_vim():
     bufnr = b.number
     b_v = b.vars['notmuch']
     if b.options['filetype'] == b'notmuch-draft':
-        send_vim_buffer()
+        if not send_vim_buffer():
+            return
     else:
         buf_num = vim.bindeval('s:buf_num')
         if bufnr == buf_num['folders']:
@@ -4354,41 +4434,28 @@ def run_shell_program(msg_id, s, args):
     return args
 
 
-def get_command():  # マークしたメールを纏めて処理できるコマンド・リスト (command: must argument)
-    # 実行不可能コマンド
-    cannot_cmds = [
-        'start',
-        'open',
-        'mail-info',
-        'view-unread-page',
-        'view-unread-mail',
-        'view-previous',
-        'close',
-        'reload',
-        'mail-new',
-        'mail-reply',
-        'mail-send',
-        'mail-import',
-        'mark',
-        'thread-connect',
-        'search',
-        'thread-cut',
-        'thread-connect',
-        'thread-sort',
-        'thread-toggle',
-        'search-thread',
-    ]
-    # 将来実行可能にするかもしれないコマンド
-    cannot_cmds += [
-        'mail-save',
-        'mail-forward',
-        'mail-reply'
-    ]
+def get_cmd_name_ftype():  # バッファの種類による処理できるコマンド・リスト
+    if vim.current.buffer.options['filetype'] == b'notmuch-edit':
+        return []
+    cmd_dic = []
+    cmds = vim.vars['notmuch_command']
+    if vim.current.buffer.options['filetype'] == b'notmuch-draft':
+        for cmd, v in cmds.items():
+            if v[1] & 0x08:
+                cmd_dic.append(cmd.decode())
+    else:
+        for cmd, v in cmds.items():
+            if v[1] & 0x04:
+                cmd_dic.append(cmd.decode())
+    return sorted(cmd_dic, key=str.lower)
+
+
+def get_command():  # マークしたメールを纏めて処理できるコマンド・リスト (subcommand: executable)
     cmd_dic = {}
     cmds = vim.vars['notmuch_command']
     for cmd, v in cmds.items():
         cmd = cmd.decode()
-        if cmd not in cannot_cmds:
+        if v[1] & 0x02:
             cmd_dic[cmd] = v[1]
     return cmd_dic
 
@@ -4454,9 +4521,9 @@ def command_marked(cmdline):
     cmd = ''
     args = []
     for arg in arg_ls:
-        if cmd == '' and cmds[arg] == 1:  # 引数必要
+        if cmd == '' and (cmds[arg] & 0x02):  # 引数必要
             cmd = arg
-        elif cmd == '' and cmds[arg] == 0:  # 引数を必要としないコマンド
+        elif cmd == '' and (cmds[arg] & 0x02):  # 引数を必要としないコマンド
             cmd_arg.append([cmds_dic[arg][0].decode()[2:], ''])
             cmd = ''
         elif arg == '\r' or arg == '\x00':  # コマンド区切り
@@ -4475,6 +4542,7 @@ def command_marked(cmdline):
             if cmd[0] in [  # 複数選択対応で do_mail() から呼び出されるものは search_term が必要
                           # 不要な場合はダミーの文字列
                           'add_tags',
+                          'set_tags',
                           'delete_mail',
                           'delete_tags',
                           'export_mail',

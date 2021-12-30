@@ -21,9 +21,13 @@ if exists('g:loaded_notmuch_py')
 endif
 let g:loaded_notmuch_py = 1
 
-let g:notmuch_command = { 'start': ['s:start_notmuch', 0], 'mail-new': ['s:new_mail', 1] }
+let g:notmuch_command = { 'start': ['s:start_notmuch', 0x08], 'mail-new': ['s:new_mail', 0x11] }
 
-command -range -nargs=* -complete=customlist,Notmuch_complete Notmuch call notmuch_py#notmuch_main(<line1>, <line2>, <f-args>)
+if !exists(':Notmuch')
+	command -range -nargs=* -complete=customlist,Notmuch_complete Notmuch call notmuch_py#notmuch_main(<line1>, <line2>, <f-args>)
+else
+	echohl ErrorMsg | echomsg 'Already define Notmuch command.' | echohl None
+endif
 
 " Reset User condition
 let &cpoptions = s:save_cpo

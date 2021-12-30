@@ -45,6 +45,7 @@ function s:new_buffer(type, search_term) abort
 	" キーマップ
 	" draft/edit 以外共通
 	nnoremap <buffer><silent><F1> :topleft help notmuch-python-vim-keymap<CR>
+	nnoremap <buffer><silent><leader>h :topleft help notmuch-python-vim-keymap<CR>
 	nnoremap <buffer><silent><Leader>s :Notmuch mail-send<CR>
 	nnoremap <buffer><silent><Tab> <C-w>w
 	nnoremap <buffer><silent><S-Tab> <C-w>W
@@ -60,6 +61,7 @@ function s:new_buffer(type, search_term) abort
 	nnoremap <buffer><silent>r :Notmuch mail-reply<CR>
 	if a:type ==# 'folders'
 		nnoremap <buffer><silent>o :Notmuch open<CR>
+		nnoremap <2-LeftMouse>     :Notmuch open<CR>
 		nnoremap <buffer><silent>s :Notmuch search<CR>
 	elseif a:type ==# 'thread' || a:type ==# 'search'
 		nnoremap <buffer><silent>a :Notmuch tag-add<CR>
@@ -67,8 +69,8 @@ function s:new_buffer(type, search_term) abort
 		nnoremap <buffer><silent>A :Notmuch tag-delete<CR>
 		vnoremap <buffer><silent>A :Notmuch tag-delete<CR>
 		nnoremap <buffer><silent>C :Notmuch thread-connect<CR>
-		nnoremap <buffer><silent>d :Notmuch tag-toggle Trash<CR>:Notmuch tag-delete unread<CR>:normal! jzO<CR>
-		vnoremap <buffer><silent>d :Notmuch tag-toggle Trash<CR>:'<,'>Notmuch tag-delete unread<CR>:normal! `>0jzO<CR>
+		nnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>:normal! jzO<CR>
+		vnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>:normal! `>0jzO<CR>
 		nnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 		vnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 		nnoremap <buffer><silent>o :Notmuch thread-toggle<CR>
@@ -81,11 +83,12 @@ function s:new_buffer(type, search_term) abort
 	elseif a:type ==# 'show' || a:type ==# 'view'
 		nnoremap <buffer><silent>a :Notmuch tag-add<CR>
 		nnoremap <buffer><silent>A :Notmuch tag-delete<CR>
-		nnoremap <buffer><silent>d :Notmuch tag-toggle Trash<CR>:Notmuch tag-delete unread<CR>
+		nnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>
 		nnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 		vnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 		nnoremap <buffer><silent>o :Notmuch open<CR>
 		vnoremap <buffer><silent>o :Notmuch open<CR>
+		nnoremap <2-LeftMouse>     :Notmuch open<CR>
 		nnoremap <buffer><silent>s :Notmuch attach-save<CR>
 		vnoremap <buffer><silent>s :Notmuch attach-save<CR>
 		nnoremap <buffer><silent>S :Notmuch mail-save<CR>
@@ -529,6 +532,10 @@ endfunction
 
 function s:complete_tag_common(func, cmdLine, cursorPos, direct_command) abort
 	let l:tags = s:get_snippet(a:func, a:cmdLine, a:cursorPos, a:direct_command)
+	for l:t in split(a:cmdLine)[2:]
+		let l:filter = printf('v:val !~ "^%s\\>"', l:t)
+		let l:tags = filter(l:tags, l:filter)
+	endfor
 	if len(l:tags) != 1
 		return l:tags
 	endif
@@ -611,6 +618,14 @@ function Complete_add_tag_input(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:false)
 endfunction
 
+function s:set_tags(args) abort
+	py3 do_mail(set_tags, vim.eval('a:args'))
+endfunction
+
+function Complete_set_tag_input(ArgLead, CmdLine, CursorPos) abort
+	return s:complete_tag_common('get_msg_tags_any_kind', a:CmdLine, a:CursorPos, v:false)
+endfunction
+
 function s:toggle_tags(args) abort
 	py3 do_mail(toggle_tags, vim.eval('a:args'))
 endfunction
@@ -632,52 +647,55 @@ function notmuch_py#notmuch_main(...) abort
 		else
 			if l:sub_cmd ==# 'start'
 				" start して初めて許可するコマンド {{{
-				let g:notmuch_command['attach-delete']    = ['s:delete_attachment', 0]
-				let g:notmuch_command['attach-save']      = ['s:save_attachment', 0]
-				let g:notmuch_command['close']            = ['s:close', 0]
-				let g:notmuch_command['mail-delete']      = ['s:delete_mail', 0]
-				let g:notmuch_command['mail-edit']        = ['s:open_original', 0]
-				let g:notmuch_command['mail-export']      = ['s:export_mail', 0]
-				let g:notmuch_command['mail-forward']     = ['s:forward_mail', 0]
-				let g:notmuch_command['mail-import']      = ['s:import_mail', 0]
-				let g:notmuch_command['mail-info']        = ['s:view_mail_info', 0]
-				let g:notmuch_command['mail-move']        = ['s:move_mail', 1]
-				let g:notmuch_command['mail-reply']       = ['s:reply_mail', 0]
-				let g:notmuch_command['mail-save']        = ['s:save_mail', 0]
-				let g:notmuch_command['mail-send']        = ['s:send_vim', 0]
-				let g:notmuch_command['mail-reindex']     = ['s:reindex_mail', 0]
-				let g:notmuch_command['mark']             = ['s:mark_in_thread', 0]
-				let g:notmuch_command['mark-command']     = ['s:command_marked', 1]
-				let g:notmuch_command['open']             = ['s:open_something', 0]
-				let g:notmuch_command['view-previous']    = ['s:previous_page', 0]
-				let g:notmuch_command['view-unread-page'] = ['s:next_unread_page', 0]
-				let g:notmuch_command['view-unread-mail'] = ['s:next_unread', 0]
-				let g:notmuch_command['reload']           = ['s:reload', 0]
-				let g:notmuch_command['run']              = ['s:run_shell_program', 1]
-				let g:notmuch_command['search']           = ['s:notmuch_search', 1]
-				let g:notmuch_command['search-thread']    = ['s:notmuch_thread', 0]
-				let g:notmuch_command['tag-add']          = ['s:add_tags', 1]
-				let g:notmuch_command['tag-delete']       = ['s:delete_tags', 1]
-				let g:notmuch_command['tag-toggle']       = ['s:toggle_tags', 1]
-				let g:notmuch_command['thread-connect']   = ['s:connect_thread', 0]
-				let g:notmuch_command['thread-cut']       = ['s:cut_thread', 0]
-				let g:notmuch_command['thread-toggle']    = ['s:toggle_thread', 0]
-				let g:notmuch_command['thread-sort']      = ['s:thread_change_sort', 1]
-				let g:notmuch_command['set-fcc']          = ['s:set_fcc', 1]
-				let g:notmuch_command['set-attach']       = ['s:set_attach', 1]
-				let g:notmuch_command['set-encrypt']      = ['s:set_encrypt', 1]
+				let g:notmuch_command['attach-delete']    = ['s:delete_attachment', 0x06]
+				let g:notmuch_command['attach-save']      = ['s:save_attachment', 0x06]
+				let g:notmuch_command['close']            = ['s:close', 0x04]
+				let g:notmuch_command['mail-delete']      = ['s:delete_mail', 0x06]
+				let g:notmuch_command['mail-edit']        = ['s:open_original', 0x06]
+				let g:notmuch_command['mail-export']      = ['s:export_mail', 0x06]
+				let g:notmuch_command['mail-forward']     = ['s:forward_mail', 0x04]
+				let g:notmuch_command['mail-import']      = ['s:import_mail', 0x05]
+				let g:notmuch_command['mail-info']        = ['s:view_mail_info', 0x0c]
+				let g:notmuch_command['mail-move']        = ['s:move_mail', 0x06]
+				let g:notmuch_command['mail-reply']       = ['s:reply_mail', 0x04]
+				let g:notmuch_command['mail-save']        = ['s:save_mail', 0x04]
+				let g:notmuch_command['mail-send']        = ['s:send_vim', 0x0c]
+				let g:notmuch_command['mail-reindex']     = ['s:reindex_mail', 0x06]
+				let g:notmuch_command['mark']             = ['s:mark_in_thread', 0x04]
+				let g:notmuch_command['mark-command']     = ['s:command_marked', 0x04]
+				let g:notmuch_command['open']             = ['s:open_something', 0x04]
+				let g:notmuch_command['view-previous']    = ['s:previous_page', 0x04]
+				let g:notmuch_command['view-unread-page'] = ['s:next_unread_page', 0x04]
+				let g:notmuch_command['view-unread-mail'] = ['s:next_unread', 0x04]
+				let g:notmuch_command['reload']           = ['s:reload', 0x04]
+				let g:notmuch_command['run']              = ['s:run_shell_program', 0x07]
+				let g:notmuch_command['search']           = ['s:notmuch_search', 0x05]
+				let g:notmuch_command['search-thread']    = ['s:notmuch_thread', 0x04]
+				let g:notmuch_command['tag-add']          = ['s:add_tags', 0x1f]
+				let g:notmuch_command['tag-delete']       = ['s:delete_tags', 0x1f]
+				let g:notmuch_command['tag-toggle']       = ['s:toggle_tags', 0x1f]
+				let g:notmuch_command['tag-set']          = ['s:set_tags', 0x1f]
+				let g:notmuch_command['thread-connect']   = ['s:connect_thread', 0x06]
+				let g:notmuch_command['thread-cut']       = ['s:cut_thread', 0x06]
+				let g:notmuch_command['thread-toggle']    = ['s:toggle_thread', 0x04]
+				let g:notmuch_command['thread-sort']      = ['s:thread_change_sort', 0x05]
+				let g:notmuch_command['set-fcc']          = ['s:set_fcc', 0x09]
+				let g:notmuch_command['set-attach']       = ['s:set_attach', 0x09]
+				let g:notmuch_command['set-encrypt']      = ['s:set_encrypt', 0x09]
 				"}}}
 				call s:start_notmuch()
 			elseif l:sub_cmd ==# 'mail-new'
 				call remove(l:cmd, 0, 1)
 				if !has_key(g:notmuch_command, 'mail-send')
-					let g:notmuch_command['mail-send']   = ['s:send_vim', 0] " mail-new はいきなり呼び出し可能なので、mail-send 登録
-					let g:notmuch_command['tag-add']     = ['s:add_tags', 1] " 以下それ以外も追加
-					let g:notmuch_command['tag-delete']  = ['s:delete_tags', 1]
-					let g:notmuch_command['tag-toggle']  = ['s:toggle_tags', 1]
-					let g:notmuch_command['set-fcc']     = ['s:set_fcc', 1]
-					let g:notmuch_command['set-attach']  = ['s:set_attach', 1]
-					let g:notmuch_command['set-encrypt'] = ['s:set_encrypt', 1]
+					let g:notmuch_command['mail-send']   = ['s:send_vim', 0x0c] " mail-new はいきなり呼び出し可能なので、mail-send 登録
+					let g:notmuch_command['mail-info']   = ['s:view_mail_info', 0x0c]
+					let g:notmuch_command['tag-add']     = ['s:add_tags', 0x1f]
+					let g:notmuch_command['tag-delete']  = ['s:delete_tags', 0x1f]
+					let g:notmuch_command['tag-toggle']  = ['s:toggle_tags', 0x1f]
+					let g:notmuch_command['tag-set']     = ['s:set_tags', 0x1f]
+					let g:notmuch_command['set-fcc']     = ['s:set_fcc', 0x09]
+					let g:notmuch_command['set-attach']  = ['s:set_attach', 0x09]
+					let g:notmuch_command['set-encrypt'] = ['s:set_encrypt', 0x09]
 				endif
 				call s:new_mail(join(l:cmd, ' '))
 			else
@@ -1301,7 +1319,7 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 	let l:cmdline = substitute(a:CmdLine, '[\n\r]\+', ' ', 'g')
 	let l:last = py3eval('get_last_cmd(get_cmd_name(), "' . l:cmdline . '", '. a:CursorPos . ')')
 	if l:last == []
-		let l:snippet = py3eval('get_cmd_name()')
+		let l:snippet = py3eval('get_cmd_name_ftype()')
 	else
 		let l:cmd = l:last[0]
 		" let l:cmds = py3eval('get_command()')
@@ -1316,6 +1334,8 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 					return []
 				endif
 				let l:snippet = py3eval('get_mail_folders()')
+			elseif l:cmd ==# 'tag-set'
+				return s:complete_tag_common('get_msg_tags_any_kind', a:CmdLine, a:CursorPos, v:true)
 			elseif l:cmd ==# 'tag-add'
 				return s:complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:true)
 			elseif l:cmd ==# 'tag-delete'
