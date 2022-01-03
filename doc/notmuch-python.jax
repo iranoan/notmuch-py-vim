@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 0.66
+Version: 0.67
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -524,7 +524,7 @@ g:notmuch_folders                                    *g:notmuch_folders*
 	* デフォルト・レイアウト (|notmuch-python-vim-layout|) では、|{F-WIN}| バッファ
 		に見出しだけを見せ、|search-term| が隠れるようにウィンドウを分割する
 	NOTE: >
-		$ man notmuch-searrch-terms
+		$ man notmuch-search-terms
 <	* 見出し、|search-term| の両方が `''` だと空行に変換されを、|search-term| だけ
 		`''` だと、|{F-WIN}| の open (|notmuch-python-vim-open|) が search
 		(|notmuch-python-vim-search|) 置き換わる
@@ -841,6 +841,13 @@ close
 	* ウィンドウを閉じる
 	* |:close| と違い最後のウィンドウでも他のバッファが無ければ Vim 自体を終了する
 
+                                               *notmuch-python-vim-mail-attach*
+mail-attach-forward
+	* 添付ファイルとして転送するメールの編集バッファを開く
+	* ヘッダの意味などは |notmuch-python-vim-sendmail| 参照
+
+	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
+
                                                 *notmuch-python-vim-mail-delete*
 mail-delete
 	* |{T-WIN}| ではカーソル位置、もしくは選択しているメールの元となるメール・
@@ -1006,9 +1013,10 @@ run [{arglist}]
 	* {arglist} に <path:>, <id:> が有ればそれぞれ次に置き換わる
 			<path:>	メール・ファイルのフル・パス
 			<id:>		メールの Message-ID
-		- このためプログラムに <path:>, <id:> それ自体は渡せない
-		- リダイレクトを使いたければ、スペースを入れれば良い
-	* {arglist} に <path:> が無ければ、省略扱いとして {arglist} の最後に追加
+		- このためプログラムに <path:>, <id:> の文字列それ自体は渡せない
+			+ リダイレクトを使いたければ、>, < 前後にスペースを入れれば良い
+	* {arglist} に <path:>, <id:> 両方無ければ、省略扱いとして {arglist} の最後
+	  にメール・ファイルのフル・パス追加
 
                                                      *notmuch-python-vim-search*
 search [|search-term|]
@@ -1171,13 +1179,13 @@ thread-sort [{list}/{tree} {sorting-way}]
 		date          | 日付順
 		              | {tree} では同一スレッド中の最新メールの日時が基準
 		Date          | 日時逆順
-		from          | 送り主順
+		from          | メール送信元順
 		              | {tree} では同一スレッドに含まれるメール送信元
 		From          | メール送信元逆順
 		subject       | Subject 順
 		              | Subject そのものではなく |g:notmuch_delete_top_subject| で整形
 		              | 済みの |{T-WIN}| に表示されている件名
-		              | {tree} ではスレッドトップが基準
+		              | {tree} ではスレッド・トップが基準
 		Subject       | Subject 逆順
 		--------------+-----------------------------------------------------------~
 
@@ -1237,22 +1245,32 @@ view-unread-page
                                                        *notmuch-python-vim-todo*
 TODO ~
 
-	* そのまま転送
-		それに関連して返信時に次に対応
-		- Resent-From	メール転送時に転送者アドレスを含める
-									この場合、From はオリジナルの From のままになる
-									ただし、あまり実装されている例は無さそう
-		- Resent-Sender	上記の Sender のためのフィールド
-		- Resent-To		上記の To のためのフィールド
-		- Resent-Cc		上記の Cc のためのフィールド
-		- Resent-Bcc	上記の Bcc のためのフィールド
-	* 未読・フラグなどを解りやすく→b:notmuch['tags'] を使って notmuch-thread の
-		ステータス・ラインに表示しているだけ
+* そのまま転送
+	それに関連して返信時に次に対応
+	- Resent-From	メール転送時に転送者アドレスを含める
+								この場合、From はオリジナルの From のままになる
+								ただし、あまり実装されている例は無さそう
+	- Resent-Sender	上記の Sender のためのフィールド
+	- Resent-To		上記の To のためのフィールド
+	- Resent-Cc		上記の Cc のためのフィールド
+	- Resent-Bcc	上記の Bcc のためのフィールド
+* 未読・フラグなどを解りやすく→b:notmuch['tags'] を使って |{T-WIN}| のステータ
+  ス・ラインに表示しているだけ
 
 
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴 ~
+
+2021/12/30 Ver.0.67 ~
+* 補完でエラーになるバグ修正
+* run の補完でできるだけ補完候補表示
+* message/rfc822 の添付では、本文だけでなく |g:notmuch_show_headers|,
+  |g:notmuch_show_hide_headers| で指定されているヘッダも表示
+* 添付形式で転送するための mail-attach-forward (|notmuch-python-vim-mail-attach|)
+  追加
+* ファイル添付時にファイル名によって MIME type を取得できない場合、可能なら
+  python-magic (libmagic) を用いる
 
 2021/12/30 Ver.0.66 ~
 * |g:notmuch_command| の説明修正
