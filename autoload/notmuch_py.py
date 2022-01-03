@@ -419,6 +419,7 @@ def make_dir(dirname):
 
 
 def notmuch_new(open_check):
+    # スワップファイルがあるとデータベース更新に失敗するかと思っていたが、警告が出るものの更新自体でできているもよう
     # # メールを開いているとスワップファイルが有るので、データベースの再作成に失敗する
     # # →open_check が True なら未保存バッファが有れば、そちらに移動し無ければバッファを完全に閉じる
     # if VIM_MODULE and open_check:
@@ -821,13 +822,13 @@ def thread_change_sort(sort_way):
             sort_way = ' '.join(sort_way)
             print_warring('Too many arguments: ' + sort_way)
             sort_way = vim.eval(
-                'input("sorting_way: ", "' + sort_way + '", "customlist,Complete_sort_input")'
+                'input("sorting_way: ", "' + sort_way + '", "customlist,Complete_sort")'
                 ).split()
             if sort_way == []:
                 return
         elif sort_way == []:
             sort_way = vim.eval(
-                'input("sorting_way: ", "", "customlist,Complete_sort_input")'
+                'input("sorting_way: ", "", "customlist,Complete_sort")'
                 ).split()
             if sort_way == []:
                 return
@@ -1182,7 +1183,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b = vim.current.buffer
         s = re.sub('[\u200B-\u200D\uFEFF]', '', s)  # ゼロ幅文字の削除
         b.append(re.split('[\n\r\v\x0b\x1d\x1e\x85\u2028\u2029]',
-                 re.sub(r'(\f.+\f)', r'\n\1\n',
+                 re.sub(r'(\f.+\f)', r'\n\n\1\n',
                         s.replace('\r\n', '\n').replace('\x1c', '\f'))))
         while b[-1] == '':
             b[-1] = None
@@ -1285,7 +1286,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 and content_type != 'application/pkcs7-signature':
             header = 'Attach: '
             if attachment == '':
-                attachment = 'attachment'
+                if content_type.find('message/') == 0:
+                    attachment = content_type.replace('/', '-') + '.eml'
+                else:
+                    attachment = 'attachment'
         else:
             if content_type == 'application/pgp-signature':
                 cmd = 'gpg'
@@ -1365,7 +1369,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
                     tmp_text = ret.stdout.decode(charset)
             if tmp_text != '' and tmp_text != '\n':
-                output[0] += c_type + '\f' + tmp_text
+                if c_type.find('\fmessage/rfc822 part') == 0:
+                    output[0] += c_type + '\n' + tmp_text
+                else:
+                    output[0] += c_type + '\f' + tmp_text
         elif content_type.find('text/html') == 0:
             tmp_text, tmp_tmp = get_mail_context(part, charset, encoding)
             if tmp_text == '':
@@ -1533,6 +1540,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         pre_part = None
         pre_rfc = ''
         rfc = ''
+        rfc_head = ''
         multipart_signed = False  # Content-Type: multipart/signed では次のパートが署名対象
         for part in msg_file.walk():
             if multipart_signed:
@@ -1547,6 +1555,25 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 pgp_info = ''
                 continue
             content_type = part.get_content_type().lower()
+            if rfc_head == '' and pre_rfc == '\fmessage/rfc822 part':  # message/rfc822 のヘッダを取得
+                for h in vim.vars['notmuch_show_headers']:
+                    h = h.decode()
+                    data = ''
+                    h_cont = part.get_all(h)
+                    if h_cont is not None:
+                        for d in h_cont:
+                            data += decode_header(d)
+                    if data != '':
+                        rfc_head += h + ': ' + data + '\n'
+                for h in vim.vars['notmuch_show_hide_headers']:
+                    h = h.decode()
+                    data = ''
+                    h_cont = part.get_all(h)
+                    if h_cont is not None:
+                        for d in h_cont:
+                            data += decode_header(d)
+                    if data != '':
+                        rfc_head += h + ': ' + data + '\n'
             if part.is_multipart() and content_type != 'message/rfc822':
                 if content_type == 'multipart/signed' \
                         or content_type == 'application/x-pkcs7-signature' \
@@ -1575,10 +1602,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     rfc = '\f' + content_type + ' part'
                 else:
                     rfc = ''
-                if pre_rfc == 'message/rfc822':
-                    output = get_output(part, part_ls, part_num, pre_part, output, rfc)
-                else:
-                    output = get_output(part, part_ls, part_num, pre_part, output, pre_rfc)
+                if pre_rfc == '\fmessage/rfc822 part':
+                    pre_rfc += '\f' + rfc_head
+                    rfc_head = ''
+                output = get_output(part, part_ls, part_num, pre_part, output, pre_rfc)
             pre_rfc = rfc
         return output
 
@@ -1778,7 +1805,7 @@ def set_tags(msg_id, s, args):  # vim から呼び出しで tag 追加/削除/�
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Set tag: ', '', 'customlist,Complete_set_tag_input'"):
+    if vim_input(tags, "'Set tag: ', '', 'customlist,Complete_set_tag'"):
         return
     add_tags = []
     delete_tags = []
@@ -1829,7 +1856,7 @@ def add_tags(msg_id, s, args):  # vim から呼び出しで tag 追加
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Add tag: ', '', 'customlist,Complete_add_tag_input'"):
+    if vim_input(tags, "'Add tag: ', '', 'customlist,Complete_add_tag'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -1851,7 +1878,7 @@ def delete_tags(msg_id, s, args):  # vim から呼び出しで tag 削除
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Delete tag: ', '', 'customlist,Complete_delete_tag_input'"):
+    if vim_input(tags, "'Delete tag: ', '', 'customlist,Complete_delete_tag'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -1873,7 +1900,7 @@ def toggle_tags(msg_id, s, args):  # vim からの呼び出しで tag をトグ�
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Toggle tag: ', '', 'customlist,Complete_tag_input'"):
+    if vim_input(tags, "'Toggle tag: ', '', 'customlist,Complete_tag'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -3019,6 +3046,7 @@ def get_flag(s, search):  # s に search があるか?
 def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定従い送信済みに保存
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
+    from email.mime.message import MIMEMessage
     from email.message import EmailMessage
     import mimetypes                    # ファイルの MIMETYPE を調べる
     # ATTACH = 0x01
@@ -3086,6 +3114,23 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             'modification-date': email.utils.formatdate(os.path.getmtime(path), localtime=True)})
         # 添付ファイルの実際のファイルデータ生成+とヘッダ部の追加
         mimetype, mimeencoding = mimetypes.guess_type(path)
+        if mimetype is None:
+            try:
+                import magic
+                mimetype = magic.from_file(path, mime=True)
+            except ImportError:
+                pass
+            except ModuleNotFoundError:
+                pass
+        if mimetype == 'message/rfc822' or path.find(PATH + os.sep) == 0:
+            with open(path, 'rb') as fp:
+                msg_f = email.message_from_binary_file(fp)
+                encoding = msg_f.get('Content-Transfer-Encoding')
+                part = MIMEMessage(msg_f)
+                if encoding is not None:
+                    part['Content-Transfer-Encoding'] = encoding
+            msg.attach(part)
+            return True
         if mimetype is None or mimeencoding is not None:
             print_warring('Not found mimetyp.  Attach with \'application/octet-stream\'')
             mimetype = 'application/octet-stream'
@@ -3471,7 +3516,6 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             if attachments is not None:
                 for attachment in attachments:
                     msg_data += '\nX-Attach: ' + attachment
-            print(msg_data)
             msg_data += '\n\n' + mail_context
             fp.write(msg_data)
         else:
@@ -3780,6 +3824,39 @@ def forward_mail():
     vim.command('call s:au_forward_mail()')
 
 
+def forward_mail_attach():
+    windo, msg_id = check_org_mail()
+    if not windo:
+        return
+    # msg_data = get_mail_body(windo)  # 実際には後からヘッダ情報なども追加
+    DBASE.open(PATH)
+    msg = DBASE.find_message(msg_id)
+    # msg_data = '\n' + msg_data
+    before_make_draft(windo)
+    b = vim.current.buffer
+    b.vars['notmuch'] = {}
+    b_v = b.vars['notmuch']
+    for h in vim.vars['notmuch_draft_header']:
+        h = h.decode()
+        h_lower = h.lower()
+        if h_lower == 'subject':
+            s = 'FWD:' + msg.get_header(h).replace('\t', ' ')
+            b_v['subject'] = s
+            b.append('Subject: ' + s)
+        elif h_lower == 'attach':  # 元メールを添付するので何もしない
+            pass
+        else:
+            b.append(h + ': ')
+    for f in msg.get_filenames():
+        if os.path.isfile(f):
+            b.append('Attach: ' + f)
+            break
+    set_reference(b, msg, False)
+    DBASE.close()
+    after_make_draft(b)
+    vim.command('call s:au_new_mail()')
+
+
 def before_make_draft(active_win):  # 下書き作成の前処理
     if vim.current.buffer.options['filetype'].decode()[:8] == 'notmuch-' \
             or vim.bindeval('wordcount()["bytes"]') != 0:
@@ -3811,7 +3888,7 @@ def after_make_draft(b):
     del b[0]
     i = 0
     for s in b:
-        if s == 'Attach: ':
+        if s.find('Attach: ') == 0:
             break
         i += 1
     now = email.utils.localtime()
@@ -4195,10 +4272,10 @@ def import_mail():
     if f == '':
         return
     if os.path.isdir(f):  # ディレクトリならサブ・ディレクトリまで含めてすべてのファイルを対象とする
-        if f[-1] == '/':
-            f = glob.glob(f+'**', recursive=True)
+        if f[-1] == os.sep:
+            f = glob.glob(f + '**', recursive=True)
         else:
-            f = glob.glob(f+'/**', recursive=True)
+            f = glob.glob(f + os.sep + '**', recursive=True)
         files = []
         for i in f:
             if not os.path.isdir(i):
@@ -4249,7 +4326,12 @@ def select_file(msg_id, question):  # get mail file list
         print('The email has already been completely deleted.')
         DBASE.close()
         return [], '', 0
-    subject = msg.get_header('Subject')
+    try:
+        subject = msg.get_header('Subject')
+    except notmuch.errors.NullPointerError:  # すでにファイルが削除されているとき
+        print('The email has already been completely deleted.')
+        DBASE.close()
+        return [], '', 0
     prefix = len(PATH)+1
     files = []
     lst = ''
@@ -4412,7 +4494,8 @@ def get_mail_folders():  # get mailbox lists
 def run_shell_program(msg_id, s, args):
     prg_param = args[2:]
     if len(prg_param) == 0:
-        prg_param = vim.eval('input("Program and options: ", "", "shellcmd")')
+        prg_param = vim.eval(
+                'input("Program and args: ", "", "customlist,Complete_run")')
         if prg_param == '':
             return
         else:
@@ -4420,15 +4503,16 @@ def run_shell_program(msg_id, s, args):
                 ' +$', '', re.sub('^ +', '', prg_param)).split(' ')
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
-    try:
-        i = prg_param.index('<path:>')
-        prg_param[i] = msg.get_filename()
-    except ValueError:
+    if not ('<path:>' in prg_param) and not ('<id:>' in prg_param):
         prg_param.append(msg.get_filename())
+    else:
+        if '<path:>' in prg_param:
+            i = prg_param.index('<path:>')
+            prg_param[i] = msg.get_filename()
+        if '<id:>' in prg_param:
+            i = prg_param.index('<id:>')
+            prg_param[i] = msg_id
     DBASE.close()
-    if '<id:>' in prg_param:
-        i = prg_param.index('<id:>')
-        prg_param[i] = msg_id
     shellcmd_popen(prg_param)
     print(' '.join(prg_param))
     return args
@@ -4573,7 +4657,7 @@ def notmuch_search(search_term):
         else:
             i_search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
         search_term = vim.eval(
-            'input("search term: ", "' + i_search_term + '", "customlist,Complete_search_input")')
+            'input("search term: ", "' + i_search_term + '", "customlist,Complete_search")')
         if search_term == '':
             return
     elif type(search_term) == list:
@@ -4870,18 +4954,56 @@ def set_encrypt(args):
             b.append('Encrypt: PGP', l_encrypt)
 
 
+def get_sys_command(cmdline, last):  # コマンドもしくは run コマンドで用いる <path:>, <id:> を返す
+    # シェルのビルトインは非対応
+    def sub_path():
+        path = set()
+        if last == '' or (not os.path.isdir(last)) or last[-1] == os.sep:
+            f = glob.glob(last + '*')
+        else:
+            f = glob.glob(last + os.sep + '*')
+        for c in f:
+            if os.path.isdir(c):
+                path.add(c + os.sep)
+            else:
+                path.add(c)
+        return path
+
+    num = len(cmdline.split())
+    if num > 3 or (num >= 3 and last == ''):
+        cmd = {'<path:>', '<id:>'} | sub_path()
+    else:
+        cmd = set()
+        for p in os.environ.get('path',
+                                os.environ.get('PATH', [])).split(os.pathsep):
+            if p[-1] == os.sep:
+                f = glob.glob(p + '*')
+            else:
+                f = glob.glob(p + os.sep + '*')
+            for c in f:
+                cmd.add(os.path.basename(c))
+        for c in sub_path():
+            if os.path.isfile(c):
+                if os.access(c, os.X_OK):
+                    cmd.add(c)
+            elif os.path.isdir(c):
+                cmd.add(c)
+    return sorted(list(cmd))
+
+
 GLOBALS = globals()
 
 initialize()
-if not VIM_MODULE:
-    SEND_PARAM = ['msmtp', '-t', '-a', 'Nifty', '-X', '-']
-    send_search('(folder:draft or folder:.draft or tag:draft) ' +
-                'not tag:sent not tag:Trash not tag:Spam')
-    # import time
-    # s = time.time()
-    # # print_thread_view('tag:inbox not tag:Trash and not tag:Spam')
-    # # print_thread_view('path:**')
-    # DBASE.open(PATH)
-    # make_thread_core('path:**')
-    # DBASE.close()
-    # print(time.time() - s)
+# if not VIM_MODULE:
+#     print(get_sys_command('Notmuch run mimetype t', 't'))
+#     # SEND_PARAM = ['msmtp', '-t', '-a', 'Nifty', '-X', '-']
+#     # send_search('(folder:draft or folder:.draft or tag:draft) ' +
+#     #             'not tag:sent not tag:Trash not tag:Spam')
+#     # import time
+#     # s = time.time()
+#     # # print_thread_view('tag:inbox not tag:Trash and not tag:Spam')
+#     # # print_thread_view('path:**')
+#     # DBASE.open(PATH)
+#     # make_thread_core('path:**')
+#     # DBASE.close()
+#     # print(time.time() - s)
