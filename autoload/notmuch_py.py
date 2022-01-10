@@ -510,7 +510,7 @@ def make_single_thread(thread_id, search_term):
     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
         msgs = thread.get_toplevel_messages()
     except notmuch.errors.NullPointerError:
-        print_err('Error: get toplevel message')
+        print_err('Error: get top-level message')
     replies = []
     for msg in msgs:
         make_reply_ls(replies, msg, 0)
@@ -728,7 +728,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     flag = not ('list' in THREAD_LISTS[search_term]['sort'])
     # vim.command('setlocal syntax=off foldmethod=manual')
     # マルチプロセスだと、vim.buffers[num] や vim.current.buffer.number だとプロセスが違うので、異なる数値になり上手くいかない
-    # 速くならない
+    # ↓之マルチスレッドは速くならない
     # count = len(threadlist)
     # j = count - vim.bindeval('getbufinfo(' + str(b_num) + ')')[0]['linecount']
     # if j > 0:
@@ -4144,7 +4144,7 @@ def after_make_draft(b):
     vim.command('call s:au_write_draft()')
 
 
-def save_draft():  # 下書きバッファと notmuch database のタグをマージと notmuch-folders の更新
+def save_draft():  # 下書きバッファと Notmuch database のタグをマージと notmuch-folders の更新
     # 下書き保存時に呼び出される
     notmuch_new(False)
     b = vim.current.buffer
