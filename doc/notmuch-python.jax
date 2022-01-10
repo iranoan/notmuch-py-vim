@@ -1288,7 +1288,7 @@ TODO~
 	- |g:notmuch_sent_tag| の設定が無視されていた
 	- タイプミスの修正
 * 仕様変更
-	- |{S-WIN}| は |foldmethod|=expr (|fold-expr|)
+	- |{S-WIN}| の折り畳みは |foldmethod|=expr (|fold-expr|) 使用
 	- |g:notmuch_show_headers|, |g:notmuch_show_hide_headers| のデフォルト値変更
 * 追加
 	- run もできるだけ補完候補表示
@@ -1301,6 +1301,7 @@ TODO~
 	- 送信時に From, Sender ヘッダのアドレスが同じなら Sender ヘッダを削除
 		- Resent-??? についても同じ
 	- タブページ内に |{T-WIN}| があれば折り畳みのハイライトをなしにする
+		(:|highlight| clear Folded)
 
 2021/12/30 Ver.0.66~
 * |g:notmuch_command| の説明修正
