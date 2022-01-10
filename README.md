@@ -72,7 +72,7 @@ $ python3 -m pip install notmuch html2text
 Plug 'iranoan/notmuch-py-vim'
 ```
 
-### [Vm-Plug](https://github.com/junegunn/vim-plug)
+### [Vim-Plug](https://github.com/junegunn/vim-plug)
 
 ```vim
 Plug 'iranoan/notmuch-py-vim'
