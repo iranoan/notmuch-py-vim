@@ -44,7 +44,7 @@ def print_err(msg):  # エラー表示だけでなく終了
 
 def print_error(msg):  # エラーとして表示させるだけ
     if VIM_MODULE:
-        vim.command('echohl ErrorMsg | echomsg "' + msg + '" | echohl None')
+        vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
     else:
         sys.stderr.write(msg)
 
@@ -156,19 +156,19 @@ def delete_gloval_variable():
 try:  # 先頭空白削除
     RE_TOP_SPACE = re.compile(r'^\s+')
 except re.error:
-    print_err('Error: Regurlar Expression')
+    print_err('Error: Regular Expression')
 try:  # 行末空白削除
     RE_END_SPACE = re.compile(r'\s*$')
 except re.error:
-    print_err('Error: Regurlar Expression')
+    print_err('Error: Regular Expression')
 try:  # タブと全角空白→スペース←スレッド・リストではできるだけ短く、タブはデリミタに使用予定
     RE_TAB2SPACE = re.compile('[　\t]+')
 except re.error:
-    print_err('Error: Regurlar Expression')
+    print_err('Error: Regular Expression')
 try:  # "に挟まれていれば挟まれている部分だけに
     RE_DQUOTE = re.compile(r'\s*"([^"]+)"\s*')
 except re.error:
-    print_err('Error: Regurlar Expression')
+    print_err('Error: Regular Expression')
 
 
 def email2only_name(mail_address):  # ヘッダの「名前+アドレス」を名前だけにする
@@ -303,7 +303,7 @@ class MailData:  # メール毎の各種データ
         else:  # それ以外は送信メールなら To だけにしたいので、リスト利用
             tagslist = list(msg.get_tags())
             # 実際の判定 (To と Reply-To が同じなら ML だろうから除外)
-            if SENT_TAG in tagslist \
+            if (SENT_TAG in tagslist or 'draft' in tagslist) \
                     and m_to_adr != email2only_address(msg.get_header('Reply-To')) \
                     and m_to != '':
                 name = 'To:'+email2only_name(m_to)
@@ -486,13 +486,8 @@ def make_thread_core(search_term):
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
     ls = []
-    # with futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:  # ←変化なし
-    # with futures.ThreadPoolExecutor() as executor:  # ←落ちる
-    with futures.ProcessPoolExecutor() as executor:  # ProcessPoolExecutor
+    with futures.ProcessPoolExecutor() as executor:
         f = [executor.submit(make_single_thread, i, search_term) for i in threads]
-        # r = [r.result() for r in f]
-        # ls = list(itertools.chain.from_iterable([r.result() for r in f]))  # 遅い
-        # for r in futures.as_completed(f):
         for r in f:
             ls += r.result()
     # for i in threads:
@@ -563,7 +558,7 @@ def format_folder(folder, search_term):
     global FOLDER_FORMAT
     if not ('FOLDER_FORMAT' in globals()):
         FOLDER_FORMAT = '{0:<14}{1:>3}/{2:>5}|{3:>3} [{4}]'
-    try:  # seach_term チェック
+    try:  # search_term チェック
         all_mail = notmuch.Query(DBASE, search_term).count_messages()  # メール総数
     except notmuch.errors.XapianError:
         print_error('notmuch.errors.XapianError: Check search term: ' + search_term)
@@ -714,7 +709,7 @@ def print_thread(b_num, search_term, select_unread, remake):  # スレッド・�
 def print_thread_core(b_num, search_term, select_unread, remake):
     if search_term == '':
         return
-    try:  # seach_term チェック
+    try:  # search_term チェック
         unread = notmuch.Query(DBASE, search_term).count_messages()
     except notmuch.errors.XapianError:
         print_error('notmuch.errors.XapianError: Check search term: ' + search_term + '.')
@@ -989,7 +984,7 @@ def reload_thread():
     search_term = b.vars['notmuch']['search_term'].decode()
     notmuch_new(False)
     w = vim.current.window
-    # 再作成後に同じメールを開くため Messag-ID を取得しておく
+    # 再作成後に同じメールを開くため Message-ID を取得しておく
     msg_id = get_msg_id()
     DBASE.open(PATH)  # ここで書き込み権限 ON+関数内で OPEN のままにしたいが、そうすると空のスレッドで上の
     # search_term = b.vars['notmuch']['search_term'].decode()
@@ -1121,53 +1116,47 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             # やらないとデータベース上に残る存在しないファイルからの情報取得でエラー発生
         return None, None
 
-    def print_header(notmuch_headers):  # vim からの呼び出し時に msg 中の notmuch_headers のリストに有るヘッダ出力
-        # (何故か Content-Type, Content-Transfer-Encoding は取得できない)
-        b = vim.current.buffer
+    def get_header(msg, output, notmuch_headers):  # vim からの呼び出し時に msg に有るヘッダ出力
         for header in notmuch_headers:
             header = header.decode()
-            line = msg.get_header(header)
-            if line != '':
-                line = line.replace('\t', ' ')
-                if header.lower() == 'message-id':
-                    line = header+': <'+line+'>'
-                else:
-                    line = header+': '+line
-                b.append(line)
-                if vim.current.window.width*2 < vim.strwidth(line):
-                    n = str(len(vim.current.buffer))
-                    vim.command(n+','+n+'fold')
+            h_cont = msg.get_all(header)
+            if h_cont is None:
+                continue
+            data = ''
+            for d in h_cont:
+                data += decode_header(d)
+            if data != '':
+                data = data.replace('\t', ' ')
+                data = header+': '+data
+                output['main']['header'].append(data)
 
-    def print_virtual_header(header):
+    def get_virtual_header(msg_file, output, header):
         attachments = msg_file.get_all(header)
         if attachments is None:
             return
-        b = vim.current.buffer
         for f in attachments:
             f = decode_header(f)
-            f = os.path.expandvars(os.path.expanduser(f))
-            if os.sep == '\\':  # Windows の場合
-                match = re.match(r'^.+\\', f)
-                if match is None:  # パスが / 区切りの場合も確認
-                    match = re.match('^.+/', f)
-            else:
-                match = re.match('^.+/', f)
-            if match is None:  # フル・パスでないので送信メールでなくメール本文を単純にテキスト・ファイルとして保存し、それをインポートしたファイル
-                name = f
-                tmp_dir = ''
-            else:
-                name = f[match.end():]
-                tmp_dir = f[:match.end()]
             if f == '':
                 continue
-            elif os.path.isfile(f):
-                header = 'Attach: '
-                b_attachments[str(len(vim.current.buffer))] = [name, [-1], tmp_dir]
+            f = os.path.expandvars(os.path.expanduser(f))
+            tmp_dir, name = os.path.split(f)
+            if os.path.isfile(f):
+                output['attach'].append(('Attach: ' + name, [name, [-1], tmp_dir + os.sep]))
             else:
-                header = 'Del-Attach: '
-            b.append(header+name)
+                output['attach'].append(('Del-Attach: ' + name, None))
 
-    def vim_append_content(s):  # 複数行を vim のカレントバッファに書き込み
+    def add_content(s_list, s):  # 文字列 s をリストに変換して s_list に追加
+        if s == '':
+            return
+        s = re.sub('[\u200B-\u200D\uFEFF]', '', s)  # ゼロ幅文字の削除
+        s_l = re.split('[\n\r\v\x0b\x1d\x1e\x85\u2028\u2029]',
+                       s.replace('\r\n', '\n').replace('\x1c', '\f'))
+        while s_l[-1] == '':
+            del s_l[-1]
+        for i in s_l:
+            s_list.append(i)
+
+    def vim_append_content(out):  # 複数行を vim のカレントバッファに書き込み
         # splitlines() だと、以下全てが区切り文字の対象
         # \n:         改行
         # \r:         復帰
@@ -1180,13 +1169,25 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         # \x85:       改行 (C1 制御コード)
         # \u2028:     行区切り
         # \u2029:     段落区切り
-        b = vim.current.buffer
-        s = re.sub('[\u200B-\u200D\uFEFF]', '', s)  # ゼロ幅文字の削除
-        b.append(re.split('[\n\r\v\x0b\x1d\x1e\x85\u2028\u2029]',
-                 re.sub(r'(\f.+\f)', r'\n\n\1\n',
-                        s.replace('\r\n', '\n').replace('\x1c', '\f'))))
-        while b[-1] == '':
-            b[-1] = None
+        # b = vim.current.buffer
+
+        b.append(out['main']['header'])
+        for t in out['main']['attach']:
+            if t[1] is not None:
+                b_v['attachments'][str(len(vim.current.buffer))] = t[1]
+            b.append(t[0])
+        b.append('')
+        if not out['main']['content']:
+            b.append(out['html']['content'])
+        else:
+            b.append(out['main']['content'])
+            if out['html']['content']:
+                fold_begin = len(vim.current.buffer) + 1  # text/plain がある時は折りたたむので開始行記録
+                b.append('')
+                b.append('\fHTML part')
+                b.append(out['html']['content'])
+                vim.current.window.cursor = (fold_begin+1, 0)  # カーソル位置が画面内だと先頭が表示されない
+                vim.command('normal! zc')
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
         if charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
@@ -1238,25 +1239,24 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     ret = run(['nkf', '-w', '-J'], input=payload, stdout=PIPE)
                     return ret.stdout.decode(), decode_payload
             except LookupError:
-                print_warring('unknon encoding ' + charset + '.')
+                print_warring('unknown encoding ' + charset + '.')
                 payload = part.get_payload()
                 return payload, decode_payload
 
-    def print_attach_header(part, part_ls, header, name):
+    def get_attach(part, part_ls, out, header, name):
         if type(part.get_payload()) == list:  # is_multipart() == True で呼び出されている (message/rfc822 の場合)
             if is_delete_rfc(part):
-                vim.current.buffer.append('Del-' + header+name)
+                out['main']['attach'].append(('Del-' + header+name, None))
                 return
         elif part.get_payload() == '':
-            vim.current.buffer.append('Del-' + header+name)
+            out['main']['attach'].append(('Del-' + header+name, None))
             return
         if len(part_ls) >= 2:
-            b_attachments[str(len(vim.current.buffer))] = [name, part_ls, part.as_string()]
+            out['main']['attach'].append((header+name, [name, part_ls, part.as_string()]))
         else:
-            b_attachments[str(len(vim.current.buffer))] = [name, part_ls, '']
-        vim.current.buffer.append(header+name)
+            out['main']['attach'].append((header+name, [name, part_ls, '']))
 
-    def select_header(part, part_ls, part_num, pre_part, pgp):
+    def select_header(part, part_ls, part_num, pre_part, pgp, out):
         ls = vim.List(part_ls)
         ls.extend([part_num])
         attachment = decode_header(part.get_filename())
@@ -1301,38 +1301,34 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if attachment == '':
                     attachment = 'smime.p7s'
             if shutil.which(cmd) is None:
-                print_attach_header(part, ls, 'Signature: ', attachment)
+                get_attach(part, ls, out, 'Signature: ', attachment)
                 if inline:
-                    return '\n\n' + part.get_payload()
+                    return part.get_payload()
                 else:
                     return ''
             make_dir(TEMP_DIR)
-            pgp_tmp = TEMP_DIR + 'pgp.tmp'
             decrypt_tmp = TEMP_DIR + 'decrypt.tmp'
             with open(decrypt_tmp, 'w', newline="\r\n") as fp:  # 改行コードを CR+LF に統一して保存
                 fp.write(pre_part.as_string())
-            # with open(decrypt_tmp, 'w') as fp:
-            #     fp.write(re.sub(r'(\r\n|\n\r|\n|\r)', r'\r\n', pre_part.as_string()))  # 改行コードを CR+LF に統一
-            write_file(part, 1, pgp_tmp)
-            # user = email2only_address(msg.get_header('From'))  # ←落ちる
-            # user = email2only_address(msg_file.__getitem__('From'))
+            # pgp_tmp = TEMP_DIR + 'pgp.tmp'
+            # write_file(part, 1, pgp_tmp)
             # ユーザ指定すると、gpgsm では鍵がないと不正署名扱いになり、gpg だと存在しないユーザー指定しても、実際には構わず署名としてしまう
-            # ret = run(cmd, stdout=PIPE, stderr=PIPE)
-            # poup_pgp_signature()
-            ret = run([cmd, '--verify', pgp_tmp, decrypt_tmp], stdout=PIPE, stderr=PIPE)
+            # ret = run([cmd, '--verify', pgp_tmp, decrypt_tmp], stdout=PIPE, stderr=PIPE)
+            ret = run([cmd, '--verify', '-', decrypt_tmp],
+                      input=part.get_payload(decode=True), stdout=PIPE, stderr=PIPE)
             if ret.returncode:
                 if ret.returncode == 1:
                     header = 'Bad-Signature: '
                 else:
                     header = 'Signature: '
                 if inline:  # Content-Disposition: inline では電子署名を本文に表示
-                    signature = '\n\n' + part.get_payload()
+                    signature = part.get_payload()
             else:
                 header = 'Good-Signature: '
             # rm_file_core(pgp_tmp)  # 電子署名なので、直ちに削除する必要はない
             # rm_file_core(decrypt_tmp)
             set_pgp_result(b_v, thread_b_v, ret)
-        print_attach_header(part, ls, header, attachment)
+        get_attach(part, ls, out, header, attachment)
         return signature
 
     def get_output(part, part_ls, part_num, pre_part, output, c_type):
@@ -1356,46 +1352,50 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                           stdout=PIPE, stderr=PIPE, text=True)
                 if ret.returncode:
                     if ret.returncode == 1:
-                        vim.current.buffer.append('Bad-Signature: inline')
+                        output['main']['header'].append('Bad-Signature: inline')
                     else:
-                        vim.current.buffer.append('Signature: inline')
+                        output['main']['header'].append('Signature: inline')
                 else:
-                    vim.current.buffer.append('Good-Signature: inline')
+                    output['main']['header'].append('Good-Signature: inline')
                 set_pgp_result(b_v, thread_b_v, ret)
             # PGP/MIME ではなく本文が暗号化
             elif split[0] == '-----BEGIN PGP MESSAGE-----' and \
                     split[-1] == '-----END PGP MESSAGE-----':
-                ret = decrypt_core('gpg', part, 1, 'inline')
+                ret = decrypt_core('gpg', part, 1, output, 'inline')
                 if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
                     tmp_text = ret.stdout.decode(charset)
             if tmp_text != '' and tmp_text != '\n':
-                if c_type.find('\fmessage/rfc822 part') == 0:
-                    output[0] += c_type + '\n' + tmp_text
-                else:
-                    output[0] += c_type + '\f' + tmp_text
+                add_content(output['main']['header'], c_type)
+                add_content(output['main']['content'], tmp_text)
         elif content_type.find('text/html') == 0:
             tmp_text, tmp_tmp = get_mail_context(part, charset, encoding)
             if tmp_text == '':
-                if output[2]:  # 2 個目以降があれば連番
-                    b.append('Del-HTML: index'+str(output[2])+'.html')
+                if output['html']['part_num']:  # 2 個目以降があれば連番
+                    s = 'Del-HTML: index'+str(output['html']['part_num'])+'.html'
                 else:
-                    b.append('Del-HTML: index.html')
+                    s = 'Del-HTML: index.html'
+                output['main']['attach'].append((s, None))
             else:
                 # 最適な設定が定まっていない
                 html_converter = HTML2Text()
                 # html_converter.table_start = True
                 # html_converter.ignore_tables = True
                 html_converter.body_width = len(tmp_text)
-                output[1] += '\f' + \
-                    re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text))
-                if output[2]:  # 2 個目以降があれば連番
-                    print_attach_header(part, [part_num], 'HTML: ', 'index'+str(output[2])+'.html')
+                add_content(output['html']['content'],
+                            re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text)))
+                if output['html']['part_num']:  # 2 個目以降があれば連番
+                    s = 'index'+str(output['html']['part_num'])+'.html'
                 else:
-                    print_attach_header(part, [part_num], 'HTML: ', 'index.html')
-            output[2] += 1
+                    s = 'index.html'
+                get_attach(part, [part_num], output, 'HTML: ', s)
+                # if output[2]:  # 2 個目以降があれば連番
+                #     get_attach(part, [part_num], 'HTML: ', 'index'+str(output[2])+'.html')
+                # else:
+                #     get_attach(part, [part_num], 'HTML: ', 'index.html')
+            output['html']['part_num'] += 1
         else:
-            output[0] += select_header(part, part_ls, part_num, pre_part, False)
-        return output
+            add_content(output['main']['content'],
+                        select_header(part, part_ls, part_num, pre_part, False, output))
 
     def poup_pgp_signature():  # 書名検証に時間がかかるので、その間ポップ・アップを表示したいがうまく行かない←ウィンドウが切り替わった時点で消えるため
         if vim.bindeval('has("popupwin")'):
@@ -1421,7 +1421,6 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     def set_pgp_result(b_v, thread_b_v, ret):
         # gpg/gpgsm の処理の成否は stderr に出力され、stdout にはデコードされた内容
         result = ret.stderr
-        # print(type(result))
         if type(result) == bytes:
             result = result.decode('utf-8')
         if 'pgp_result' in b_v:  # 暗号化が繰り返されているケースがある
@@ -1438,9 +1437,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             subpart = part.get_payload()
             if type(subpart) == list:
                 for p in subpart:
-                    if p.get_content_type().lower() == 'message/rfc822':
+                    if p.get_content_type().lower() == 'message/rfc822' \
+                            or p.get_content_type().lower() == 'message/rfc2822':
                         return True
-        elif c_type == 'message/rfc822':
+        elif c_type == 'message/rfc822' or c_type == 'message/rfc2822':
             subpart = part.get_payload()
             if type(subpart) == list:
                 is_delete = False
@@ -1456,10 +1456,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 return (len(subpart) == 0)
         return False
 
-    def decrypt_core(cmd, part, decode, pgp_info):
+    def decrypt_core(cmd, part, decode, out, pgp_info):
         if decode:
             if type(part) == email.message.Message \
-                    and part.get_content_type().lower() == 'message/rfc822':
+                and (part.get_content_type().lower() == 'message/rfc822'
+                     or part.get_content_type().lower() == 'message/rfc2822'):
                 if type(part.get_payload()) == list:
                     decrypt = ''
                     for p in part.get_payload(decode=False):
@@ -1473,33 +1474,34 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         ret = run([cmd, '--decrypt'], input=decrypt, stdout=PIPE, stderr=PIPE)
         set_pgp_result(b_v, thread_b_v, ret)
         if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
-            b.append('Decrypted: ' + pgp_info)
+            out['main']['header'].append('Decrypted: ' + pgp_info)
         if ret.returncode:  # 署名未検証/失敗は ret.returncode >= 1 なので else/elif ではだめ
             if ret.returncode == 1:
-                b.append('Bad-Signature: ' + pgp_info)
+                out['main']['header'].append('Bad-Signature: ' + pgp_info)
             else:
-                b.append('Not-Decrypted: ' + pgp_info)
+                out['main']['header'].append('Not-Decrypted: ' + pgp_info)
         return ret
 
-    def decrypt(cmd, part, part_ls, part_num, pre_part, output, pgp_info):
+    def decrypt(cmd, part, part_ls, part_num, pre_part, out, pgp_info):
         if shutil.which(cmd) is None:
-            output[0] += select_header(part, part_ls, part_num, pre_part, True)
+            add_content(out['main']['content'],
+                        select_header(part, part_ls, part_num, pre_part, True, out))
             pgp_info = ''
-            return output
+            return
         decode = get_part_deocde(part)
-        ret = decrypt_core(cmd, part, decode, pgp_info)
+        ret = decrypt_core(cmd, part, decode, out, pgp_info)
         if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
             decrypt_msg = email.message_from_string(ret.stdout.decode())
             # ↓本文が UTF-8 そのままだと、BASE64 エンコードされた状態になるので、署名検証に失敗する
             # decrypt_msg = email.message_from_bytes(ret.stdout)
-            ls = copy.deepcopy(part_ls)
-            ls.append(part_num)
-            output = msg_walk(decrypt_msg, output, ls, True)
+            part_ls.append(part_num)
+            msg_walk(decrypt_msg, out, part_ls, True)
         if ret.returncode:  # 署名未検証/失敗は ret.returncode >= 1 なので else/elif ではだめ
-            output[0] += select_header(part, part_ls, part_num, pre_part, True)
-        return output
+            add_content(out['main']['content'],
+                        select_header(part, part_ls, part_num, pre_part, True, out))
+        # add_content(out['main']['content'], ret.stdout.decode())
 
-    def msg_walk(msg_file, output, part_ls, encrypt_flag):
+    def msg_walk(msg_file, output, part_ls, flag):
         def decrypt_subject():  # メッセージ全体が暗号化されていると Subject が事実上空なので付け直す
             protected_headers = False
             for s in part.get_all('Content-Type'):
@@ -1527,12 +1529,13 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 p_b.options['modifiable'] = 1
                 p_b[index] = s
                 p_b.options['modifiable'] = 0
-                i = 1  # 先頭行は後から削除されう空行なので1行ずれている
                 for header in vim.vars['notmuch_show_headers']:
                     if header.decode().lower() == 'subject':
+                        for i, s in enumerate(output['main']['header']):
+                            if s.lower().find('subject:'):
+                                output['main']['header'][i+1] = 'Subject: ' + sub
+                                break
                         break
-                    i += 1
-                b[i] = 'Subject: ' + sub
             return True
 
         part_num = -1
@@ -1546,23 +1549,26 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             if multipart_signed:
                 pre_part = part
                 multipart_signed = False
-            if encrypt_flag and not output[3]:
-                output[3] = decrypt_subject()
+            if flag and not output['changed_subject']:
+                output['changed_subject'] = decrypt_subject()
             part_num += 1
             if pgp_info != '':
-                output = decrypt('gpg', part, part_ls, part_num, pre_part,
-                                 output, 'OpenPGP/MIME ' + pgp_info)
+                decrypt('gpg', part, part_ls, part_num, pre_part,
+                        output, 'OpenPGP/MIME ' + pgp_info)
                 pgp_info = ''
                 continue
             content_type = part.get_content_type().lower()
-            if rfc_head == '' and pre_rfc == '\fmessage/rfc822 part':  # message/rfc822 のヘッダを取得
+            if rfc_head == '' \
+                    and (pre_rfc == '\fmessage/rfc822 part'  # message/rfc822 のヘッダを取得
+                         or pre_rfc == '\fmessage/rfc2822 part'):
                 for h in vim.vars['notmuch_show_headers']:
                     h = h.decode()
-                    data = ''
                     h_cont = part.get_all(h)
-                    if h_cont is not None:
-                        for d in h_cont:
-                            data += decode_header(d)
+                    if h_cont is None:
+                        continue
+                    data = ''
+                    for d in h_cont:
+                        data += decode_header(d)
                     if data != '':
                         rfc_head += h + ': ' + data + '\n'
                 for h in vim.vars['notmuch_show_hide_headers']:
@@ -1574,7 +1580,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                             data += decode_header(d)
                     if data != '':
                         rfc_head += h + ': ' + data + '\n'
-            if part.is_multipart() and content_type != 'message/rfc822':
+            if part.is_multipart() \
+                    and (content_type != 'message/rfc822'
+                         or content_type != 'message/rfc2822'):
                 if content_type == 'multipart/signed' \
                         or content_type == 'application/x-pkcs7-signature' \
                         or content_type == 'application/pkcs7-signature':
@@ -1589,25 +1597,82 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 pgp_info, tmp_text = get_mail_context(part, 'utf-8', '')
             elif content_type == 'application/x-pkcs7-mime' \
                     or content_type == 'application/pkcs7-mime':
-                output = decrypt('gpgsm', part, part_ls, part_num, pre_part, output, 'S/MIME')
+                decrypt('gpgsm', part, part_ls, part_num, pre_part, output, 'S/MIME')
             # text/plain, html 判定より先にしないと、テキストや HTML ファイルの添付ファイルが本文扱いになる
             elif part.get_content_disposition() == 'attachment':
                 #     or part.get('Content-Description', '').find('PGP/MIME') == 0:
                 #     ↑ content_type == 'application/pgp-encrypted'
                 #        content_type == 'application/pkcs7-mime':
-                #  の判定を前に持っていったので、不要になった
-                output[0] += select_header(part, part_ls, part_num, pre_part, False)
+                #  の判定は前にあるので不要
+                if flag:
+                    part_ls.append(part_num)
+                add_content(output['main']['content'],
+                            select_header(part, part_ls, part_num, pre_part, False, output))
             else:
                 if content_type.find('text/') != 0:
                     rfc = '\f' + content_type + ' part'
                 else:
                     rfc = ''
-                if pre_rfc == '\fmessage/rfc822 part':
-                    pre_rfc += '\f' + rfc_head
+                if (pre_rfc == '\fmessage/rfc822 part'
+                        or pre_rfc == '\fmessage/rfc2822 part'):
+                    pre_rfc += '\n' + rfc_head
                     rfc_head = ''
-                output = get_output(part, part_ls, part_num, pre_part, output, pre_rfc)
+                if flag:
+                    part_ls.append(part_num)
+                get_output(part, part_ls, part_num, pre_part, output, pre_rfc)
             pre_rfc = rfc
-        return output
+
+    def print_local_message(a_data):
+        for a in a_data:
+            if not a[1]:
+                continue
+            a = a[1]
+            if a[1] != [-1]:
+                continue
+            f = a[2] + a[0]
+            if os.path.isfile(f) or f.find(PATH + os.sep) == 0:
+                out = init_output()
+                out['main']['header'].append('')
+                out['main']['header'].append('\flocal attachment message part')
+                make_header_content(f, out, True)
+
+    def init_output():
+        return {  # 出力データ
+            'main': {  # 通常の本文
+                'header': [],      # ヘッダー
+                'attach': [],      # (Attach/Del-Attach ヘッダ, b.notmuch['attachments'] に使うデータ) とタプルのリスト
+                # b.notmuch['attachments'] は [filename, [part_num], part_string]
+                # [part_num]:  msg.walk() していく順序、もしくは
+                #              * [-1] ローカルファイル
+                #              * [1, 1] のように複数ある時は暗号化/ローカル内の添付ファイル
+                # part_string: ローカルファイルならそのディレクトリ
+                #              そうでなければ、msg.walk() した時のメッセージ・パート
+                'content': [],     # 本文
+            },
+            'html': {  # HTML パート
+                'content': [],  # 本文
+                'part_num': 0   # HTML パートの数
+            },
+            'changed_subject': False  # 暗号化されていた Subject 複合し書き換えをしたか?
+        }
+
+    def make_header_content(f, output, flag):
+        try:
+            with open(f, 'r') as fp:
+                msg_file = email.message_from_file(fp)
+        except UnicodeDecodeError:
+            # ↑普段は上のテキスト・ファイルとして開く
+            # 理由は↓だと、本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
+            with open(f, 'rb') as fp:
+                msg_file = email.message_from_binary_file(fp)
+        # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
+        get_header(msg_file, output, vim.vars['notmuch_show_headers'])
+        get_header(msg_file, output, vim.vars['notmuch_show_hide_headers'])
+        get_virtual_header(msg_file, output['main'], 'X-Attach')
+        get_virtual_header(msg_file, output['main'], 'Attach')
+        msg_walk(msg_file, output, [], flag)
+        vim_append_content(output)
+        print_local_message(output['main']['attach'])
 
     not_search = vim.current.buffer.number
     not_search = vim.bindeval('s:buf_num')['thread'] == not_search \
@@ -1626,6 +1691,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         vim.command('call s:make_view(\'' + vim_escape(search_term) + '\')')
     b = vim.current.buffer
     b_v = b.vars['notmuch']
+    b_v['fold_line'] = 0
     # b_v['editing'] = True  # カーソル連続移動で落ちるので、対策を考えてみたがうまく行かない
     if msg_id == '' or (mail_reload is False and msg_id == b_v['msg_id'].decode()):
         vim.command('call win_gotoid(bufwinid('+active_win+'))')
@@ -1641,49 +1707,33 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         vim.command('redrawstatus!')
         return
     vim.options['guitabtooltip'] = 'tags['+get_msg_tags(msg)+']'
-    print_header(vim.vars['notmuch_show_headers'])
-    fold_begin = len(vim.current.buffer)  # 後から先頭行を削除するので予め
-    print_header(vim.vars['notmuch_show_hide_headers'])
-    b_attachments = {}  # vim でバッファ変数として保存しておく次の情報
     # * 添付ファイル名
     # * part番号
     # * 下書きをそのまま送信メールとした時のファイルの保存ディレクトリ
-    # vim とやり取りするので辞書のキーは、行番号。item は tapple でなく list
-    if fold_begin != len(vim.current.buffer):
-        vim.command(str(fold_begin+1)+','+str(len(vim.current.buffer))+'fold')
-    try:
-        with open(f, 'r') as fp:
-            msg_file = email.message_from_file(fp)
-    except UnicodeDecodeError:
-        # ↓本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
-        # 普段は上のテキスト・ファイルとして開く
-        with open(f, 'rb') as fp:
-            msg_file = email.message_from_binary_file(fp)
-    # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
-    header_line = len(vim.current.buffer)   # 疑似ヘッダ以外の印字終了
-    print_virtual_header('X-Attach')
-    print_virtual_header('Attach')
-    b_v['attachments'] = None
+    # vim とやり取りするので辞書のキーは、行番号。item は tuple でなく list
+    b_v['attachments'] = {}
     b_v['pgp_result'] = ''
-    output = ['', '', 0, False]  # 出力データ [通常の本文、HTML パート、HTML パートの数, b:notmuch['subject'] の書き換えをしたか?]
-    output = msg_walk(msg_file, output, [], False)
-    b.append('')  # ヘッダと本文区切り
-    if output[0] != '':
-        vim_append_content(output[0][1:])
-    if output[1] != '':
-        fold_begin = len(vim.current.buffer)  # text/plain がある時は折りたたむので開始行記録
-        vim_append_content(output[1][1:])
-        if output[0] != '':  # 実際に折りたたむ場合
-            b.append('\fHTML part\f', fold_begin)
-            vim.command(str(fold_begin+1)+','+str(len(vim.current.buffer))+'fold')
+    main_out = init_output()
+    make_header_content(f, main_out, False)
     del b[0]
     b.options['modifiable'] = 0
-    if header_line == len(vim.current.buffer):  # 本文空
-        header_line = 1
-    elif b_attachments == {}:
-        header_line = header_line + 1
-    b_v['attachments'] = b_attachments
-    vim.current.window.cursor = (1, 0)  # カーソル位置が画面内だと先頭が表示されない
+    header_line = 1
+    for s in b:  # Attach, HTML ヘッダや本文開始位置を探す
+        if len(vim.current.buffer[:]) == header_line:
+            header_line = 1
+            break
+        elif s.find('Bad-Signature: inline') == 0 \
+                or s.find('Signature: inline') == 0 \
+                or s.find('Good-Signature: inline') == 0:
+            continue
+        elif re.match(r'(Attach|HTML|Encrypt|PGP-Public-Key|(Good-|Bad-)?Signature)',
+                      s) is not None:
+            break
+        elif s == '':
+            header_line += 1
+            break
+        header_line += 1
+    vim.current.window.cursor = (1, 0)  # カーソル位置が画面内だと先頭が表示されないので、一度先頭に移動
     vim.command('redraw')  # 本当は redrawstatus の位置にしたいが、上が効かなくなる
     vim.current.window.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
     if check_end_view() and ('unread' in msg.get_tags()):
@@ -1786,7 +1836,7 @@ def get_msg_tags(msg):  # メールのタグ一覧の文字列表現
 
 
 def add_msg_tags(msg, tags):  # メールのタグ追加→フォルダ・リスト書き換え
-    try:  # 同一 Messag-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
+    try:  # 同一 Message-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
         for tag in tags:
             msg.add_tag(tag, sync_maildir_flags=True)
     except notmuch.NotInitializedError:
@@ -1794,7 +1844,7 @@ def add_msg_tags(msg, tags):  # メールのタグ追加→フォルダ・リス
 
 
 def delete_msg_tags(msg, tags):  # メールのタグ削除→フォルダ・リスト書き換え
-    try:  # 同一 Messag-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
+    try:  # 同一 Message-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
         for tag in tags:
             msg.remove_tag(tag, sync_maildir_flags=True)
     except notmuch.NotInitializedError:
@@ -2210,7 +2260,8 @@ def get_part_deocde(part):
         return 1
     else:
         mime = part.get_content_type().lower()
-        if mime == 'message/rfc822':  # message/rfc822 を想定しているが、他や 7bit のケースが有るかは未確認
+        if (mime == 'message/rfc822' or mime == 'message/rfc2822'):
+            # message/rfc822 を想定しているが、他や 7bit のケースが有るかは未確認
             return 2
         elif transfer_encoding.lower() != '8bit':
             return 1
@@ -2241,7 +2292,7 @@ def get_attach_info(line):
     name, part_num, dirORmes_str = b_attachments[line]
     name = name.decode('utf-8')
     if name == '':  # 元々ファイル名情報がない場合
-        name = 'nonename'
+        name = 'noname'
     part_num = [i for i in part_num]
     if part_num == [-1]:
         return name, None, None, dirORmes_str.decode('utf-8')
@@ -2266,7 +2317,9 @@ def get_attach_info(line):
     part_count = 0
     part_num = part_num[0]
     for attach in msg_file.walk():
-        if attach.get_content_type().lower() != 'message/rfc822' and attach.is_multipart():
+        if (attach.get_content_type().lower() != 'message/rfc822'
+            or attach.get_content_type().lower() != 'message/rfc2822') \
+                and attach.is_multipart():
             continue
         if part_num == part_count:
             break
@@ -2292,7 +2345,7 @@ def open_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位�
         if filename is None:
             filename, attachment, decode, full_path = same_attach(vim.bindeval('expand("<cfile>>")'))
             if filename is None:
-                if vim.bindeval('foldlevel(".")') != 0:
+                if vim.bindeval('foldlevel(".")') != 2:
                     vim.command('normal! za')
                 elif b'open' in vim.vars['notmuch_open_way'].keys():
                     name = vim.bindeval('synIDattr(synID(line("."), col("."), 1), "name")').decode()
@@ -2308,7 +2361,7 @@ def open_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位�
                 os.chmod(full_path, 0o700)
         elif full_path == '':  # attachment, decode が None
             # +保存ディレクトリが空なら送信メールでなくメール本文を単純にテキスト・ファイルとして保存し、それをインポートしたファイル
-            print_warring('The header is vertulal.')
+            print_warring('The header is virtual.')
             return
         full_path += filename
         if not os.path.isfile(full_path):
@@ -2425,7 +2478,8 @@ def write_file(part, decode, save_path):  # 添付ファイルを save_path に�
                 fp.write(codecs.encode(part))
     elif decode:
         if type(part) == email.message.Message \
-                and part.get_content_type().lower() == 'message/rfc822':
+                and (part.get_content_type().lower() == 'message/rfc822'
+                     or part.get_content_type().lower() == 'message/rfc2822'):
             if type(part.get_payload()) == list:
                 s = ''
                 for p in part.get_payload(decode=False):
@@ -2452,7 +2506,7 @@ def save_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位�
             return
         elif attachment is None and decode is None:  # attachment, decode が None
             # →インポート/送信メールどちらであれ仮想ヘッダ添付ファイルの保存は意味がない
-            print_warring('The header is vertulal.')
+            print_warring('The header is virtual.')
             return
         save_path = get_save_filename(get_save_dir() + filename)
         if save_path == '':
@@ -2515,7 +2569,9 @@ def delete_attachment(args):
                 msg_file = email.message_from_file(fp)
             i = 0
             for part in msg_file.walk():
-                if part.is_multipart() and part.get_content_type().lower() != 'message/rfc822':
+                if part.is_multipart() \
+                        and (part.get_content_type().lower() != 'message/rfc822'
+                             or part.get_content_type().lower() != 'message/rfc2822'):
                     continue
                 if part_num == i:
                     break
@@ -2543,20 +2599,20 @@ def delete_attachment(args):
                 tmp_name, part_num, tmpdir = b_attachments[line]
                 part_num = [i for i in part_num]
                 if part_num == [-1]:
-                    print_warring('The header is vertulal.')
+                    print_warring('The header is virtual.')
                 elif len(part_num) >= 2:
-                    print_warring('This is encripted context.')
+                    print_warring('Can not delete:  Encrypted/Local.')
                 else:
                     del b_attachments[line]
                     line = int(line)-1
-                    if b[line].find('HTML:') == 0 and '\fHTML part\f' not in b[:]:
+                    if b[line].find('HTML:') == 0 and '\fHTML part' not in b[:]:
                         # HTML パートで text/plain が無ければ削除しない
                         print_warring('The mail is only HTML.')
                     else:
                         b.options['modifiable'] = 1
                         if b[line].find('HTML:') == 0:
                             for i, b_i in enumerate(b):
-                                if b_i == '\fHTML part\f':
+                                if b_i == '\fHTML part':
                                     break
                             b[i:] = None
                         b[line] = 'Del-' + b[line]
@@ -2570,7 +2626,7 @@ def delete_attachment(args):
 
     def delete_attachment_in_thread(args, search_term):
         # メール本文表示だと未読→既読扱いでタグを変更することが有るので書き込み権限も
-        def delete_attachment_all(fname):  # text/plin, text/html 以外の全て添付ファイルを削除
+        def delete_attachment_all(fname):  # text/plain, text/html 以外の全て添付ファイルを削除
             with open(fname, 'r') as fp:
                 msg_file = email.message_from_file(fp)
             content_type = msg_file.get_content_type()
@@ -2582,7 +2638,9 @@ def delete_attachment(args):
             can_delete = True
             next_can_delete = True
             for part in msg_file.walk():
-                if part.is_multipart() and part.get_content_type().lower() != 'message/rfc822':
+                if part.is_multipart() \
+                        and (part.get_content_type().lower() != 'message/rfc822'
+                             or part.get_content_type().lower() != 'message/rfc2822'):
                     continue
                 content_type = part.get_content_type()
                 if part.get_content_type() == 'application/pgp-encrypted':
@@ -2636,7 +2694,7 @@ def delete_attachment(args):
                 del b_attachments[k]
         b.options['modifiable'] = 0
         if deleted:
-            print_warring('Encripted context or Vertual header don\'t delete.')
+            print_warring('Don\'t delete: Encrypted/Local/Virtual!')
 
     b = vim.current.buffer
     bufnr = b.number
@@ -2845,7 +2903,7 @@ def view_mail_info():  # メール情報表示
                           datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
                           'Size       : ' + str(os.path.getsize(f)) + ' Bytes']
             else:
-                lists.append('file       : ' + f + '\n' + '             Already Delte.')
+                lists.append('file       : Already Delete.   ' + f)
         DBASE.close()
         if f_type != 'notmuch-edit':
             pgp_result = b_v['pgp_result'].decode()
@@ -2955,7 +3013,7 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
             vim.command('setlocal filetype=notmuch-draft noswapfile')
             vim.command('call s:au_write_draft()')
         else:
-            vim.command('call s:fold_mail_header() | set foldtext=FoldHeaderText()')
+            vim.command('call s:fold_mail_header() | setlocal foldtext=FoldHeaderText()')
             vim.command('setlocal filetype=notmuch-edit')
     if message != '':
         vim.command('redraw')  # redraw しないと次のメッセージがすぐに消えてしまう
@@ -2987,6 +3045,10 @@ def send_mail(filename):  # ファイルをメールとして送信←元のフ�
     msg_id = []
     if send_str(msg_data, msg_id):
         os.remove(filename)
+        return True
+    else:
+        print_warring('Sending Error')
+        return False
 
 
 def send_vim_buffer():
@@ -3006,7 +3068,7 @@ def send_vim_buffer():
     return False
 
 
-def marge_tag(msg_id, send):   # 下書きバッファと notmuch databae のタグをマージ
+def marge_tag(msg_id, send):   # 下書きバッファと notmuch database のタグをマージ
     # send 送信時か?→draft, unread タグは削除
     b = vim.current.buffer
     DBASE.open(PATH)
@@ -3048,7 +3110,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
     from email.mime.base import MIMEBase
     from email.mime.message import MIMEMessage
     from email.message import EmailMessage
-    import mimetypes                    # ファイルの MIMETYPE を調べる
+    import mimetypes            # ファイルの MIMETYPE を調べる
     # ATTACH = 0x01
     PGP_ENCRYPT = 0x10
     PGP_SIGNATURE = 0x20
@@ -3060,6 +3122,8 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
     ALL_ENCRYPT = SMIME_ENCRYPT | PGP_ENCRYPT | PGPMIME_ENCRYPT
     ALL_SIGNATURE = SMIME_SIGNATURE | PGP_SIGNATURE | PGPMIME_SIGNATURE
     # ALL_FLAG = ALL_ENCRYPT | ALL_SIGNATURE
+    HEADER_ADDRESS = ['Sender', 'Resent-Sender', 'From', 'Resent-From',
+                      'To', 'Resent-To', 'Cc', 'Resent-Cc', 'Bcc', 'Resent-Bcc']
 
     def set_header(msg, header, data):  # エンコードしてヘッダ設定
         for charset in SENT_CHARSET:
@@ -3122,7 +3186,9 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 pass
             except ModuleNotFoundError:
                 pass
-        if mimetype == 'message/rfc822' or path.find(PATH + os.sep) == 0:
+        if mimetype == 'message/rfc822' \
+                or mimetype == 'message/rfc2822' \
+                or path.find(PATH + os.sep) == 0:
             with open(path, 'rb') as fp:
                 msg_f = email.message_from_binary_file(fp)
                 encoding = msg_f.get('Content-Transfer-Encoding')
@@ -3132,7 +3198,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             msg.attach(part)
             return True
         if mimetype is None or mimeencoding is not None:
-            print_warring('Not found mimetyp.  Attach with \'application/octet-stream\'')
+            print_warring('Not found MIME Type.  Attach with \'application/octet-stream\'')
             mimetype = 'application/octet-stream'
         maintype, subtype = mimetype.split('/')
         if maintype == 'text':
@@ -3149,72 +3215,51 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
 
     def set_header_address(msg, header, address):  # ヘッダにエンコードした上でアドレスをセット
         pair = ''
-        while len(address):
-            match_str = re.match(' *"[^"]+"[^,]+', address)
-            if match_str is None:
-                match_str = re.match(' *[^,]+', address)
-            if match_str is None:
-                one_pair = address
-            else:
-                one_pair = re.sub(' *(.+) *', r'\1', match_str.group(0))
-            address = address[match_str.end(0)+1:]
-            one_pair = email.utils.parseaddr(one_pair)
+        for s in address:
             for charset in SENT_CHARSET:
                 try:
-                    one_pair = email.utils.formataddr(one_pair, charset)
+                    d_s = email.utils.formataddr(email.utils.parseaddr(s), charset)
                     break
                 except UnicodeEncodeError:
                     pass
             else:
-                one_pair = email.utils.formataddr(one_pair, 'utf-8')
-            pair += ', ' + one_pair
+                d_s = email.utils.formataddr(email.utils.parseaddr(s), 'utf-8')
+            pair += ', ' + d_s
         msg[header] = pair[2:]
 
-    def get_user_id(From):  # get User ID and domain from mail adress setting
-        mail_address = None
-        if From is None:
-            if VIM_MODULE:
-                if 'notmuch_from' in vim.vars:
-                    mail_address = vim.vars['notmuch_from'][0]['address'].decode()
+    def get_user():  # get User ID and domain from mail address setting
+        if VIM_MODULE:
+            if 'notmuch_from' in vim.vars:
+                mail_address = vim.vars['notmuch_from'][0]['address'].decode()
         else:
-            mail_address = From
+            mail_address = None
         if mail_address is None:
-            mail_address = get_config('user.primary_email')
-        # if mail_address is None:  # ↑何某か標準の設定が返される
-        #     return None, None
-        mail_address = email2only_address(mail_address)
-        index = mail_address.find('@')
-        if index == -1:
-            return None, None
-        msgid_id = mail_address[:index]
-        msgid_domain = mail_address[index+1:]
-        return msgid_id, msgid_domain
+            return get_config('user.primary_email')
+        return mail_address
 
-    def encrypt(s, header):
-        def add_only(header):
-            adr = ''
-            for s in ['to', 'from', 'cc', 'bcc']:
+    def encrypt(s, header, charset):
+        def adr_only(header):
+            adr = []
+            for s in ['To', 'From', 'Cc', 'Bcc']:
                 if s in header:
-                    adr = adr + ',' + header[s]
+                    adr += header[s]
             ls = []
-            for i in address2ls(adr):
+            for i in adr:
                 ls.append(email2only_address(i).lower())
             return list(set(ls))
 
-        h = {}
-        for k, i in header.items():
-            h[k.lower()] = i
         if flag & SMIME_ENCRYPT:
             cmd = ['gpgsm', '--encrypt', '--base64', '--output', '-']
         else:
             if flag & PGP_SIGNATURE:
-                local_user = email2only_address(h['from'])
+                local_user = email2only_address(header['From'][0])
                 cmd = ['gpg', '--sign', '--local-user', local_user, '--encrypt', '--armor', '--output', '-']
             else:
                 cmd = ['gpg', '--encrypt', '--armor', '--output', '-']
         if shutil.which(cmd[0]) is None:
+            print_error('Can not execute ' + cmd[0] + '.')
             return False, s
-        for i in add_only(h):
+        for i in adr_only(header):
             cmd.append('--recipient')
             cmd.append(i)
         body_tmp = TEMP_DIR + 'body.tmp'
@@ -3227,15 +3272,12 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         # ret = run([cmd, '--decrypt'], input=decrypt, stdout=PIPE, stderr=PIPE)
         rm_file_core(body_tmp)
         if ret.returncode:
-            print_warring(ret.stderr)
+            print_error(ret.stderr)
             return False, s
         return True,  ret.stdout
 
-    def signature(s, header):
-        h = {}
-        for k, i in header.items():
-            h[k.lower()] = i
-        local_user = email2only_address(h['from'])
+    def signature(s, header, charset):
+        local_user = email2only_address(header['From'][0])
         if flag & SMIME_SIGNATURE:
             cmd = ['gpgsm', '--detach-sign', '--local-user', local_user, '--base64',
                    '--output', '-']
@@ -3247,9 +3289,10 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             cmd = ['gpg', '--clearsign', '--local-user', local_user,
                    '--output', '-']
         else:
-            print_warring('Programing Error')
+            print_warring('Programming Error')
             return False
         if shutil.which(cmd[0]) is None:
+            print_error('Can not execute ' + cmd[0] + '.')
             return False, s
         body_tmp = TEMP_DIR + 'body.tmp'
         with open(body_tmp, 'w', encoding=charset,  # UTF-8 以外が保存できるようにエンコードを指定
@@ -3264,10 +3307,13 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         return True, ret.stdout
 
     def get_header_ls():  # ヘッダ文字列情報をリストに変換
-        h_data = {}
+        h_data = {}  # key:ヘッダ名、value:ヘッダの中身 (アドレスの時だけリスト)
         pre_h = ''
         attach = []
         flag = 0
+        ignore_data = ['date', 'resent-date',  # 必ず付け直すヘッダ
+                       'message-id', 'resent-message-id',
+                       'content-type', 'content-transfer-encoding']
         for h in headers.split('\n'):
             match = re.match(r'^[A-Za-z-]+:\s*', h)
             if match is None:
@@ -3279,28 +3325,59 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             else:
                 h_term = h[:h.find(':')]
                 h_item = h[match.end():]
-                if h_item != '':
-                    h_term_l = h_term.lower()
-                    if h_term_l == 'attach':
-                        attach.append(h_item)
-                    elif h_term_l == 'encrypt':
-                        flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_ENCRYPT) \
-                             | (get_flag(h_item, r'\bPGP\b') * PGP_ENCRYPT) \
-                             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT)
-                        if not flag_check:
-                            print_error('The encryption method is wrong.')
-                            return None, None, None
-                        flag |= flag_check
-                    elif h_term_l == 'signature':
-                        flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_SIGNATURE) \
-                             | (get_flag(h_item, r'\bPGP\b') * PGP_SIGNATURE) \
-                             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_SIGNATURE)
-                        if not flag_check:
-                            print_error('The signature method is wrong.')
-                            return None, None, None
-                        flag |= flag_check
-                    else:
-                        h_data[h_term] = h_item
+                h_term_l = h_term.lower()
+                if (h_term_l in ignore_data) or h_item == '':
+                    continue
+                if h_term_l == 'attach':
+                    attach.append(h_item)
+                    continue
+                elif h_term_l == 'encrypt':
+                    flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_ENCRYPT) \
+                         | (get_flag(h_item, r'\bPGP\b') * PGP_ENCRYPT) \
+                         | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT)
+                    if not flag_check:
+                        print_error('The encryption method is wrong.')
+                        return None, None, None
+                    flag |= flag_check
+                elif h_term_l == 'signature':
+                    flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_SIGNATURE) \
+                         | (get_flag(h_item, r'\bPGP\b') * PGP_SIGNATURE) \
+                         | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_SIGNATURE)
+                    if not flag_check:
+                        print_error('The signature method is wrong.')
+                        return None, None, None
+                    flag |= flag_check
+                # 宛先はこの後も書き換えが行われるので、ヘッダ名の大文字小文字統一
+                elif h_term_l == 'sender':
+                    h_term = 'Sender'
+                elif h_term_l == 'from':
+                    h_term = 'From'
+                elif h_term_l == 'to':
+                    h_term = 'To'
+                elif h_term_l == 'cc':
+                    h_term = 'Cc'
+                elif h_term_l == 'bcc':
+                    h_term = 'Bcc'
+                elif h_term_l == 'resent-sender':
+                    h_term = 'Resent-Sender'
+                elif h_term_l == 'resent-from':
+                    h_term = 'Resent-From'
+                elif h_term_l == 'resent-to':
+                    h_term = 'Resent-To'
+                elif h_term_l == 'resent-cc':
+                    h_term = 'Resent-Cc'
+                elif h_term_l == 'resent-bcc':
+                    h_term = 'Resent-Bcc'
+                elif h_term_l == 'references':
+                    h_term = 'References'
+                elif h_term_l == 'subject':
+                    h_term = 'Subject'
+                if h_term in ['To', 'Cc', 'Bcc',
+                              'Resent-To', 'Resent-Cc', 'Resent-Bcc'] \
+                        and h_term in h_data:
+                    h_data[h_term] += ',' + h_item
+                else:
+                    h_data[h_term] = h_item
                 pre_h = h_term
         # 暗号化・署名が複数指定されていた時、暗号化と署名方法に矛盾していた時のために flag を指定し直す
         if flag & SMIME_ENCRYPT:
@@ -3315,10 +3392,268 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             flag = PGPMIME_SIGNATURE
         elif flag & PGP_SIGNATURE:
             flag = PGP_SIGNATURE
+        for h_term in HEADER_ADDRESS:
+            if h_term in h_data:
+                h_data[h_term] = uniq_address(address2ls(h_data[h_term]))
         return h_data, attach, flag
 
+    def check_sender(h_data, resent):
+        if resent + 'From' in h_data and resent + 'Sender' in h_data:
+            if email2only_address(h_data.get(resent + 'From', ['0'])[0]) == \
+                    email2only_address(h_data.get(resent + 'Sender', ['1'])[0]):
+                del h_data[resent + 'Sender']
+
+    def check_address(data, resent):
+        del_duple_adr(header_data, resent + 'Bcc', resent + 'To')
+        del_duple_adr(header_data, resent + 'Bcc', resent + 'Cc')
+        del_duple_adr(header_data, resent + 'Cc', resent + 'To')
+        if resent + 'To' in data:
+            return True
+        if resent + 'Cc' in data or resent + 'Bcc' in data:
+            data[resent + 'To'] = 'undisclosed-recipients: ;'
+            return True
+        print_warring('No address')
+        return False
+
+    def reset_msgid(msg, mail_address, resent):
+        mail_address = email2only_address(mail_address)
+        index = mail_address.find('@')
+        if index == -1:
+            return None, None
+        msgid_usr = mail_address[:index]
+        msgid_domain = mail_address[index+1:]
+        if msgid_usr is None:
+            msg_id = email.utils.make_msgid()
+        else:
+            msg_id = email.utils.make_msgid(msgid_usr.upper(), msgid_domain.upper())
+        msg_send[resent + 'Message-ID'] = msg_id
+        return msg_id
+
+    def reset_date(msg, resent):
+        msg_date = email.utils.formatdate(localtime=True)
+        msg[resent + 'Date'] = msg_date
+        return msg_date
+
+    def send(msg_send):
+        try:
+            pipe = Popen(SEND_PARAM, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        except Exception as err:
+            print_error(err)
+            return False
+        pipe, err = pipe.communicate(msg_send.as_string())
+        if err != '':
+            print_error(err)
+            return False
+        print(pipe)
+        in_reply = msg_send.get('In-Reply-To')
+        if in_reply is not None:  # 送信メールに In-Reply-To が有れば、送信元ファイルに replied タグ追加
+            msg = change_tags_before(in_reply.__str__()[1:-1])
+            add_msg_tags(msg, ['replied'])
+            change_tags_after(msg, True)
+        return True
+
+    def save_draft(msg_send, msg_data, msg_id, date, flag):  # 送信済みファイル保存
+        def get_draft_dir():  # 保存先メール・フォルダ取得
+            if fcc_mailbox != '' and os.path.isdir(PATH + os.sep + fcc_mailbox):
+                return fcc_mailbox
+            elif VIM_MODULE:
+                return vim.vars.get('notmuch_save_sent_mailbox', 'sent').decode()
+            else:
+                return SENT_TAG
+
+        sent_dir = get_draft_dir()
+        if sent_dir == '':
+            return
+        make_dir(TEMP_DIR)
+        send_tmp = TEMP_DIR + 'send.tmp'
+        with open(send_tmp, 'w') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
+            if flag:
+                msg_data = msg_data[1:]
+                msg_data += '\nDate: ' + date + \
+                    '\nContent-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: 8bit'
+                msg_data += '\nMessage-ID: ' + msg_id
+                if attachments is not None:
+                    for attachment in attachments:
+                        msg_data += '\nX-Attach: ' + attachment
+                msg_data += '\n\n' + mail_context
+                fp.write(msg_data)
+            else:
+                fp.write(msg_send.as_string())
+        if attachments is None:
+            add_tag = [SENT_TAG]
+        else:
+            add_tag = [SENT_TAG, 'attachment']
+        DBASE.open(PATH)
+        msg_id = msg_id[1:-1]
+        msg = DBASE.find_message(msg_id)
+        if msg is not None:
+            add_tag.append(msg.get_tags())
+            add_tag.remove('draft')
+            add_tag.remove('unread')
+        DBASE.close()
+        move_mail_main(msg_id, send_tmp, sent_dir, ['draft', 'unread'], add_tag, True)  # 送信済み保存
+        msgid.append(msg_id)
+
+    def uniq_address(ls):
+        uni = []
+        for i in ls:
+            i_l = email2only_address(i).lower()
+            duple = [j for j, k in enumerate(uni) if email2only_address(k).lower() == i_l]
+            if duple == []:
+                uni.append(i)
+        return uni
+
+    def merge_address(data, a, b):
+        if not (b in data):
+            return
+        if not (a in data):
+            data[a] = data[b]
+            del data[b]
+            return
+        diff_ls = []
+        for i in data[b]:
+            i_l = email2only_address(i).lower()
+            duple = [j for j, k in enumerate(data[a]) if email2only_address(k).lower() == i_l]
+            if duple == []:
+                diff_ls.append(i)
+        data[a] += diff_ls
+        del data[b]
+
+    def del_duple_adr(data, main, delete):  # data にある main ヘッダにある delete ヘッダのアドレスを削除
+        # delete ヘッダが空になれば data[delete] 削除
+        if not (main in data) or not (delete in data):
+            return
+        del_ls = data[delete]
+        for i in data[main]:
+            duple = [j for j, k in enumerate(del_ls)
+                     if email2only_address(k).lower() == email2only_address(i).lower()]
+            for i in reversed(duple):
+                del del_ls[i]
+        if del_ls == []:
+            del data[delete]
+        else:
+            data[delete] = del_ls
+
+    def make_send_message(h_data, context, flag):  # そのまま転送以外の送信データの作成
+        if ('utf-8' in SENT_CHARSET):  # utf-8+8bit を可能にする 無いとutf-8+base64
+            email.charset.add_charset(
+                'utf-8', email.charset.SHORTEST, None, 'utf-8')
+        for charset in SENT_CHARSET:  # 可能な charset の判定
+            try:
+                mail_body = context.encode(charset)
+                break
+            except UnicodeEncodeError:
+                pass
+        else:
+            charset = 'utf-8'
+            mail_body = context.encode('utf-8')
+        if flag & PGP_ENCRYPT:
+            ret, mail_body = encrypt(context, h_data, charset)
+            if not ret:
+                return False
+            mail_body = MIMEText(mail_body, 'plain', charset)
+        elif flag & PGP_SIGNATURE:
+            msg = EmailMessage()
+            if charset == 'us-ascii' or charset == 'ascii':
+                t_encoding = '7bit'
+            # elif charset == 'utf-8': utf-8 でも PGP 署名では quoted-printable
+            #     t_encoding = 'base64'
+            else:
+                t_encoding = 'quoted-printable'
+            msg.set_content(context, cte=t_encoding, charset=charset)
+            context = msg.get_payload()
+            ret, context = signature(context, h_data, charset)
+            if not ret:
+                return False
+            mail_body = MIMEText(context, 'plain', charset)
+            mail_body.replace_header('Content-Transfer-Encoding', t_encoding)
+        else:
+            if (flag & ALL_SIGNATURE) and not (flag & ALL_ENCRYPT):
+                # 暗号化なしの署名付きは quoted-printable か base64 使用
+                mail_body = EmailMessage()
+                if charset == 'us-ascii' or charset == 'ascii':
+                    t_encoding = '7bit'
+                elif charset == 'utf-8':
+                    t_encoding = 'base64'
+                else:
+                    t_encoding = 'quoted-printable'
+                mail_body.set_content(context, cte=t_encoding, charset=charset)
+            else:
+                mail_body = MIMEText(mail_body, 'plain', charset)
+        if len(attachments) != 0:
+            msg_send = MIMEMultipart()
+            msg_send.attach(mail_body)
+        else:
+            msg_send = mail_body
+        for attachment in attachments:  # 添付ファイル追加
+            if not attach_file(msg_send, attachment):
+                return False
+        if (flag & SMIME_SIGNATURE):  # PGP/MIME 電子署名
+            msg0 = msg_send
+            ret, sig = signature(msg0.as_string(), h_data, charset)
+            if not ret:
+                return False
+            msg1 = EmailMessage()
+            msg1['Content-Type'] = 'application/pkcs7-signature; name="smime.p7s"'
+            msg1['Content-Transfer-Encoding'] = 'base64'
+            msg1['Content-Disposition: attachment'] = 'filename="smime.p7s"'
+            msg1['Content-Description'] = 'S/MIME Cryptographic Signature'
+            msg1.set_payload(sig)
+            msg_send = MIMEMultipart(_subtype="signed", micalg="sha-256",
+                                     protocol="application/pkcs7-signature")
+            msg_send.attach(msg0)
+            msg_send.attach(msg1)
+        elif (flag & PGPMIME_SIGNATURE):  # PGP/MIME 電子署名
+            msg0 = msg_send
+            ret, sig = signature(msg0.as_string(), h_data, charset)
+            if not ret:
+                return False
+            msg1 = EmailMessage()
+            msg1['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
+            msg1['Content-Description'] = 'OpenPGP digital signature'
+            msg1.set_payload(sig)
+            msg_send = MIMEMultipart(_subtype="signed", micalg="pgp-sha1",
+                                     protocol="application/pgp-signature")
+            msg_send.attach(msg0)
+            msg_send.attach(msg1)
+        if (flag & SMIME_ENCRYPT):  # S/MIME 暗号化
+            if SMIME_SIGNATURE:  # 改行コードを CR+LF に統一して渡す
+                ret, mail_body = encrypt(re.sub(r'(\r\n|\n\r|\n|\r)', r'\r\n',
+                                                msg_send.as_string()), h_data, charset)
+            else:
+                ret, mail_body = encrypt(msg_send.as_string(), h_data, charset)
+            if not ret:
+                return False
+            msg_send = MIMEBase(_maintype="application", _subtype="pkcs7-mime",
+                                name="smime.p7m", smime_type="enveloped-data")
+            # msg_send = MIMEBase(_maintype="application", _subtype="pkcs7-mime", name="smime.p7m")
+            # msg_send.replace_header(_name="Content-Type",
+            #     _value='application/pkcs7-mime; name="smime.p7m"; smime-type=enveloped-data')
+            msg_send.add_header(_name="Content-Transfer-Encoding", _value="base64")
+            msg_send.add_header(_name="Content-Disposition", _value="attachment", filename="smime.p7m")
+            msg_send.add_header(_name="Content-Description", _value="S/MIME Encrypted Message")
+            msg_send.set_payload(mail_body)
+        elif (flag & PGPMIME_ENCRYPT):  # PGP/MIME 暗号化
+            msg0 = EmailMessage()
+            msg0.add_header(_name="Content-Type", _value="application/pgp-encrypted")
+            msg0.add_header(_name="Content-Description", _value="PGP/MIME version identification")
+            msg0.set_payload("Version: 1" + "\n")
+            ret, mail_body = encrypt(msg_send.as_string(), h_data, charset)
+            if not ret:
+                return False
+            msg = EmailMessage()
+            msg.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
+            msg.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
+            msg.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
+            msg.set_payload(mail_body)
+            msg_send = MIMEBase(_maintype="multipart", _subtype="encrypted",
+                                protocol="application/pgp-encrypted")
+            msg_send.attach(msg0)
+            msg_send.attach(msg)
+        return msg_send
+
     if shutil.which(SEND_PARAM[0]) is None:
-        sys.stderr.write('\'' + SEND_PARAM[0] + '\' is not executable.')
+        print_error('\'' + SEND_PARAM[0] + '\' is not executable.')
         return False
     # ヘッダ・本文の分離
     match = re.search(r'\n\n', msg_data)
@@ -3330,221 +3665,88 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         mail_context = re.sub(r'\n+$', '', msg_data[match.end():])  # ファイル末尾の連続する改行は一旦全て削除
         mail_context = re.sub(r'^\n+', '', mail_context) + '\n'  # 本文最初の改行は全て削除し、最後に改行追加
     header_data, attachments, flag = get_header_ls()
-    if ('utf-8' in SENT_CHARSET):  # utf-8+8bit を可能にする 無いとutf-8+base64
-        email.charset.add_charset(
-            'utf-8', email.charset.SHORTEST, None, 'utf-8')
-    for charset in SENT_CHARSET:  # 可能な charset の判定
+    if header_data is None:
+        return False
+    fcc_mailbox = ''
+    if 'Resent-From' in header_data:  # そのまま転送
+        if len(attachments) != 1:
+            print_error('The transfer source file is not specified (attached).')
+            return False
+        f = attachments[0]
+        if f.find(PATH) != 0:
+            if not ('References' in header_data):
+                print_error('There is no transfer source file.: ' + f)
+                return False
+            DBASE.open(PATH)
+            msg = DBASE.find_message(header_data['References'][1:-1])
+            if msg is None:
+                DBASE.close()
+                print_error('There is no transfer source file.: ' + f)
+                return False
+            f = msg.get_filename()
+            DBASE.close()
+            attachments[0] = f
         try:
-            mail_body = mail_context.encode(charset)
-            break
-        except UnicodeEncodeError:
-            pass
+            with open(f, 'r') as fp:
+                msg_send = email.message_from_file(fp)
+        except UnicodeDecodeError:
+            print_error('The transfer source file is not email message.: ' + f)
+            return False
+        for i in ['Sender', 'From', 'To', 'Cc', 'Bcc']:
+            merge_address(header_data, 'Resent-' + i, i)
+        check_sender(header_data, 'Resent-')
+        if not check_address(header_data, 'Resent-'):
+            return False
+        # ヘッダ設定
+        msg_data = '\nFrom: ' + header_data['Resent-From'][0] + \
+            '\nTo: ' + ', '.join(header_data['Resent-To'])
+        for h in ['Resent-Sender', 'Resent-From', 'Resent-To', 'Resent-Cc', 'Resent-Bcc']:
+            if h in header_data:
+                h_data = header_data[h]
+                msg_data += '\n' + h + ': ' + ', '.join(h_data)
+                set_header_address(msg_send, h, h_data)
+        for h in ['Subject', 'References']:
+            if h in header_data:
+                h_data = header_data[h]
+                msg_data += '\n' + h + ': ' + h_data
+        msg_date = reset_date(msg_send, 'Resent-')
+        msg_data += '\nResent-Date: ' + msg_date
+        msg_id = reset_msgid(msg_send, header_data['Resent-From'][0], 'Resent-')
+        msg_data += '\nResent-Message-ID: ' + msg_id
+        # if not send(msg_send):
+        #     return False
+        save_draft(msg_send, msg_data, msg_id, msg_date, 1)
+        return True
     else:
-        charset = 'utf-8'
-        mail_body = mail_context.encode('utf-8')
-    if flag is None:
-        return False
-    if flag & PGP_ENCRYPT:
-        ret, mail_body = encrypt(mail_context, header_data)
-        if not ret:
+        msg_send = make_send_message(header_data, mail_context, flag)
+        check_sender(header_data, '')
+        if not check_address(header_data, ''):
             return False
-        mail_body = MIMEText(mail_body, 'plain', charset)
-    elif flag & PGP_SIGNATURE:
-        msg = EmailMessage()
-        if charset == 'us-ascii' or charset == 'ascii':
-            t_encoding = '7bit'
-        # elif charset == 'utf-8': utf-8 でも PGP 署名では quoted-printable
-        #     t_encoding = 'base64'
-        else:
-            t_encoding = 'quoted-printable'
-        msg.set_content(mail_context, cte=t_encoding, charset=charset)
-        mail_context = msg.get_payload()
-        ret, mail_context = signature(mail_context, header_data)
-        if not ret:
-            return False
-        mail_body = MIMEText(mail_context, 'plain', charset)
-        mail_body.replace_header('Content-Transfer-Encoding', t_encoding)
-    else:
-        if (flag & ALL_SIGNATURE) and not (flag & ALL_ENCRYPT):  # 暗号化なしの署名付きは quoted-printable か base64 使用
-            mail_body = EmailMessage()
-            if charset == 'us-ascii' or charset == 'ascii':
-                t_encoding = '7bit'
-            elif charset == 'utf-8':
-                t_encoding = 'base64'
-            else:
-                t_encoding = 'quoted-printable'
-            mail_body.set_content(mail_context, cte=t_encoding, charset=charset)
-        else:
-            mail_body = MIMEText(mail_body, 'plain', charset)
-    if len(attachments) != 0:
-        msg_send = MIMEMultipart()
-        msg_send.attach(mail_body)
-    else:
-        msg_send = mail_body
-    for attachment in attachments:  # 添付ファイル追加
-        if not attach_file(msg_send, attachment):
-            return False
-    if (flag & SMIME_SIGNATURE):  # PGP/MIME 電子署名
-        msg0 = msg_send
-        ret, sig = signature(msg0.as_string(), header_data)
-        if not ret:
-            return False
-        msg1 = EmailMessage()
-        msg1['Content-Type'] = 'application/pkcs7-signature; name="smime.p7s"'
-        msg1['Content-Transfer-Encoding'] = 'base64'
-        msg1['Content-Disposition: attachment'] = 'filename="smime.p7s"'
-        msg1['Content-Description'] = 'S/MIME Cryptographic Signature'
-        msg1.set_payload(sig)
-        msg_send = MIMEMultipart(_subtype="signed", micalg="sha-256", protocol="application/pkcs7-signature")
-        msg_send.attach(msg0)
-        msg_send.attach(msg1)
-    elif (flag & PGPMIME_SIGNATURE):  # PGP/MIME 電子署名
-        msg0 = msg_send
-        ret, sig = signature(msg0.as_string(), header_data)
-        if not ret:
-            return False
-        msg1 = EmailMessage()
-        msg1['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
-        msg1['Content-Description'] = 'OpenPGP digital signature'
-        msg1.set_payload(sig)
-        msg_send = MIMEMultipart(_subtype="signed", micalg="pgp-sha1", protocol="application/pgp-signature")
-        msg_send.attach(msg0)
-        msg_send.attach(msg1)
-    if (flag & SMIME_ENCRYPT):  # S/MIME 暗号化
-        if SMIME_SIGNATURE:  # 改行コードを CR+LF に統一して渡す
-            ret, mail_body = encrypt(re.sub(r'(\r\n|\n\r|\n|\r)', r'\r\n',
-                                            msg_send.as_string()), header_data)
-        else:
-            ret, mail_body = encrypt(msg_send.as_string(), header_data)
-        if not ret:
-            return False
-        msg_send = MIMEBase(_maintype="application", _subtype="pkcs7-mime",
-                            name="smime.p7m", smime_type="enveloped-data")
-        # msg_send = MIMEBase(_maintype="application", _subtype="pkcs7-mime", name="smime.p7m")
-        # msg_send.replace_header(_name="Content-Type",
-        #     _value='application/pkcs7-mime; name="smime.p7m"; smime-type=enveloped-data')
-        msg_send.add_header(_name="Content-Transfer-Encoding", _value="base64")
-        msg_send.add_header(_name="Content-Disposition", _value="attachment", filename="smime.p7m")
-        msg_send.add_header(_name="Content-Description", _value="S/MIME Encrypted Message")
-        msg_send.set_payload(mail_body)
-    elif (flag & PGPMIME_ENCRYPT):  # PGP/MIME 暗号化
-        msg0 = EmailMessage()
-        msg0.add_header(_name="Content-Type", _value="application/pgp-encrypted")
-        msg0.add_header(_name="Content-Description", _value="PGP/MIME version identification")
-        msg0.set_payload("Version: 1" + "\n")
-        ret, mail_body = encrypt(msg_send.as_string(), header_data)
-        if not ret:
-            return False
-        msg = EmailMessage()
-        msg.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
-        msg.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
-        msg.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
-        msg.set_payload(mail_body)
-        msg_send = MIMEBase(_maintype="multipart", _subtype="encrypted", protocol="application/pgp-encrypted")
-        msg_send.attach(msg0)
-        msg_send.attach(msg)
-    # ヘッダ設定
-    msg_data = ''  # 送信済みとして下書きを使う場合に備えたデータ初期化
-    send_headers = ['from', 'to', 'cc', 'bcc', 'reply-to',
-                    'resent-to', 'resent-cc', 'resent-bcc']
-    ignore_msg_data = ['date', 'content-type', 'content-transfer-encoding', 'message-id']
-    # ↑下書きを出来る限りそのままで送信済みとして保存する場合でも必ず付け直しをするヘッダ
-    fcc = ''
-    x_header = {}
-    for header_term, h_data in header_data.items():
-        header_lower = header_term.lower()
-        if header_lower == 'fcc':
-            fcc = h_data
-        elif (header_lower in ignore_msg_data) or h_data == '':
-            pass
-        else:
-            msg_data += '\n' + header_term + ': ' + h_data  # 送信済みとして下書きを使う場合に備えたデータ作成
-            if header_lower in send_headers:
+        if not ('From' in header_data):
+            header_data['From'] = [get_user()]
+        msg_data = ''  # 送信済みとして下書きを使う場合に備えたデータ初期化
+        # ヘッダ設定
+        for header_term, h_data in header_data.items():
+            header_lower = header_term.lower()
+            if header_lower == 'fcc':
+                fcc_mailbox = h_data
+                continue
+            elif header_lower == 'encrypt' or header_lower == 'signature':
+                continue
+            elif header_term in HEADER_ADDRESS:
+                msg_data += '\n' + header_term + ': ' + ', '.join(h_data)
                 set_header_address(msg_send, header_term, h_data)
-            elif header_lower[:1] != 'x-':  # X-??? ヘッダは送信しない
+            else:
+                msg_data += '\n' + header_term + ': ' + h_data
                 set_header(msg_send, header_term, h_data)
-            else:
-                x_header[header_term] = h_data  # 送信済みとしては保存したほうが良いだろう
-    # 必須ヘッダの追加
-    if msg_send.get('Subject') is None:
-        msg_send['Subject'] = ''
-    if msg_send.get('To') is None and msg_send.get('Cc') is None:
-        if msg_send.get('Bcc') is None:
-            print_warring('No address')
+        if not ('Subject' in header_data):
+            msg_send['Subject'] = ''
+        msg_id = reset_msgid(msg_send, header_data['From'][0], '')
+        msg_date = reset_date(msg_send, '')
+        if not send(msg_send):
             return False
-        msg_send['To'] = 'undisclosed-recipients: ;'
-    # 他からコピーした場合もあり得るので、Message-ID は常に作り直す
-    del msg_send['Message-ID']
-    msgid_id, msgid_domain = get_user_id(msg_send.get('From'))
-    if msgid_id is None:
-        msg_id = email.utils.make_msgid()
-    else:
-        msg_id = email.utils.make_msgid(msgid_id.upper(), msgid_domain.upper())
-    msg_send['Message-ID'] = msg_id
-    del msg_send['Date']
-    msg_date = email.utils.formatdate(localtime=True)
-    msg_send['Date'] = msg_date
-    # 送信
-    try:
-        pipe = Popen(SEND_PARAM, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
-    except Exception as err:
-        sys.stderr.write(err)
-        return False
-    pipe, err = pipe.communicate(msg_send.as_string())
-    if err != '':
-        sys.stderr.write(err)
-        return False
-    print(pipe)
-    in_reply = msg_send.get('In-Reply-To')
-    if in_reply is not None:  # 送信メールに In-Reply-To が有れば、送信元ファイルに replied タグ追加
-        msg = change_tags_before(in_reply.__str__()[1:-1])
-        add_msg_tags(msg, ['replied'])
-        change_tags_after(msg, True)
-    # 送信済みファイルの作成
-    make_dir(TEMP_DIR)
-    send_tmp = TEMP_DIR + 'send.tmp'
-    with open(send_tmp, 'w') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
-        save_draft_file = False
-        if VIM_MODULE:
-            if vim.vars['notmuch_save_draft'] == 1:
-                save_draft_file = True
-        if save_draft_file:
-            msg_data = msg_data[1:]
-            msg_data += '\nDate: ' + msg_date + \
-                '\nContent-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: 8bit'
-            msg_data += '\nMessage-ID: ' + msg_id
-            if attachments is not None:
-                for attachment in attachments:
-                    msg_data += '\nX-Attach: ' + attachment
-            msg_data += '\n\n' + mail_context
-            fp.write(msg_data)
-        else:
-            for header_term, h_data in x_header.items():  # X-??? ヘッダを送信済みメールには残す
-                set_header_address(msg_send, header_term, h_data)
-            fp.write(msg_send.as_string())
-    # 保存先メール・フォルダの設定
-    if fcc != '' and os.path.isdir(PATH + os.sep + fcc):
-        sent_dir = fcc
-    elif VIM_MODULE:
-        sent_dir = vim.vars['notmuch_save_sent_mailbox'].decode()
-        if sent_dir == '':  # 空なら送信済みを保存しない
-            return True
-    else:
-        sent_dir = 'sent'
-    if attachments is None:
-        add_tag = ['sent']
-    else:
-        add_tag = ['sent', 'attachment']
-    DBASE.open(PATH)
-    msg_id = msg_id[1:-1]
-    msg = DBASE.find_message(msg_id)
-    if msg is not None:
-        add_tag.append(msg.get_tags())
-        add_tag.remove('draft')
-        add_tag.remove('unread')
-    DBASE.close()
-    move_mail_main(msg_id, send_tmp, sent_dir, ['draft', 'unread'], add_tag, True)  # 送信済み保存
-    msgid.append(msg_id)
+        save_draft(msg_send, msg_data, msg_id, msg_date,
+                   (vim.vars.get('notmuch_save_draft', 0) if VIM_MODULE else 0))
     return True
 
 
@@ -3555,13 +3757,13 @@ def send_search(search_term):
         files = msg.get_filenames().__str__().split('\n')
         for f in files:
             if os.path.isfile(f):
-                send_mail(f)
+                if send_mail(f):
+                    for i in files:  # 同じ内容のファイルが複数あった時、残りを全て削除
+                        if os.path.isfile(i):
+                            os.remove(i)
                 break
         else:
             print_warring('Not exist mail file.')
-        for f in files:  # 同じ内容のファイルが複数あった時、残りを全て削除
-            if os.path.isfile(f):
-                rm_file_core(f)
     DBASE.close()
     return
 
@@ -3596,7 +3798,7 @@ def send_vim():
         reprint_folder2()
 
 
-def new_mail(s):  # 新規メールの作成 s:mailto プロトコルを想定
+def new_mail(s):  # 新規メールの作成 s: mailto プロトコルを想定
     def get_mailto(s, headers):  # mailto プロトコルからパラメータ取得
         from urllib.parse import unquote    # URL の %xx を変換
 
@@ -3682,6 +3884,12 @@ def address2ls(adr):  # To, Cc ヘッダのアドレス群をリストに
     adr_ls = []
     # ヘッダの「名前+アドレス」は " に挟まれた部分と、コメントの () で挟まれた部分以外では、, が複数個の区切りとなる
     # また " で挟まれた部分も、() で挟まれた部分も \ がエスケープ・キャラクタ
+    # Resent-From: Yoshinaga Hiroyuki <yoshinaga.hiroyuki@nifty.com>
+    # Resent-To: 吉永 博之 <bxn02350@nifty.com>
+    # To: bxn02350@nifty.com,Nifty <yoshinaga.hiroyuki@nifty.com>, 吉永 博之 <bxn02350@nifty.com>
+    # to: Google <yoshinaga.hiroyuki@gmail.com>
+    # Resent-Cc: a, b
+    # Resent-Bcc: Google <yoshinaga.hiroyuki@gmail.com>
     for x in re.finditer(r'("(\\"|[^"])*"|\((\\\(|\\\)|[^()])*\)|[^,])+', adr):
         adr_ls.append(re.sub(r'\s*(.+)\s*', r'\1', x.group()))
     return adr_ls
@@ -3828,10 +4036,8 @@ def forward_mail_attach():
     windo, msg_id = check_org_mail()
     if not windo:
         return
-    # msg_data = get_mail_body(windo)  # 実際には後からヘッダ情報なども追加
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
-    # msg_data = '\n' + msg_data
     before_make_draft(windo)
     b = vim.current.buffer
     b.vars['notmuch'] = {}
@@ -3855,6 +4061,39 @@ def forward_mail_attach():
     DBASE.close()
     after_make_draft(b)
     vim.command('call s:au_new_mail()')
+
+
+def forward_mail_resent():
+    windo, msg_id = check_org_mail()
+    if not windo:
+        return
+    DBASE.open(PATH)
+    msg = DBASE.find_message(msg_id)
+    before_make_draft(windo)
+    b = vim.current.buffer
+    b.vars['notmuch'] = {}
+    b_v = b.vars['notmuch']
+    s = 'Resent-FWD:' + msg.get_header('subject').replace('\t', ' ')
+    b_v['subject'] = s
+    b.append('Subject: ' + s)
+    b.append('From: ')
+    b.append('Resent-From: ')
+    b.append('Resent-To: ')
+    b.append('Resent-Cc: ')
+    b.append('Resent-Bcc: ')
+    b.append('Resent-Sender: ')
+    for f in msg.get_filenames():
+        if os.path.isfile(f):
+            b.append('Attach: ' + f)
+            break
+    set_reference(b, msg, False)
+    DBASE.close()
+    after_make_draft(b)
+    b.append('This is resent mail template.')
+    b.append('Other Resent-xxx headers and body contents are ignored.')
+    b.append('If delete Resent-From, became a normal mail.')
+    b.options['modified'] = 0
+    vim.command('call s:au_resent_mail()')
 
 
 def before_make_draft(active_win):  # 下書き作成の前処理
@@ -3905,19 +4144,23 @@ def after_make_draft(b):
     vim.command('call s:au_write_draft()')
 
 
-def save_draft():  # 下書きバッファと notmuch databae のタグをマージと notmuch-folders の更新
+def save_draft():  # 下書きバッファと notmuch database のタグをマージと notmuch-folders の更新
     # 下書き保存時に呼び出される
     notmuch_new(False)
     b = vim.current.buffer
     msg_id = b.vars['notmuch']['msg_id'].decode()
     marge_tag(msg_id, False)
     # Maildir だとフラグの変更でファイル名が変わり得るので、その時はバッファのファイル名を変える
-    DBASE.open(PATH)
-    m_f = DBASE.find_message(msg_id).get_filename()
     b_f = b.name
-    if m_f != b_f:
-        b.name = m_f
-        vim.command('write! | bwipeout! ' + b_f)
+    DBASE.open(PATH)
+    msg = DBASE.find_message(msg_id)
+    if msg is None:
+        m_f = None
+    else:
+        m_f = msg.get_filename()
+    if not (m_f is None) and m_f != b_f:
+        b_f = m_f
+        vim.command('write! ' + b_f)
     reprint_folder()
     DBASE.close()
 
@@ -3959,7 +4202,7 @@ def get_mail_body(active_win):
         vim.command('call win_gotoid(bufwinid(' + active_win + '))')
         return ''
     msg_data = re.sub(r'\n+$', '', msg_data[match.end():])
-    match = re.search(r'\n\fHTML part\f\n', msg_data)
+    match = re.search(r'\n\fHTML part\n', msg_data)
     if match is not None:  # HTML メール・パート削除
         msg_data = msg_data[:match.start()]
     vim.command('call win_gotoid(bufwinid(' + active_win + '))')
@@ -3967,7 +4210,7 @@ def get_mail_body(active_win):
 
 
 def set_reference(b, msg, flag):  # References, In-Reply-To, Fcc 追加
-    # In-Reply-To は flagg == True
+    # In-Reply-To は flag == True
     re_msg_id = ' <' + msg.get_header('Message-ID') + '>'
     b.append('References: ' + msg.get_header('References') + re_msg_id)
     if flag:
@@ -4016,6 +4259,22 @@ def set_forward_after(n):  # 返信メールの From ヘッダの設定や引用
     if not vim.vars.get('notmuch_signature_prev_forward', 0):
         insert_signature(to, h_from)
     del b.vars['notmuch']['org_mail_body']
+
+
+def set_resent_after(n):  # そのまま転送メールの From ヘッダの設定や署名の挿入
+    if vim.current.window.cursor[0] < len(vim.current.buffer) - 1:
+        return
+    vim.command('autocmd! NotmuchResentAfter' + str(n))
+    to, h_from = set_from()
+    if len(to):
+        s = vim.bindeval(
+                'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n&Cancel", 1, "Question")')
+        if s == 1:
+            send_vim_buffer()
+        elif s == 2:
+            vim.command('redraw! | silent exit')
+            reprint_folder2()
+            # vim.command('echo "\n" | redraw!')
 
 
 def set_from():  # 宛先に沿って From ヘッダを設定と b:subject の書き換え
@@ -4079,9 +4338,9 @@ def set_from():  # 宛先に沿って From ヘッダを設定と b:subject の�
         is_addr = False
         b = vim.current.buffer
         for i, b_i in enumerate(b):
-            match = re.match(r'((From|To|Cc|Bcc):|\s)\s*(.+)', b_i, flags=re.IGNORECASE)
+            match = re.match(r'((From|To|Cc|Bcc|Resent-From|Resent-To|Resent-Cc|Resent-Bcc):|\s)\s*(.+)',
+                             b_i, flags=re.IGNORECASE)
             if match is None:
-                is_addr = False
                 continue
             elif match.group(2) is None and is_addr:
                 b[i] = match.group(1) + ' ' + compress_addr_core(match.group(3))
@@ -4092,28 +4351,43 @@ def set_from():  # 宛先に沿って From ヘッダを設定と b:subject の�
                 break
 
     to = []
-    h_from = (0, '')
+    h_from = {'from': (0, ''), 'resent-from': (1, '')}
     b = vim.current.buffer
+    resent_flag = False
     for i, l in enumerate(b):
-        match = re.match(r'(From|To|Cc|Bcc|Subject): *(.*)', l, flags=re.IGNORECASE)
+        match = re.match(r'(From|To|Cc|Bcc|Resent-From|Resent-To|Resent-Cc|Resent-Bcc|Subject): *(.*)',
+                         l, flags=re.IGNORECASE)
         if match is None:
             continue
-        elif match.group(1).lower() == 'subject':
+        h = match.group(1).lower()
+        if h == 'subject':
             b.vars['notmuch']['subject'] = match.group(2)
-        elif match.group(1).lower() == 'from':
-            h_from = (i, match.group(2))
+        elif h == 'from':
+            h_from['from'] = (i, match.group(2))
+        elif h == 'resent-from':
+            h_from['resent-from'] = (i, match.group(2))
+            resent_flag = True
         else:
+            if h.find('resent-') == 0:
+                resent_flag = True
             g = match.group(2)
             if g != '':
                 to.append(g)
-    if h_from[1] == '':
+    if h_from['from'][1] == '' and h_from['resent-from'][1] == '':
         h_From = get_user_From(to)
-        if re.match(r'From:', b[h_from[0]], flags=re.IGNORECASE) is None:
-            b.append('From: ' + h_From, h_from[0])
-        else:
-            b[h_from[0]] = 'From: ' + h_From
+    elif h_from['from'][1] == '':
+        h_From = h_from['resent-from'][1]
     else:
-        h_From = h_from[1]
+        h_From = h_from['from'][1]
+    if re.match(r'From:', b[h_from['from'][0]], flags=re.IGNORECASE) is None:
+        b.append('From: ' + h_From, h_from['from'][0])
+    else:
+        b[h_from['from'][0]] = 'From: ' + h_From
+    if h_from['resent-from'][1] == '':
+        if re.match(r'Resent-From:', b[h_from['resent-from'][0]], flags=re.IGNORECASE) is not None:
+            b[h_from['resent-from'][0]] = 'Resent-From: ' + h_From
+        elif resent_flag:  # Resent-From がないだけでなく、Reset-??? 送信先があるときだけ追加
+            b.append('Resent-From: ' + h_From, h_from['resent-from'][0])
     to = sorted(set(to), key=to.index)
     compress_addr()
     return to, h_From
@@ -4188,7 +4462,7 @@ def move_mail(msg_id, s, args):  # move mail to other mbox
         if os.path.isfile(f):
             move_mail_main(msg_id, f, mbox, [], tags, False)
         else:
-            print('Already Delte: ' + f)
+            print('Already Delete: ' + f)
     DBASE.close()
     # if 'folders' in vim.bindeval('s:buf_num'):
     reprint_folder2()  # 閉じた後でないと、メール・ファイル移動の情報がデータベースに更新されていないので、エラーになる
@@ -4665,6 +4939,7 @@ def notmuch_search(search_term):
     if not check_search_term(search_term):
         return
     DBASE.open(PATH)
+    search_term = RE_END_SPACE.sub('', search_term)
     if search_term == i_search_term:
         if vim.current.buffer.number == vim.bindeval('s:buf_num')['folders']:
             if search_term == \
@@ -4795,7 +5070,7 @@ def set_attach(args):
     while True:
         if use_browse():
             if attach == []:
-                attach = vim.eval("browse(v:false, 'select attachement file', '" + home + "', '')")
+                attach = vim.eval("browse(v:false, 'select attachment file', '" + home + "', '')")
                 if attach == '':
                     return
         else:

@@ -261,7 +261,7 @@ function s:set_show() abort
 	else
 		setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 	endif
-	setlocal nomodifiable signcolumn=auto expandtab nonumber
+	setlocal nomodifiable signcolumn=auto expandtab nonumber foldmethod=expr foldexpr=EmailFold() foldlevel=2
 	if &foldcolumn == 0
 		setlocal foldcolumn=1
 	endif
@@ -333,8 +333,6 @@ function s:set_default_open_way(key, value) abort
 endfunction
 
 function s:set_defaults() abort
-	let g:notmuch_save_draft = get(g:, 'notmuch_save_draft', 0)  " 下書きを一部書き換えたファイルを送信済みとして保存するか?
-	let g:notmuch_save_sent_mailbox = get(g:, 'notmuch_save_sent_mailbox', 'sent')
 	let g:notmuch_folders = get(g:, 'notmuch_folders', [
 				\ [ 'new',       '(tag:inbox and tag:unread)' ],
 				\ [ 'inbox',     '(tag:inbox)' ],
@@ -351,11 +349,16 @@ function s:set_defaults() abort
 
 	let g:notmuch_show_headers = get(g:, 'notmuch_show_headers', [
 				\ 'From',
+				\ 'Resent-From',
 				\ 'Subject',
 				\ 'Date',
+				\ 'Resent-Date',
 				\ 'To',
+				\ 'Resent-To',
 				\ 'Cc',
+				\ 'Resent-Cc',
 				\ 'Bcc',
+				\ 'Resent-Bcc',
 				\ ]
 				\ )
 
@@ -363,6 +366,7 @@ function s:set_defaults() abort
 				\ 'Return-Path',
 				\ 'Reply-To',
 				\ 'Message-ID',
+				\ 'Resent-Message-ID',
 				\ 'In-Reply-To',
 				\ 'References',
 				\ 'Errors-To',
@@ -374,8 +378,6 @@ function s:set_defaults() abort
 
 	let g:notmuch_draft_header = get(g:, 'notmuch_draft_header', [ 'From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach' ])
 	let g:notmuch_send_param = get(g:, 'notmuch_send_param', ['sendmail', '-t', '-oi'])
-	let g:notmuch_gpg_enable = get(g:, 'notmuch_gpg_enable', 0)
-	let g:notmuch_gpg_pinentry = get(g:, 'notmuch_gpg_pinentry', 0)
 
 	" OS 依存
 	if has('unix')
@@ -393,14 +395,14 @@ function s:set_defaults() abort
 	" execute "py3 CACHE_DIR = '" . s:script_root . "/.cache/'"
 	" vim の変数で指定が有れば、Python スクリプト側のグローバル変数より優先
 	if exists('g:notmuch_delete_top_subject')
-		py3 DELETE_TOP_SUBJECT = vim.eval('g:notmuch_delete_top_subject')
+		py3 DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
 	endif
 	if exists('g:notmuch_date_format')
-		py3 DATE_FORMAT = vim.vars['notmuch_date_format']
+		py3 DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
 	endif
 	" if exists('g:notmuch_folder_format') " notmuch_folders によって適した長さが違い、python スクリプトを読み込み後でないと指定できない
 	" これに依存する g:notmuch_open_way も同様なので、これを設定時に s:set_open_way() を呼び出している
-	" 	py3 FOLDER_FORMAT = vim.vars['notmuch_folder_format']
+	" 	py3 FOLDER_FORMAT = vim.vars['notmuch_folder_format'].decode()
 	" else
 	" 	py3 set_folder_format()
 	" endif
@@ -410,9 +412,9 @@ function s:set_defaults() abort
 	if exists('g:notmuch_from_length')
 		py3 FROM_LENGTH = vim.vars['notmuch_from_length']
 	endif
-	" SUBJECT_LENGTH の設定は、python スクリプト読み込み後
+	" ここで確認していない SUBJECT_LENGTH の設定は、python スクリプト読み込み後
 	if exists('g:notmuch_sent_tag')
-		py3 SENT_TAG = vim.vars['notmuch_sent_tag']
+		py3 SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
 	endif
 	if exists('g:notmuch_send_encode')
 		py3 SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
@@ -420,22 +422,23 @@ function s:set_defaults() abort
 	if exists('g:notmuch_send_param')
 		py3 SEND_PARAM = vim.eval('g:notmuch_send_param')
 	endif
+	py3 import os
 	if exists('g:notmuch_attachment_tmpdir')
-		py3 ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'] + '/attach/'
+		py3 ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
 	else
-		execute "py3 ATTACH_DIR = '" . s:script_root . "/attach/'"
+		execute "py3 ATTACH_DIR = '" . s:script_root . "' + os.sep + 'attach' + os.sep"
 	endif
 	if exists('g:notmuch_tmpdir')
-		py3 TEMP_DIR = vim.vars['notmuch_tmpdir'] + '/.temp/'
+		py3 TEMP_DIR = vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
 	else
-		execute "py3 TEMP_DIR = '" . s:script_root . "/.temp/'"
+		execute "py3 TEMP_DIR = '" . s:script_root . "' + os.sep + '.temp' + os.sep"
 	endif
 
-if exists('g:notmuch_mailbox_type')
-	py3 MAILBOX_TYPE = vim.vars['notmuch_mailbox_type']
-endif
+	if exists('g:notmuch_mailbox_type')
+		py3 MAILBOX_TYPE = vim.vars['notmuch_mailbox_type'].decode()
+	endif
 
-return v:true
+	return v:true
 endfunction
 
 function s:next_unread_page(args) abort " メール最後の行が表示されていればスクロールしない+既読にする
@@ -659,9 +662,10 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['mail-info']           = ['s:view_mail_info', 0x0c]
 				let g:notmuch_command['mail-move']           = ['s:move_mail', 0x06]
 				let g:notmuch_command['mail-reply']          = ['s:reply_mail', 0x04]
+				let g:notmuch_command['mail-reindex']        = ['s:reindex_mail', 0x06]
+				let g:notmuch_command['mail-resent-forward'] = ['s:forward_mail_resent', 0x04]
 				let g:notmuch_command['mail-save']           = ['s:save_mail', 0x04]
 				let g:notmuch_command['mail-send']           = ['s:send_vim', 0x0c]
-				let g:notmuch_command['mail-reindex']        = ['s:reindex_mail', 0x06]
 				let g:notmuch_command['mark']                = ['s:mark_in_thread', 0x04]
 				let g:notmuch_command['mark-command']        = ['s:command_marked', 0x04]
 				let g:notmuch_command['open']                = ['s:open_something', 0x04]
@@ -852,7 +856,7 @@ function s:change_title() abort
 	endif
 endfunction
 
-function! s:search_not_notmuch() abort " nomuch-? 以外のリストされていて隠れていない、もしくは隠れていても更新されているバッファを探す
+function! s:search_not_notmuch() abort " notmuch-? 以外のリストされていて隠れていない、もしくは隠れていても更新されているバッファを探す
 	let l:notmuch_kind = ['notmuch-folders', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft', 'notmuch-search', 'notmuch-view']
 	let l:changed = 0
 	for l:buf in getbufinfo()
@@ -1019,6 +1023,10 @@ function s:forward_mail_attach(args) abort
 	py3 forward_mail_attach()
 endfunction
 
+function s:forward_mail_resent(args) abort
+		py3 forward_mail_resent()
+	endfunction
+
 function s:reply_mail(args) abort
 	py3 reply_mail()
 endfunction
@@ -1118,7 +1126,7 @@ function s:augroup_notmuch_select(win, reload) abort " notmuch-edit 閉じた時
 					" \ '    endif | ' .
 endfunction
 
-function s:au_new_mail() abort " 新規メールでファイル末尾移動時に From 設定や署名の挿入
+function s:au_new_mail() abort " 新規/添付転送メールでファイル末尾移動時に From 設定や署名の挿入
 	let l:bufnr = bufnr()
 	execute 'augroup NotmuchNewAfter' . l:bufnr
 		autocmd!
@@ -1139,6 +1147,14 @@ function s:au_forward_mail() abort " 転送メールでファイル末尾移動�
 	execute 'augroup NotmuchForwardAfter' . l:bufnr
 		autocmd!
 		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3 set_forward_after(' . l:bufnr . ')'
+	augroup END
+endfunction
+
+function s:au_resent_mail() abort " 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
+	let l:bufnr = bufnr()
+	execute 'augroup NotmuchResentAfter' . l:bufnr
+		autocmd!
+		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3 set_resent_after(' . l:bufnr . ')'
 	augroup END
 endfunction
 
@@ -1223,21 +1239,38 @@ function s:close_boundary(header_end, close_start, boundary_start) abort " ヘ�
 	endwhile
 endfunction
 
-function FoldHeaderText() abort " メールヘッダーでは foldtext を変更する
-	let l:synid = synIDattr(synID(v:foldstart,1,1),'name')
-	if match(l:synid, '^mailHeader') == -1 && match(l:synid, '^mailSubject')
-		return foldtext()
-	endif
+function FoldHeaderText() abort " メールでは foldtext を変更する
+	" let l:synid = synIDattr(synID(v:foldstart,1,1),'name')
+	" if match(l:synid, '^mailHeader') == -1 && match(l:synid, '^mailSubject')
+	" 	return foldtext()
+	" endif
 	for l:line in getline(v:foldstart, '$')
 		if substitute(l:line, '^[ \t]\+$', '','') !=? ''
 			break
 		endif
 	endfor
-	let l:line .= ' '
-	while len(l:line) < 75
-		let l:line .= '-'
+	let cnt = printf('[%' . len(line('$')) . 's] ', (v:foldend - v:foldstart + 1))
+	let line_width = winwidth(0) - &foldcolumn
+
+	if &number
+		let line_width -= max([&numberwidth, len(line('$'))])
+	" sing の表示非表示でずれる分の補正
+	elseif &signcolumn ==# 'number'
+		let cnt = cnt . '  '
+	endif
+	if &signcolumn ==# 'auto'
+		let cnt = cnt . '  '
+	endif
+	let line_width -= 2 * (&signcolumn ==# 'yes')
+
+	let line = strcharpart(printf('%s', line), 0, line_width-len(cnt))
+	" 全角文字を使っていると、幅でカットすると広すぎる
+	" だからといって strcharpart() の代わりに strpart() を使うと、逆に余分にカットするケースが出てくる
+	" ↓末尾を 1 文字づつカットしていく
+	while strdisplaywidth(line) > line_width-len(cnt)
+		let line = slice(line, 0, -1)
 	endwhile
-	return l:line.'+['.printf('%d',v:foldend-v:foldstart).']'
+	return printf('%s%' . (line_width-strdisplaywidth(line)) . 'S', line, cnt)
 endfunction
 
 function FoldThead(n) abort " スレッド・リストの折畳設定
@@ -1542,16 +1575,75 @@ function s:set_encrypt(s) abort
 	py3 set_encrypt(vim.eval('a:s'))
 endfunction
 
-" Command
-" command -nargs=* -complete=shellcmd                       NotmuchRunProgram       call s:run_shell_program(<f-args>)
+function EmailFold() " notmuch-show, notmuch-view の為の foldexpr
+	if v:lnum == 1
+		return 2
+	endif
+	let c_l = getline(v:lnum)
+	" if py3eval('re.match(r"^\f.+ part$", vim.current.buffer[' . v:lnum . '-1]) is not None') " message/rfc822 などの区切り
+	if match(c_l, '^[\x0C].\+ part$') == 0 " message/rfc822 などの区切り
+		if !b:notmuch['fold_line']
+			let b:notmuch['fold_line'] = v:lnum
+		endif
+		return '>1'
+	elseif match(c_l, '^[A-Z-]\+:\c') == -1 " 本文
+		return ((b:notmuch['fold_line'] && b:notmuch['fold_line'] < v:lnum) ? 1 : 0)
+	elseif match(c_l, '^\(\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Del-\)\?\(\(Good-\|Bad-\)\?Signature\|Attach\|HTML\)\):\c') == 0 " 仮想ヘッダ
+		return 2
+	elseif match(c_l, '^\(https\?\|mailto\):') == 0 " 行頭に URI がある
+		return ((b:notmuch['fold_line'] && b:notmuch['fold_line'] < v:lnum) ? 1 : 0)
+	endif
+	for h in g:notmuch_show_headers
+		" let h = tolower(h)
+		if match(c_l, '^' . h . ':\c') == 0 " 表示ヘッダ
+		return ((b:notmuch['fold_line'] && b:notmuch['fold_line'] < v:lnum) ? 2 : 1)
+		endif
+	endfor
+	return 3 " 表示するが折り畳むヘッダ
+endfunction
+
+let s:fold_highlight = substitute(execute('highlight Folded'), '^\nFolded\s\+xxx\s\+', '', '')
+function s:is_sametab_thread() abort
+	if &filetype ==? 'notmuch-thread' || &filetype ==? 'notmuch-search'
+		return v:true
+	elseif &filetype ==? 'notmuch-folders' ||
+				\ &filetype ==? 'notmuch-show' ||
+				\ &filetype ==? 'notmuch-view'
+		for l:b in tabpagebuflist()
+			if l:b == get(s:buf_num, 'thread', 0)
+				return v:true
+			endif
+			for l:s in values(get(s:buf_num, 'search', {}))
+				if l:b == l:s
+					return v:true
+				endif
+			endfor
+		endfor
+		return v:false
+	endif
+	return v:false
+endfunction
+
+function s:change_fold_highlight() abort " Folded の色変更
+	if s:is_sametab_thread()
+		highlight Folded NONE
+	else
+		execute 'silent! highlight Folded ' . s:fold_highlight
+	endif
+endfunction
+
+augroup ChangeFoldHighlight
+	autocmd!
+	autocmd BufEnter,WinEnter * call <SID>change_fold_highlight()
+augroup END
 
 augroup NotmuchFileType
 	" folder, thread, show 以外のファイルタイプ別設定
 	" folder, thread, show はバッファを開いた時に、その関数内で指定
 	autocmd!
-	autocmd FileType notmuch-show,notmuch-edit,notmuch-draft,notmuch-view set syntax=mail
+	autocmd FileType notmuch-show,notmuch-edit,notmuch-draft,notmuch-view setlocal syntax=mail autoindent nosmartindent nocindent indentexpr= comments=n:>
 	" ↑プラグインの組み合わせによってはオープン処理が完全に終わってから出ないと syntax の反映が setlocal filetype=xxx に引きずられる
-	autocmd FileType notmuch-edit,notmuch-draft setlocal expandtab
+	autocmd FileType notmuch-edit,notmuch-draft setlocal expandtab formatoptions+=ql
 augroup END
 
 " Reset User condition
