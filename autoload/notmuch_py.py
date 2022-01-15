@@ -111,7 +111,8 @@ if not VIM_MODULE:
 # list: メール・データ
 # sort: ソート方法
 # make_sort_key: デフォルト・ソート方法以外のソートに用いるキーを作成済みか?
-THREAD_LISTS = {}
+if not ('THREAD_LISTS' in globals()):
+    THREAD_LISTS = {}
 # 他には DBASE, PATH, GLOBALS
 
 
@@ -762,7 +763,11 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     b[0] = None
     b.options['modifiable'] = 0
     print('Read data: ['+search_term+']')
-    vim.command('call win_gotoid(bufwinid(' + str(b_num) + '))')
+    if b_num == vim.bindeval('s:buf_num')['thread']:
+        kind = 'thread'
+    else:
+        kind = 'search'
+    reopen(kind, search_term)
     if select_unread:
         index = get_unread_in_THREAD_LISTS(search_term)
         unread = notmuch.Query(
@@ -1020,15 +1025,16 @@ def reload_thread():
 
 
 def reopen(kind, search_term):  # スレッド・リスト、メール・ヴューを開き直す
-    if kind == 'search':  # or kind == 'view':
+    if type(search_term) == bytes:
         search_term = search_term.decode()
+    # まずタブの移動
     vim.command('call s:change_exist_tabpage("' + kind + '", \'' + vim_escape(search_term) + '\')')
-    # 他のタプページにもなかった
     if kind == 'search' or kind == 'view':
         buf_num = vim.eval('s:buf_num')[kind][search_term]
     else:
         buf_num = vim.eval('s:buf_num')[kind]
     if vim.bindeval('win_gotoid(bufwinid(' + buf_num + '))') == 0:
+        # 失敗しているので他のタプページにもなかった
         if kind == 'thread':
             vim.command('call win_gotoid(bufwinid(s:buf_num["folders"])) | silent only')
         open_way = vim.vars['notmuch_open_way'][kind].decode()
@@ -1052,6 +1058,11 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
             if open_way != 'enew' and open_way != 'tabedit':
                 vim.command('call s:make_view(\'' + vim_escape(search_term) + '\')')
         vim.command('call win_gotoid(bufwinid(' + buf_num + '))')
+        # reset 'foldlevel'
+        if kind == 'thread' or kind == 'search':
+            vim.command('setlocal foldlevel=0')
+        elif kind == 'show' or kind == 'view':
+            vim.command('setlocal foldlevel=2')
 
 
 def open_mail(search_term, index, active_win):  # 実際にメールを表示
@@ -1066,6 +1077,26 @@ def open_mail(search_term, index, active_win):  # 実際にメールを表示
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     # スレッド・リストの順番ではなく Message_ID によってメールを開く
     # 開く前に呼び出し元となるバッファ変数保存
+    class Output:
+        def __init__(self):
+            self.main = {  # 通常の本文
+                'header': [],      # ヘッダー
+                'attach': [],      # (Attach/Del-Attach ヘッダ, b.notmuch['attachments'] に使うデータ) とタプルのリスト
+                # b.notmuch['attachments'] は [filename, [part_num], part_string]
+                # [part_num]:  msg.walk() していく順序、もしくは
+                #              * [-1] ローカルファイル
+                #              * [1, 1] のように複数ある時は暗号化/ローカル内の添付ファイル
+                # part_string: ローカルファイルならそのディレクトリ
+                #              そうでなければ、msg.walk() した時のメッセージ・パート
+                'content': []     # 本文
+            }
+            self.html = {  # HTML パート
+                'content': [],  # 本文
+                'part_num': 0   # HTML パートの数
+            }
+            self.changed_subject = False  # 暗号化されていた Subject 複合し書き換えをしたか?
+            self.next = None  # 次の要素
+
     def check_end_view():  # メール終端まで表示しているか?
         if vim.bindeval('line("w$")') == len(vim.current.buffer):  # 末尾まで表示
             # ただしメールなので、行が長く折り返されて表示先頭行と最終行が同一の場合は考慮せず
@@ -1128,7 +1159,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             if data != '':
                 data = data.replace('\t', ' ')
                 data = header+': '+data
-                output['main']['header'].append(data)
+                output.main['header'].append(data)
 
     def get_virtual_header(msg_file, output, header):
         attachments = msg_file.get_all(header)
@@ -1141,9 +1172,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             f = os.path.expandvars(os.path.expanduser(f))
             tmp_dir, name = os.path.split(f)
             if os.path.isfile(f):
-                output['attach'].append(('Attach: ' + name, [name, [-1], tmp_dir + os.sep]))
+                output.main['attach'].append(('Attach: ' + name, [name, [-1], tmp_dir + os.sep]))
             else:
-                output['attach'].append(('Del-Attach: ' + name, None))
+                output.main['attach'].append(('Del-Attach: ' + name, None))
 
     def add_content(s_list, s):  # 文字列 s をリストに変換して s_list に追加
         if s == '':
@@ -1151,12 +1182,6 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         s = re.sub('[\u200B-\u200D\uFEFF]', '', s)  # ゼロ幅文字の削除
         s_l = re.split('[\n\r\v\x0b\x1d\x1e\x85\u2028\u2029]',
                        s.replace('\r\n', '\n').replace('\x1c', '\f'))
-        while s_l[-1] == '':
-            del s_l[-1]
-        for i in s_l:
-            s_list.append(i)
-
-    def vim_append_content(out):  # 複数行を vim のカレントバッファに書き込み
         # splitlines() だと、以下全てが区切り文字の対象
         # \n:         改行
         # \r:         復帰
@@ -1170,24 +1195,36 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         # \u2028:     行区切り
         # \u2029:     段落区切り
         # b = vim.current.buffer
+        while s_l[-1] == '':
+            del s_l[-1]
+        for i in s_l:
+            s_list.append(re.sub(r'^\s+$', '', re.sub(r'\t+$', '', i)))
 
-        b.append(out['main']['header'])
-        for t in out['main']['attach']:
-            if t[1] is not None:
-                b_v['attachments'][str(len(vim.current.buffer))] = t[1]
-            b.append(t[0])
-        b.append('')
-        if not out['main']['content']:
-            b.append(out['html']['content'])
-        else:
-            b.append(out['main']['content'])
-            if out['html']['content']:
-                fold_begin = len(vim.current.buffer) + 1  # text/plain がある時は折りたたむので開始行記録
-                b.append('')
-                b.append('\fHTML part')
-                b.append(out['html']['content'])
-                vim.current.window.cursor = (fold_begin+1, 0)  # カーソル位置が画面内だと先頭が表示されない
-                vim.command('normal! zc')
+    def vim_append_content(out):  # 複数行を vim のカレントバッファに書き込み
+        ls = []
+        fold_begin = []
+        while out is not None:
+            ls += out.main['header']
+            for t in out.main['attach']:
+                if t[1] is not None:
+                    b_v['attachments'][str(len(ls)+1)] = t[1]
+                ls.append(t[0])
+            ls.append('')
+            if not out.main['content']:
+                ls += out.html['content']
+            else:
+                ls += out.main['content']
+                if out.html['content']:
+                    fold_begin.append(len(ls) + 2)  # text/plain がある時は折りたたむので開始行記録
+                    ls.append('')
+                    ls.append('\fHTML part')
+                    ls += out.html['content']
+            out = out.next
+        b.append(ls, 0)
+        del b[-1]
+        for i in fold_begin:
+            vim.current.window.cursor = (i, 0)  # カーソル位置が画面内だと先頭が表示されない
+            vim.command('normal! zc')
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
         if charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
@@ -1199,7 +1236,6 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             charset = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
         # elif charset == 'iso-2022-jp':
         #     charset = 'iso-2022-jp-3'
-        #     print(charset)
         # 他には iso-2022-jp-2004, iso-2022-jp-ext があるがどれもだめなので nkf を使う
         if encoding == '8bit' \
                 or (charset == 'utf-8' and encoding is None):  # draft メールで encoding 情報がない場合
@@ -1244,21 +1280,19 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 return payload, decode_payload
 
     def get_attach(part, part_ls, out, header, name):
-        if type(part.get_payload()) == list:  # is_multipart() == True で呼び出されている (message/rfc822 の場合)
+        if part.is_multipart():  # is_multipart() == True で呼び出されている (message/rfc822 の場合)
             if is_delete_rfc(part):
-                out['main']['attach'].append(('Del-' + header+name, None))
+                out.main['attach'].append(('Del-' + header+name, None))
                 return
         elif part.get_payload() == '':
-            out['main']['attach'].append(('Del-' + header+name, None))
+            out.main['attach'].append(('Del-' + header+name, None))
             return
         if len(part_ls) >= 2:
-            out['main']['attach'].append((header+name, [name, part_ls, part.as_string()]))
+            out.main['attach'].append((header+name, [name, vim.List(part_ls), part.as_string()]))
         else:
-            out['main']['attach'].append((header+name, [name, part_ls, '']))
+            out.main['attach'].append((header+name, [name, vim.List(part_ls), '']))
 
-    def select_header(part, part_ls, part_num, pre_part, pgp, out):
-        ls = vim.List(part_ls)
-        ls.extend([part_num])
+    def select_header(part, part_ls, pgp, out):
         attachment = decode_header(part.get_filename())
         name = ''
         for t in part.get_params():
@@ -1274,64 +1308,59 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             header = 'Encrypt: '
             if attachment == '':
                 attachment = 'message.asc'
-            ls.extend([-1])
             if inline:
                 signature = part.get_payload()
         elif content_type == 'application/pgp-keys':
             header = 'PGP-Public-Key: '
             if attachment == '':
                 attachment = 'public_key.asc'
-        elif content_type != 'application/pgp-signature' \
-                and content_type != 'application/x-pkcs7-signature' \
-                and content_type != 'application/pkcs7-signature':
+        else:
             header = 'Attach: '
             if attachment == '':
                 if content_type.find('message/') == 0:
                     attachment = content_type.replace('/', '-') + '.eml'
                 else:
                     attachment = 'attachment'
-        else:
-            if content_type == 'application/pgp-signature':
-                cmd = 'gpg'
-                if attachment == '':
-                    attachment = 'signature.asc'
-            elif content_type == 'application/x-pkcs7-signature' \
-                    or content_type == 'application/pkcs7-signature':
-                cmd = 'gpgsm'
-                if attachment == '':
-                    attachment = 'smime.p7s'
-            if shutil.which(cmd) is None:
-                get_attach(part, ls, out, 'Signature: ', attachment)
-                if inline:
-                    return part.get_payload()
-                else:
-                    return ''
-            make_dir(TEMP_DIR)
-            decrypt_tmp = TEMP_DIR + 'decrypt.tmp'
-            with open(decrypt_tmp, 'w', newline="\r\n") as fp:  # 改行コードを CR+LF に統一して保存
-                fp.write(pre_part.as_string())
-            # pgp_tmp = TEMP_DIR + 'pgp.tmp'
-            # write_file(part, 1, pgp_tmp)
-            # ユーザ指定すると、gpgsm では鍵がないと不正署名扱いになり、gpg だと存在しないユーザー指定しても、実際には構わず署名としてしまう
-            # ret = run([cmd, '--verify', pgp_tmp, decrypt_tmp], stdout=PIPE, stderr=PIPE)
-            ret = run([cmd, '--verify', '-', decrypt_tmp],
-                      input=part.get_payload(decode=True), stdout=PIPE, stderr=PIPE)
-            if ret.returncode:
-                if ret.returncode == 1:
-                    header = 'Bad-Signature: '
-                else:
-                    header = 'Signature: '
-                if inline:  # Content-Disposition: inline では電子署名を本文に表示
-                    signature = part.get_payload()
-            else:
-                header = 'Good-Signature: '
-            # rm_file_core(pgp_tmp)  # 電子署名なので、直ちに削除する必要はない
-            # rm_file_core(decrypt_tmp)
-            set_pgp_result(b_v, thread_b_v, ret)
-        get_attach(part, ls, out, header, attachment)
+        get_attach(part, part_ls, out, header, attachment)
         return signature
 
-    def get_output(part, part_ls, part_num, pre_part, output, c_type):
+    def decrypt_subject(part, output):  # メッセージ全体が暗号化されていると Subject が事実上空なので付け直す
+        protected_headers = False
+        for s in part.get_all('Content-Type'):
+            if s.find('protected-headers') != -1:
+                protected_headers = True
+        if not protected_headers:
+            return False
+        sub = ''
+        for s in part.get_all('Subject', ''):
+            sub += decode_header(s)
+        if sub != '':
+            b_v['subject'] = sub
+            thread_b_v['subject'] = sub
+            index = [i for i, x in enumerate(
+                THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id][0]
+            THREAD_LISTS[search_term]['list'][index].set_subject(sub)
+            s = THREAD_LISTS[search_term]['list'][index].get_list(
+                    'list' in THREAD_LISTS[search_term]['sort'])
+            if not_search:
+                p_b = vim.buffers[vim.bindeval('s:buf_num')['thread']]
+                # p_s_b = vim.buffers[vim.bindeval('s:buf_num')['show']]
+            else:
+                p_b = vim.buffers[vim.bindeval('s:buf_num')['search'][search_term]]
+                # p_s_b = vim.buffers[vim.bindeval('s:buf_num')['view'][search_term]]
+            p_b.options['modifiable'] = 1
+            p_b[index] = s
+            p_b.options['modifiable'] = 0
+            for header in vim.vars['notmuch_show_headers']:
+                if header.decode().lower() == 'subject':
+                    for i, s in enumerate(output.main['header']):
+                        if s.lower().find('subject:'):
+                            output.main['header'][i+1] = 'Subject: ' + sub
+                            break
+                    break
+        return True
+
+    def get_output(part, part_ls, output):
         from html2text import HTML2Text     # HTML メールの整形
 
         content_type = part.get_content_type()
@@ -1352,11 +1381,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                           stdout=PIPE, stderr=PIPE, text=True)
                 if ret.returncode:
                     if ret.returncode == 1:
-                        output['main']['header'].append('Bad-Signature: inline')
+                        output.main['header'].append('Bad-Signature: inline')
                     else:
-                        output['main']['header'].append('Signature: inline')
+                        output.main['header'].append('Signature: inline')
                 else:
-                    output['main']['header'].append('Good-Signature: inline')
+                    output.main['header'].append('Good-Signature: inline')
                 set_pgp_result(b_v, thread_b_v, ret)
             # PGP/MIME ではなく本文が暗号化
             elif split[0] == '-----BEGIN PGP MESSAGE-----' and \
@@ -1365,37 +1394,36 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
                     tmp_text = ret.stdout.decode(charset)
             if tmp_text != '' and tmp_text != '\n':
-                add_content(output['main']['header'], c_type)
-                add_content(output['main']['content'], tmp_text)
+                add_content(output.main['content'], tmp_text)
         elif content_type.find('text/html') == 0:
             tmp_text, tmp_tmp = get_mail_context(part, charset, encoding)
             if tmp_text == '':
-                if output['html']['part_num']:  # 2 個目以降があれば連番
-                    s = 'Del-HTML: index'+str(output['html']['part_num'])+'.html'
+                if output.html['part_num']:  # 2 個目以降があれば連番
+                    s = 'Del-HTML: index'+str(output.html['part_num'])+'.html'
                 else:
                     s = 'Del-HTML: index.html'
-                output['main']['attach'].append((s, None))
+                output.main['attach'].append((s, None))
             else:
                 # 最適な設定が定まっていない
                 html_converter = HTML2Text()
                 # html_converter.table_start = True
                 # html_converter.ignore_tables = True
                 html_converter.body_width = len(tmp_text)
-                add_content(output['html']['content'],
+                add_content(output.html['content'],
                             re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text)))
-                if output['html']['part_num']:  # 2 個目以降があれば連番
-                    s = 'index'+str(output['html']['part_num'])+'.html'
+                if output.html['part_num']:  # 2 個目以降があれば連番
+                    s = 'index'+str(output.html['part_num'])+'.html'
                 else:
                     s = 'index.html'
-                get_attach(part, [part_num], output, 'HTML: ', s)
+                get_attach(part, part_ls, output, 'HTML: ', s)
                 # if output[2]:  # 2 個目以降があれば連番
                 #     get_attach(part, [part_num], 'HTML: ', 'index'+str(output[2])+'.html')
                 # else:
                 #     get_attach(part, [part_num], 'HTML: ', 'index.html')
-            output['html']['part_num'] += 1
+            output.html['part_num'] += 1
         else:
-            add_content(output['main']['content'],
-                        select_header(part, part_ls, part_num, pre_part, False, output))
+            add_content(output.main['content'],
+                        select_header(part, part_ls, False, output))
 
     def poup_pgp_signature():  # 書名検証に時間がかかるので、その間ポップ・アップを表示したいがうまく行かない←ウィンドウが切り替わった時点で消えるため
         if vim.bindeval('has("popupwin")'):
@@ -1474,130 +1502,91 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         ret = run([cmd, '--decrypt'], input=decrypt, stdout=PIPE, stderr=PIPE)
         set_pgp_result(b_v, thread_b_v, ret)
         if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
-            out['main']['header'].append('Decrypted: ' + pgp_info)
+            out.main['header'].append('Decrypted: ' + pgp_info)
         if ret.returncode:  # 署名未検証/失敗は ret.returncode >= 1 なので else/elif ではだめ
             if ret.returncode == 1:
-                out['main']['header'].append('Bad-Signature: ' + pgp_info)
+                out.main['header'].append('Bad-Signature: ' + pgp_info)
             else:
-                out['main']['header'].append('Not-Decrypted: ' + pgp_info)
+                out.main['header'].append('Not-Decrypted: ' + pgp_info)
         return ret
 
-    def decrypt(cmd, part, part_ls, part_num, pre_part, out, pgp_info):
+    def decrypt(cmd, part, part_ls, out, pgp_info):
         if shutil.which(cmd) is None:
-            add_content(out['main']['content'],
-                        select_header(part, part_ls, part_num, pre_part, True, out))
-            pgp_info = ''
+            add_content(out.main['content'],
+                        select_header(part, part_ls, True, out))
+            pgp_info[0] = ''
             return
         decode = get_part_deocde(part)
-        ret = decrypt_core(cmd, part, decode, out, pgp_info)
+        ret = decrypt_core(cmd, part, decode, out, pgp_info[0])
         if ret.returncode <= 1:  # ret.returncode == 1 は署名検証失敗でも復号化はできている可能性あり
             decrypt_msg = email.message_from_string(ret.stdout.decode())
             # ↓本文が UTF-8 そのままだと、BASE64 エンコードされた状態になるので、署名検証に失敗する
             # decrypt_msg = email.message_from_bytes(ret.stdout)
-            part_ls.append(part_num)
-            msg_walk(decrypt_msg, out, part_ls, True)
+            out.changed_subject = decrypt_subject(decrypt_msg, out)  # シングルパートの Subject 復元
+            msg_walk(decrypt_msg, out, part_ls, 2)
         if ret.returncode:  # 署名未検証/失敗は ret.returncode >= 1 なので else/elif ではだめ
-            add_content(out['main']['content'],
-                        select_header(part, part_ls, part_num, pre_part, True, out))
-        # add_content(out['main']['content'], ret.stdout.decode())
+            add_content(out.main['content'],
+                        select_header(part, part_ls, True, out))
+        # add_content(out.main['content'], ret.stdout.decode())
 
     def msg_walk(msg_file, output, part_ls, flag):
-        def decrypt_subject():  # メッセージ全体が暗号化されていると Subject が事実上空なので付け直す
-            protected_headers = False
-            for s in part.get_all('Content-Type'):
-                if s.find('protected-headers') != -1:
-                    protected_headers = True
-            if not protected_headers:
-                return False
-            sub = ''
-            for s in part.get_all('Subject', ''):
-                sub += decode_header(s)
-            if sub != '':
-                b_v['subject'] = sub
-                thread_b_v['subject'] = sub
-                index = [i for i, x in enumerate(
-                    THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id][0]
-                THREAD_LISTS[search_term]['list'][index].set_subject(sub)
-                s = THREAD_LISTS[search_term]['list'][index].get_list(
-                        'list' in THREAD_LISTS[search_term]['sort'])
-                if not_search:
-                    p_b = vim.buffers[vim.bindeval('s:buf_num')['thread']]
-                    # p_s_b = vim.buffers[vim.bindeval('s:buf_num')['show']]
-                else:
-                    p_b = vim.buffers[vim.bindeval('s:buf_num')['search'][search_term]]
-                    # p_s_b = vim.buffers[vim.bindeval('s:buf_num')['view'][search_term]]
-                p_b.options['modifiable'] = 1
-                p_b[index] = s
-                p_b.options['modifiable'] = 0
-                for header in vim.vars['notmuch_show_headers']:
-                    if header.decode().lower() == 'subject':
-                        for i, s in enumerate(output['main']['header']):
-                            if s.lower().find('subject:'):
-                                output['main']['header'][i+1] = 'Subject: ' + sub
-                                break
-                        break
-            return True
-
-        part_num = -1
-        pgp_info = ''
-        pre_part = None
-        pre_rfc = ''
-        rfc = ''
-        rfc_head = ''
-        multipart_signed = False  # Content-Type: multipart/signed では次のパートが署名対象
-        for part in msg_file.walk():
-            if multipart_signed:
-                pre_part = part
-                multipart_signed = False
-            if flag and not output['changed_subject']:
-                output['changed_subject'] = decrypt_subject()
-            part_num += 1
-            if pgp_info != '':
-                decrypt('gpg', part, part_ls, part_num, pre_part,
-                        output, 'OpenPGP/MIME ' + pgp_info)
-                pgp_info = ''
-                continue
+        # flag:   1:ローカルファイル
+        #         2:暗号化メール
+        def mag_walk_org(part, output, part_ls, flag, pgp_info):
+            if flag == 2 and not output.changed_subject:  # マルチパートの Subject 復元
+                output.changed_subject = decrypt_subject(part, output)
+            part_ls[-1] += 1
+            if pgp_info[0] != '':
+                decrypt('gpg', part, part_ls, output, ['OpenPGP/MIME ' + pgp_info[0]])
+                pgp_info[0] = ''
+                return
             content_type = part.get_content_type().lower()
-            if rfc_head == '' \
-                    and (pre_rfc == '\fmessage/rfc822 part'  # message/rfc822 のヘッダを取得
-                         or pre_rfc == '\fmessage/rfc2822 part'):
-                for h in vim.vars['notmuch_show_headers']:
-                    h = h.decode()
-                    h_cont = part.get_all(h)
-                    if h_cont is None:
-                        continue
-                    data = ''
-                    for d in h_cont:
-                        data += decode_header(d)
-                    if data != '':
-                        rfc_head += h + ': ' + data + '\n'
-                for h in vim.vars['notmuch_show_hide_headers']:
-                    h = h.decode()
-                    data = ''
-                    h_cont = part.get_all(h)
-                    if h_cont is not None:
-                        for d in h_cont:
-                            data += decode_header(d)
-                    if data != '':
-                        rfc_head += h + ': ' + data + '\n'
-            if part.is_multipart() \
-                    and (content_type != 'message/rfc822'
-                         or content_type != 'message/rfc2822'):
-                if content_type == 'multipart/signed' \
-                        or content_type == 'application/x-pkcs7-signature' \
-                        or content_type == 'application/pkcs7-signature':
-                    multipart_signed = True
-                else:
-                    multipart_signed = False
-                if not is_delete_rfc(part):
-                    part_num -= 1
-                    continue
+            if content_type == 'application/pgp-signature' \
+                    or content_type == 'application/x-pkcs7-signature' \
+                    or content_type == 'application/pkcs7-signature':
+                return
+            # 添付ファイル判定により先にしないと、暗号化部分を添付ファイル扱いとしていないケースに対応できない
+            elif content_type == 'message/rfc822' or content_type == 'message/rfc2822':
+                select_header(part, part_ls, flag, output)
+                part = part.get_payload(0)
+                out = Output()
+                out.main['header'].append('')
+                out.main['header'].append('\f' + content_type + ' part')
+                get_header(part, out, vim.vars['notmuch_show_headers'])
+                get_header(part, out, vim.vars['notmuch_show_hide_headers'])
+                get_virtual_header(part, out, 'X-Attach')
+                get_virtual_header(part, out, 'Attach')
+                part_ls[-1] += 1
+                msg_walk(part, out, part_ls, 0)
+                while True:
+                    if output.next is None:
+                        output.next = out
+                        break
+                    output = output.next
             # 添付ファイル判定により先にしないと、暗号化部分を添付ファイル扱いとしていないケースに対応できない
             elif content_type == 'application/pgp-encrypted':
-                pgp_info, tmp_text = get_mail_context(part, 'utf-8', '')
+                pgp_info[0], tmp_text = get_mail_context(part, 'utf-8', '')
             elif content_type == 'application/x-pkcs7-mime' \
                     or content_type == 'application/pkcs7-mime':
-                decrypt('gpgsm', part, part_ls, part_num, pre_part, output, 'S/MIME')
+                decrypt('gpgsm', part, part_ls, output, ['S/MIME'])
+            elif content_type == 'message/external-body':
+                out = Output()
+                msg_walk(part, out, part_ls, 0)
+                if out.main['content'] == []:
+                    output.main['attach'] += out.main['attach']
+                else:
+                    out.main['header'] = ['', '\fmessage/external-body part'] \
+                        + out.main['header']
+                    while True:
+                        if output.next is None:
+                            output.next = out
+                            break
+                        output = output.next
+            elif part.is_multipart():
+                # part_ls[-1] += 1
+                msg_walk(part, output, part_ls, flag)
+            # if content_type == 'multipart/mixed':
+            #     msg_walk(part, output, part_ls, flag)
             # text/plain, html 判定より先にしないと、テキストや HTML ファイルの添付ファイルが本文扱いになる
             elif part.get_content_disposition() == 'attachment':
                 #     or part.get('Content-Description', '').find('PGP/MIME') == 0:
@@ -1605,58 +1594,129 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 #        content_type == 'application/pkcs7-mime':
                 #  の判定は前にあるので不要
                 if flag:
-                    part_ls.append(part_num)
-                add_content(output['main']['content'],
-                            select_header(part, part_ls, part_num, pre_part, False, output))
+                    part_ls.append(0)
+                add_content(output.main['content'],
+                            select_header(part, part_ls, False, output))
             else:
-                if content_type.find('text/') != 0:
-                    rfc = '\f' + content_type + ' part'
-                else:
-                    rfc = ''
-                if (pre_rfc == '\fmessage/rfc822 part'
-                        or pre_rfc == '\fmessage/rfc2822 part'):
-                    pre_rfc += '\n' + rfc_head
-                    rfc_head = ''
+                # if content_type.find('text/') != 0:  # なんのためか覚えていない
+                #     info.rfc = '\f' + content_type + ' part'
+                # else:  # もう使わない
+                #     info.rfc = ''
                 if flag:
-                    part_ls.append(part_num)
-                get_output(part, part_ls, part_num, pre_part, output, pre_rfc)
-            pre_rfc = rfc
+                    part_ls.append(0)
+                get_output(part, part_ls, output)
+            # info.pre_rfc = info.rfc
 
-    def print_local_message(a_data):
-        for a in a_data:
+        def verify(msg, out, pre, after):
+            def sig_part(part, cmd):
+                c_type = part.get_content_type().lower()
+                if c_type == 'application/pgp-signature':
+                    cmd[0] = 'gpg'
+                    return True
+                elif c_type == 'application/x-pkcs7-signature' \
+                        or c_type == 'application/pkcs7-signature':
+                    cmd[0] = 'gpgsm'
+                    return True
+                cmd[0] = ''
+                return False
+
+            part0 = msg_file.get_payload(0)
+            part1 = msg_file.get_payload(1)
+            cmd = ['']
+            sig = ''
+            verify = ''
+            if sig_part(part0, cmd):
+                if sig_part(part1, cmd):
+                    print_error('Double digital signature.')
+                sig = part0
+                verify = part1
+                ls = copy.copy(pre)
+            elif sig_part(part1, cmd):
+                verify = part0
+                sig = part1
+                ls = copy.copy(after)
+            else:
+                print_error('No exist digital signature.')
+            inline = is_inline(verify)
+            attachment = decode_header(sig.get_filename())
+            cmd = cmd[0]
+            if attachment == '':
+                if cmd == 'gpg':
+                    attachment = 'signature.asc'
+                else:
+                    attachment = 'smime.p7s'
+            tmp, suffix = os.path.splitext(attachment)
+            if suffix == '':
+                if cmd == 'gpg':
+                    suffix = '.asc'
+                else:
+                    suffix = 'p7s'
+                attachment = tmp + suffix
+            if cmd == '' or shutil.which(cmd) is None:
+                get_attach(part, ls, out, 'Signature: ', attachment)
+                if inline:
+                    return sig.get_payload()
+                else:
+                    return ''
+            make_dir(TEMP_DIR)
+            verify_tmp = TEMP_DIR + 'verify.tmp'
+            with open(verify_tmp, 'w', newline="\r\n") as fp:  # 改行コードを CR+LF に統一して保存
+                fp.write(verify.as_string())
+            # pgp_tmp = TEMP_DIR + 'pgp.tmp'
+            # write_file(part, 1, pgp_tmp)
+            # ユーザ指定すると、gpgsm では鍵がないと不正署名扱いになり、gpg だと存在しないユーザー指定しても、実際には構わず署名としてしまう
+            # ret = run([cmd, '--verify', pgp_tmp, verify_tmp], stdout=PIPE, stderr=PIPE)
+            ret = run([cmd, '--verify', '-', verify_tmp],
+                      input=sig.get_payload(decode=True), stdout=PIPE, stderr=PIPE)
+            signature = ''
+            if ret.returncode:
+                if ret.returncode == 1:
+                    header = 'Bad-Signature: '
+                else:
+                    header = 'Signature: '
+                if inline:  # Content-Disposition: inline では電子署名を本文に表示
+                    signature = part.get_payload()
+            else:
+                header = 'Good-Signature: '
+            # rm_file_core(pgp_tmp)  # 電子署名なので、直ちに削除する必要はない
+            # rm_file_core(verify_tmp)
+            set_pgp_result(b_v, thread_b_v, ret)
+            get_attach(sig, ls, out, header, attachment)
+            return signature
+
+        pgp_info = ['']
+        if msg_file.is_multipart():
+            pre = copy.copy(part_ls)
+            for part in msg_file.get_payload():
+                mag_walk_org(part, output, part_ls, flag, pgp_info)
+            if msg_file.get_content_type().lower() == 'multipart/signed':
+                add_content(output.main['content'],
+                            verify(msg_file, output, pre, part_ls))
+        else:
+            mag_walk_org(msg_file, output, part_ls, flag, pgp_info)
+
+    def print_local_message(output):
+        for a in output.main['attach']:
             if not a[1]:
                 continue
             a = a[1]
             if a[1] != [-1]:
                 continue
             f = a[2] + a[0]
-            if os.path.isfile(f) or f.find(PATH + os.sep) == 0:
-                out = init_output()
-                out['main']['header'].append('')
-                out['main']['header'].append('\flocal attachment message part')
-                make_header_content(f, out, True)
-
-    def init_output():
-        return {  # 出力データ
-            'main': {  # 通常の本文
-                'header': [],      # ヘッダー
-                'attach': [],      # (Attach/Del-Attach ヘッダ, b.notmuch['attachments'] に使うデータ) とタプルのリスト
-                # b.notmuch['attachments'] は [filename, [part_num], part_string]
-                # [part_num]:  msg.walk() していく順序、もしくは
-                #              * [-1] ローカルファイル
-                #              * [1, 1] のように複数ある時は暗号化/ローカル内の添付ファイル
-                # part_string: ローカルファイルならそのディレクトリ
-                #              そうでなければ、msg.walk() した時のメッセージ・パート
-                'content': [],     # 本文
-            },
-            'html': {  # HTML パート
-                'content': [],  # 本文
-                'part_num': 0   # HTML パートの数
-            },
-            'changed_subject': False  # 暗号化されていた Subject 複合し書き換えをしたか?
-        }
+            if os.path.isfile(f) and f.find(PATH + os.sep) == 0:
+                out = Output()
+                out.main['header'].append('')
+                out.main['header'].append('\flocal attachment message part')
+                make_header_content(f, out, 1)
+                while True:
+                    if output.next is None:
+                        output.next = out
+                        break
+                    output = output.next
 
     def make_header_content(f, output, flag):
+        # flag:   1:ローカルファイル
+        #         2:暗号化メール
         try:
             with open(f, 'r') as fp:
                 msg_file = email.message_from_file(fp)
@@ -1665,14 +1725,16 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             # 理由は↓だと、本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
             with open(f, 'rb') as fp:
                 msg_file = email.message_from_binary_file(fp)
-        # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
+            # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
         get_header(msg_file, output, vim.vars['notmuch_show_headers'])
         get_header(msg_file, output, vim.vars['notmuch_show_hide_headers'])
-        get_virtual_header(msg_file, output['main'], 'X-Attach')
-        get_virtual_header(msg_file, output['main'], 'Attach')
-        msg_walk(msg_file, output, [], flag)
-        vim_append_content(output)
-        print_local_message(output['main']['attach'])
+        get_virtual_header(msg_file, output, 'X-Attach')
+        get_virtual_header(msg_file, output, 'Attach')
+        part_ls = [1]
+        msg_walk(msg_file, output, part_ls, flag)
+        if not flag:
+            output.main['header'][0] += '\t'  # 行末のタブをメールヘッダの開始とするため→add_content() では行末タブを削除している
+        print_local_message(output)
 
     not_search = vim.current.buffer.number
     not_search = vim.bindeval('s:buf_num')['thread'] == not_search \
@@ -1713,9 +1775,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     # vim とやり取りするので辞書のキーは、行番号。item は tuple でなく list
     b_v['attachments'] = {}
     b_v['pgp_result'] = ''
-    main_out = init_output()
-    make_header_content(f, main_out, False)
-    del b[0]
+    main_out = Output()
+    make_header_content(f, main_out, 0)
+    vim_append_content(main_out)
     b.options['modifiable'] = 0
     header_line = 1
     for s in b:  # Attach, HTML ヘッダや本文開始位置を探す
@@ -1725,6 +1787,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         elif s.find('Bad-Signature: inline') == 0 \
                 or s.find('Signature: inline') == 0 \
                 or s.find('Good-Signature: inline') == 0:
+            header_line += 1
             continue
         elif re.match(r'(Attach|HTML|Encrypt|PGP-Public-Key|(Good-|Bad-)?Signature)',
                       s) is not None:
@@ -2314,13 +2377,13 @@ def get_attach_info(line):
     with open(msg.get_filename(), 'rb') as fp:
         msg_file = email.message_from_binary_file(fp)
     DBASE.close()
-    part_count = 0
+    part_count = 1
     part_num = part_num[0]
     for attach in msg_file.walk():
-        if (attach.get_content_type().lower() != 'message/rfc822'
-            or attach.get_content_type().lower() != 'message/rfc2822') \
-                and attach.is_multipart():
-            continue
+        # if attach.get_content_type().lower() != 'message/rfc822' \
+        #         and attach.get_content_type().lower() != 'message/rfc2822' \
+        #         and attach.is_multipart():
+        #     continue
         if part_num == part_count:
             break
         part_count += 1
@@ -2345,7 +2408,11 @@ def open_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位�
         if filename is None:
             filename, attachment, decode, full_path = same_attach(vim.bindeval('expand("<cfile>>")'))
             if filename is None:
-                if vim.bindeval('foldlevel(".")') != 2:
+                syntax = vim.bindeval('synIDattr(synID(line(\'.\'), col(\'.\'), 1), \'name\')')
+                if vim.bindeval('foldlevel(".")') >= 3 \
+                        or syntax == b'mailHeader' \
+                        or syntax == b'mailHeaderKey' \
+                        or syntax == b'mailNewPart':
                     vim.command('normal! za')
                 elif b'open' in vim.vars['notmuch_open_way'].keys():
                     name = vim.bindeval('synIDattr(synID(line("."), col("."), 1), "name")').decode()
@@ -2567,12 +2634,12 @@ def delete_attachment(args):
         def delete_attachment_only_part(fname, part_num):  # part_num 番目の添付ファイルを削除
             with open(fname, 'r') as fp:
                 msg_file = email.message_from_file(fp)
-            i = 0
+            i = 1
             for part in msg_file.walk():
-                if part.is_multipart() \
-                        and (part.get_content_type().lower() != 'message/rfc822'
-                             or part.get_content_type().lower() != 'message/rfc2822'):
-                    continue
+                # if part.is_multipart() \
+                #         and part.get_content_type().lower() != 'message/rfc822' \
+                #         and part.get_content_type().lower() != 'message/rfc2822':
+                #     i += 1
                 if part_num == i:
                     break
                 i += 1
@@ -2639,8 +2706,8 @@ def delete_attachment(args):
             next_can_delete = True
             for part in msg_file.walk():
                 if part.is_multipart() \
-                        and (part.get_content_type().lower() != 'message/rfc822'
-                             or part.get_content_type().lower() != 'message/rfc2822'):
+                        and part.get_content_type().lower() != 'message/rfc822' \
+                        and part.get_content_type().lower() != 'message/rfc2822':
                     continue
                 content_type = part.get_content_type()
                 if part.get_content_type() == 'application/pgp-encrypted':

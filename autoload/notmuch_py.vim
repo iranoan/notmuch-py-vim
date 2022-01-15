@@ -261,11 +261,10 @@ function s:set_show() abort
 	else
 		setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 	endif
-	setlocal nomodifiable signcolumn=auto expandtab nonumber foldmethod=expr foldexpr=EmailFold() foldlevel=2
+	setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber foldmethod=expr foldexpr=EmailFold() foldlevel=2 foldtext=FoldHeaderText()
 	if &foldcolumn == 0
 		setlocal foldcolumn=1
 	endif
-	setlocal foldtext=FoldHeaderText()
 endfunction
 
 function s:open_mail() abort
@@ -650,6 +649,7 @@ function notmuch_py#notmuch_main(...) abort
 		else
 			if l:sub_cmd ==# 'start'
 				" start して初めて許可するコマンド {{{
+				let g:notmuch_command['start']               = ['s:start_notmuch', 0x0c]
 				let g:notmuch_command['attach-delete']       = ['s:delete_attachment', 0x06]
 				let g:notmuch_command['attach-save']         = ['s:save_attachment', 0x06]
 				let g:notmuch_command['close']               = ['s:close', 0x04]
@@ -692,6 +692,7 @@ function notmuch_py#notmuch_main(...) abort
 			elseif l:sub_cmd ==# 'mail-new'
 				call remove(l:cmd, 0, 1)
 				if !has_key(g:notmuch_command, 'mail-send')
+					let g:notmuch_command['start']       = ['s:start_notmuch', 0x0c]
 					let g:notmuch_command['mail-send']   = ['s:send_vim', 0x0c] " mail-new はいきなり呼び出し可能なので、mail-send 登録
 					let g:notmuch_command['mail-info']   = ['s:view_mail_info', 0x0c]
 					let g:notmuch_command['tag-add']     = ['s:add_tags', 0x1f]
@@ -733,6 +734,10 @@ function s:start_notmuch() abort
 	execute 'cd ' . py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
+	call s:close_notmuch('thread')
+	call s:close_notmuch('show')
+	call s:close_notmuch('search')
+	call s:close_notmuch('view')
 	if g:notmuch_open_way['thread'] !=? 'enew' && g:notmuch_open_way['thread'] !=? 'tabedit'
 		call s:make_thread_list()
 		call win_gotoid(bufwinid(s:buf_num['folders']))
@@ -740,6 +745,23 @@ function s:start_notmuch() abort
 	" guifg=red ctermfg=red
 	" 次の変数は Python スクリプトを読み込んでしまえばもう不要←一度閉じて再び開くかもしれない
 	" unlet s:script_root s:script
+endfunction
+
+function s:close_notmuch(kind) abort
+	if !exists('s:buf_num["' . a:kind . '"]')
+		return
+	endif
+	if a:kind == 'thread' || a:kind == 'show'
+		let l:bufs = [s:buf_num[a:kind]]
+	else
+		let l:bufs = values(s:buf_num[a:kind])
+	endif
+	for l:b in l:bufs
+		call s:change_exist_tabpage_core(l:b)
+		if win_gotoid(bufwinid(l:b)) != 0
+			close
+		endif
+	endfor
 endfunction
 
 function s:vim_escape(s) abort " Python に受け渡す時に \, ダブルクォートをエスケープ
@@ -1025,7 +1047,7 @@ endfunction
 
 function s:forward_mail_resent(args) abort
 		py3 forward_mail_resent()
-	endfunction
+endfunction
 
 function s:reply_mail(args) abort
 	py3 reply_mail()
@@ -1577,29 +1599,47 @@ endfunction
 
 function EmailFold() " notmuch-show, notmuch-view の為の foldexpr
 	if v:lnum == 1
+		let s:notmuch_fold_line = 0
+		let s:notmuch_header = v:true
 		return 2
 	endif
-	let c_l = getline(v:lnum)
-	" if py3eval('re.match(r"^\f.+ part$", vim.current.buffer[' . v:lnum . '-1]) is not None') " message/rfc822 などの区切り
-	if match(c_l, '^[\x0C].\+ part$') == 0 " message/rfc822 などの区切り
-		if !b:notmuch['fold_line']
-			let b:notmuch['fold_line'] = v:lnum
+	let l:c_l = getline(v:lnum)
+	if match(l:c_l, '^[\x0C].\+ part$') == 0 " message/rfc822 などの区切り
+		if match(l:c_l, '^[\x0C]\(local attachment message\|message\/rfc2\?822\) part$') == 0 " ローカルファイル
+			let s:notmuch_header = v:true
+		endif
+		if !s:notmuch_fold_line
+			let s:notmuch_fold_line = v:lnum
 		endif
 		return '>1'
-	elseif match(c_l, '^[A-Z-]\+:\c') == -1 " 本文
-		return ((b:notmuch['fold_line'] && b:notmuch['fold_line'] < v:lnum) ? 1 : 0)
-	elseif match(c_l, '^\(\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Del-\)\?\(\(Good-\|Bad-\)\?Signature\|Attach\|HTML\)\):\c') == 0 " 仮想ヘッダ
-		return 2
-	elseif match(c_l, '^\(https\?\|mailto\):') == 0 " 行頭に URI がある
-		return ((b:notmuch['fold_line'] && b:notmuch['fold_line'] < v:lnum) ? 1 : 0)
-	endif
-	for h in g:notmuch_show_headers
-		" let h = tolower(h)
-		if match(c_l, '^' . h . ':\c') == 0 " 表示ヘッダ
-		return ((b:notmuch['fold_line'] && b:notmuch['fold_line'] < v:lnum) ? 2 : 1)
+	elseif s:notmuch_header
+		if l:c_l ==# '' " ヘッダ/署名区切り
+			let s:notmuch_header = v:false
+			return ((s:notmuch_fold_line && s:notmuch_fold_line < v:lnum) ? 2 : 1)
+		elseif match(l:c_l, '^[A-Z-]\+:\c') == 0 " ヘッダ
+			if match(l:c_l, '^\(\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Del-\)\?\(\(Good-\|Bad-\)\?Signature\|Attach\|HTML\)\):\c') == 0 " 仮想ヘッダ
+				return ((s:notmuch_fold_line && s:notmuch_fold_line < v:lnum) ? 2 : 1)
+			endif
+			for h in g:notmuch_show_headers
+				" let h = tolower(h)
+				if match(l:c_l, '^' . h . ':\c') == 0 " 表示ヘッダ
+					return ((s:notmuch_fold_line && s:notmuch_fold_line < v:lnum) ? 2 : 1)
+				endif
+			endfor
+			return 3 " 表示するが折り畳むヘッダ
+		elseif match(l:c_l, '^\s') == 0
+			return '='
+		else " 署名の続き
+			return '='
 		endif
-	endfor
-	return 3 " 表示するが折り畳むヘッダ
+	elseif match(l:c_l, '^[]}>)]') == 0 " 引用
+		return count(substitute(substitute(l:c_l, '^\([]}>)]\s*\)\+\zs.\+', '', ''), '\([]}>)]\s*\)', 'a', 'g'), 'a') + (s:notmuch_fold_line && s:notmuch_fold_line < v:lnum)
+	elseif l:c_l ==# '-- ' " 署名
+		let s:notmuch_header = v:true
+		return ((s:notmuch_fold_line && s:notmuch_fold_line < v:lnum) ? 2 : 1)
+	else
+		return ((s:notmuch_fold_line && s:notmuch_fold_line < v:lnum) ? 1 : 0)
+	endif
 endfunction
 
 let s:fold_highlight = substitute(execute('highlight Folded'), '^\nFolded\s\+xxx\s\+', '', '')
@@ -1641,9 +1681,10 @@ augroup NotmuchFileType
 	" folder, thread, show 以外のファイルタイプ別設定
 	" folder, thread, show はバッファを開いた時に、その関数内で指定
 	autocmd!
-	autocmd FileType notmuch-show,notmuch-edit,notmuch-draft,notmuch-view setlocal syntax=mail autoindent nosmartindent nocindent indentexpr= comments=n:>
+	autocmd FileType notmuch-show,notmuch-edit,notmuch-draft,notmuch-view setlocal autoindent nosmartindent nocindent indentexpr= comments=n:>
 	" ↑プラグインの組み合わせによってはオープン処理が完全に終わってから出ないと syntax の反映が setlocal filetype=xxx に引きずられる
-	autocmd FileType notmuch-edit,notmuch-draft setlocal expandtab formatoptions+=ql
+	autocmd FileType notmuch-show,notmuch-view setlocal tabstop=1 syntax=notmuch-mail
+	autocmd FileType notmuch-edit,notmuch-draft setlocal expandtab formatoptions+=ql syntax=mail
 augroup END
 
 " Reset User condition
