@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 1.00
+Version: 1.01
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -1108,6 +1108,7 @@ start
 	* |{T-WIN}| を開いた時 |{S-WIN}| を分割して開く設定ならそれも開く
 	* これの実行がなければ、mail-new (|notmuch-python-vim-mail-new|) 以外のサブ
 		コマンドは呼び出せない
+	* 既に実行済みの時はレイアウトをやり直す
 
                                                     *notmuch-python-vim-tag-add*
 tag-add [{tags}]
@@ -1277,6 +1278,17 @@ TODO~
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴~
+
+2022/01/15 Ver.1.01~
+* バグ修正
+	- start (|notmuch-python-vim-start|) 実行時に |{T-WIN}| を開かないと後で開けない
+	- message/rfc822, message/rfc2822 のヘッダ表示
+	- 添付予定の message/rfc822, message/rfc2822 の HTML パートを開けない
+* 追加
+	- 起動済みで start (|notmuch-python-vim-start|) するとレイアウトをやり直す
+* 仕様変更
+	- |{S-WIN}| の syntax は独自のものに変更
+		+ 折り畳み、open (|notmuch-python-vim-open|) の処理変更
 
 2022/01/09 Ver.1.00~
 * バグ修正
