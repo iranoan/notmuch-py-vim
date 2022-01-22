@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 1.01
+Version: 1.02
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -26,7 +26,6 @@ License: GPL Ver.3.
 	* コマンド                                      |notmuch-python-vim-command|
 		- サブコマンド                                |notmuch-python-vim-subcommand|
 	* 作成動機                                      |notmuch-python-vim-how-make|
-	* TODO                                          |notmuch-python-vim-todo|
 	* 更新履歴                                      |notmuch-python-vim-history|
 
 
@@ -182,7 +181,7 @@ Vim packadd~
 <F1>			ヘルプでこの項目を開く
 <leader>h
 <Space>		未読ページダウン                |notmuch-python-vim-view-unread-mail|
-<S-Space>	GUI など <S-Space> を認識される環境なら、メールのページアップ
+<S-Space>	GUI など <S-Space> が認識される環境なら、メールのページアップ
 					                                |notmuch-python-vim-view-previous|
 o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
 					|{F-WIN}|	|{T-WIN}| を開く
@@ -191,10 +190,11 @@ o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
 										* なお |{S-WIN}| のウィンドウが有ればカーソル移動だけで
 											カーソルのメール内容を |{S-WIN}| で表示される
 					|{S-WIN}|	次の順序で試みる
-										(1) Attach, HTML ヘッダなら添付ファイルを開く
-										(2) カーソル位置が本文内に書かれた添付ファイル名なら開く
-										(3) 一部のヘッダの開閉
-										(4) |g:notmuch_open_way|['open'] で指定されたコマンド実行
+										(1) 閉じていたら開く
+										(2) Attach, HTML ヘッダなら添付ファイルを開く
+										(3) カーソル位置が本文内に書かれた添付ファイル名なら開く
+										(4) 一部のヘッダや HTML パート等の開閉
+										(5) |g:notmuch_open_way|['open'] で指定されたコマンド実行
 O					|{T-WIN}| で |{S-WIN}| を開く       |notmuch-python-vim-open|
 c					新規メール (Create new mail)    |notmuch-python-vim-mail-new|
 r					返信メール (Reply)              |notmuch-python-vim-mail-reply|
@@ -211,9 +211,9 @@ C					スレッドを繋げる (Connect thread) |notmuch-python-vim-thread-conne
 D					添付ファイルの削除              |notmuch-python-vim-attach-delete|
 i					メール・インポート (Import)     |notmuch-python-vim-mail-import|
 I					メール・エクスポート (import の逆) |notmuch-python-vim-mail-export|
-p					|search-term| やメールの各種情報や OpenPGP, S/MIME 処理の詳細情報の表示
-					(Popup information)               |notmuch-python-vim-mail-info|
-					ポップアップやコマンド・ラインで表示
+p					|search-term| やメールの各種情報や OpenPGP, S/MIME 処理の詳細情報を
+					ポップアップやコマンド・ラインで表示 (Popup information)
+					                                |notmuch-python-vim-mail-info|
 					ポップアップ表示は、カーソル移動や C/c/X/x/Q/q/P/p/<Esc> で閉じる
 s					|{F-WIN}|/|{T-WIN}|  検索一覧 (Search)
 					                                |notmuch-python-vim-search|
@@ -222,8 +222,7 @@ s					|{F-WIN}|/|{T-WIN}|  検索一覧 (Search)
 S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 <Tab>			ウィンドウを |{F-WIN}|→|{T-WIN}|→|{S-WIN}| とサイクリックに切り替え
 					                                |CTRL-W_w|
-<S-Tab>		ウィンドウを |{F-WIN}|→|{S-WIN}|→|{T-WIN}| とサイクリックに切り替え
-					                                |CTRL-W_W|
+<S-Tab>		サイクリックに上記とは逆順に切り替え |CTRL-W_W|
 <leader>s	メール送信 (mail-send)          |notmuch-python-vim-mail-send|
 
 -------------------------------------------------------------------------------
@@ -246,7 +245,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
                                           |notmuch-python-vim-tag-toggle|
 <leader>p	Message-ID 等メールの各種情報表示 (Popup information)
                                           |notmuch-python-vim-mail-info|
-<leader>q バッファを閉じる (Quit)         |:bwipeout|!
+<leader>q バッファを閉じる (Quit)         |:quit|! /|:bwipeout|!
 
 ------------------------------------------------------------------------------
                                                   *notmuch_virtual_header*
@@ -277,9 +276,10 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 <		- どちらも削除されていれば、HTML:→Del-HTML: 等と Del- が先頭に付く
 * これらのヘッダの後に本文が続き、text/plain と text/html パートの両方が含
 	まれている時は、text/plain の後の >
-		HTML part
+		HTML part
 <		に続いて text/html パートが折り畳まれた状態で表示される
 * text/html しか無いメールの場合、折り畳まれずに表示される
+* message/rfc822 等インライン表示可能な添付ファイルも同様に表示
 
 ------------------------------------------------------------------------------
                                                    *notmuch-python-vim-sendmail*
@@ -1016,11 +1016,12 @@ open
 							新たなメールが開かれた時にメール末尾まで表示されていれば、
 							メールを既読に (unread タグを削除) する
 		|{S-WIN}|	カーソル位置次第で次の順序で試みる
-								(1) Attach 等のヘッダ (|notmuch_virtual_header|) なら、その添付
+								(1) 閉じていたら開く
+								(2) Attach 等のヘッダ (|notmuch_virtual_header|) なら、その添付
 										ファイルを開く
-								(2) ヘッダでない本文部分で添付ファイル名ならそれを開く
-								(3) 折りたたみ可能な行なら開閉
-								(4) |g:notmuch_open_way| の open キーに設定があれば、それを実行
+								(3) ヘッダでない本文部分で添付ファイル名ならそれを開く
+								(4) 一部のヘッダや HTML パート等の開閉
+								(5) |g:notmuch_open_way| の open キーに設定があれば、それを実行
 
                                                      *notmuch-python-vim-reload*
 reload
@@ -1267,17 +1268,23 @@ view-unread-page
 	* 返信メールをその返信元と同じフォルダに自動で入れる処理が面倒
 	* 送信メール編集中に他のメッセージを表示できない/煩雑
 
-==============================================================================
-                                                       *notmuch-python-vim-todo*
-TODO~
-
-* 未読フラグなどを解りやすく
-	- b:notmuch['tags'] を使って |{T-WIN}| のステータス・ラインに表示しているだけ
-
 
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴~
+
+2022/01/15 Ver.1.02~
+* バグ修正
+	- attach-delete (|notmuch-python-vim-attach-delete|) で折り畳みがおかしくなる
+		+ |{S-WIN}| のシンタックスを見直し foldmethod=syntax に変更
+* 仕様変更
+	- |{T-WIN}| の行頭に一部のタグ最大3つを絵文字表記
+		+ unread, draft, flagged, Trash, attachment をそれぞれ 📩 📝 ⭐ 🗑 📎
+		+ それを利用し unread, draft, flagged, Trash にシンタックス
+		+ 折り畳みの表示方法も変更
+	- これに加えて |{T-WIN}| の |statusline| や mail-info
+		(|notmuch-python-vim-mail-info|) では、encrypted, signed を 🔑, 🖋️ で表示
+	- ファイル・タイプ別で異なる設定やキーマップは ftplugin/* に
 
 2022/01/15 Ver.1.01~
 * バグ修正
@@ -1288,7 +1295,9 @@ TODO~
 	- 起動済みで start (|notmuch-python-vim-start|) するとレイアウトをやり直す
 * 仕様変更
 	- |{S-WIN}| の syntax は独自のものに変更
+		+ 標準に同梱されている &runtimepath/syntax/mail.vim を若干変更しただけ
 		+ 折り畳み、open (|notmuch-python-vim-open|) の処理変更
+		+ 行頭の | が引用扱いで HTML メールの罫線と重なり不都合なのも理由
 
 2022/01/09 Ver.1.00~
 * バグ修正

@@ -176,9 +176,9 @@ Vim 起動後なら
   * **o** で開く
   * 削除されていれば、HTML:→Del-HTML:, Attach:→Del-Attach: と表示
 * これらのヘッダの後に本文が続き、text/plain と text/html パートの両方が含まれている時は、text/plain の後の
-  > ^LHTML part^L
+  > HTML part
 
-  に続いてプレイン・テキストに変換した text/html パートが折り畳まれた状態で表示される (^L は改ページコード)
+  に続いてプレイン・テキストに変換した text/html パートが折り畳まれた状態で表示される
 
 * text/html しか無いメールの場合、折り畳まれずに表示される
 
