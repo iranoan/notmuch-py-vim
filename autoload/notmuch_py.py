@@ -131,12 +131,9 @@ def get_subject_length():  # スレッド・リストに表示する Subject の
             width = vim.options['columns']
         else:
             width = vim.options['columns'] / 2 - 1
-    foldcolumn = vim.current.window.options['foldcolumn']
-    if not foldcolumn:
-        foldcolumn = 2
     width -= len(datetime.datetime.now().strftime(DATE_FORMAT)) + \
-        2 + 2 + foldcolumn + 2
-    # 最後の数字は、区切りのタブ*2, sing, fold, ウィンドウ境界
+        6 + 2 + 2 + 2
+    # 最後の数字は、絵文字で表示するタグ、区切りのタブ*2, sing, ウィンドウ境界
     if SUBJECT_LENGTH < FROM_LENGTH * 2:
         SUBJECT_LENGTH = int(width * 2 / 3)
         FROM_LENGTH = width - SUBJECT_LENGTH
@@ -272,6 +269,7 @@ class MailData:  # メール毎の各種データ
         self._thread_order = order                    # 同一スレッド中の表示順
         self.__thread_depth = depth                   # 同一スレッド中での深さ
         self._msg_id = msg.get_message_id()           # Message-ID
+        self._tags = list(msg.get_tags())
         # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
         self.__subject = msg.get_header('Subject')
@@ -302,9 +300,9 @@ class MailData:  # メール毎の各種データ
         if m_to_adr == email2only_address(m_from):
             name = RE_TAB2SPACE.sub(' ', m_from_name)
         else:  # それ以外は送信メールなら To だけにしたいので、リスト利用
-            tagslist = list(msg.get_tags())
+            self._tags = list(msg.get_tags())
             # 実際の判定 (To と Reply-To が同じなら ML だろうから除外)
-            if (SENT_TAG in tagslist or 'draft' in tagslist) \
+            if (SENT_TAG in self._tags or 'draft' in self._tags) \
                     and m_to_adr != email2only_address(msg.get_header('Reply-To')) \
                     and m_to != '':
                 name = 'To:'+email2only_name(m_to)
@@ -328,12 +326,47 @@ class MailData:  # メール毎の各種データ
 
     def get_list(self, flag_thread):
         ls = ''
+        tags = self._tags
+        for t, emoji in {'unread': '📩', 'draft': '📝', 'flagged': '⭐',
+                         'Trash': '🗑', 'attachment': '📎'}.items():
+            if t in tags:
+                ls += emoji
+        ls = ls[:3]
+        emoji_length = 6 - vim.bindeval('strdisplaywidth(\'' + ls + '\')')
+        # ↑基本的には unread, draft の両方が付くことはないので最大3つの絵文字
+        if emoji_length:
+            emoji_length = '{:' + str(emoji_length) + 's}'
+            ls += emoji_length.format('') + '\t'
+        else:
+            ls += '\t'
         for item in DISPLAY_ITEM:
             if item == 'date':
                 ls += self.__reformed_date+'\t'
             elif item == 'subject':
                 subject = self.__thread_depth * flag_thread *\
-                    (' '+'\t')+self._reformed_subject
+                    (' '+'\t')+'  ' + self._reformed_subject
+                if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
+                    ls += str_just_length(subject, SUBJECT_LENGTH)+'\t'
+                else:
+                    ls += subject+'\t'
+            elif item == 'from':
+                if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
+                    ls += str_just_length(
+                            RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)+'\t'
+                else:
+                    ls += RE_TAB2SPACE.sub(
+                            ' ', RE_END_SPACE.sub('', self.__reformed_name))+'\t'
+            else:
+                print_err("Don't add '" + item + "' element in thread list.  Reset g:notmuch_display_item.")
+        return RE_END_SPACE.sub('', ls)
+
+    def get_folded_list(self):
+        ls = ''
+        for item in DISPLAY_ITEM:
+            if item == 'date':
+                ls += self.__reformed_date+'\t'
+            elif item == 'subject':
+                subject = (self.__thread_depth) * (' \t') + '+ ' + self._reformed_subject
                 if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
                     ls += str_just_length(subject, SUBJECT_LENGTH)+'\t'
                 else:
@@ -727,7 +760,6 @@ def print_thread_core(b_num, search_term, select_unread, remake):
         threadlist = THREAD_LISTS[search_term]['list']
     b.options['modifiable'] = 1
     flag = not ('list' in THREAD_LISTS[search_term]['sort'])
-    # vim.command('setlocal syntax=off foldmethod=manual')
     # マルチプロセスだと、vim.buffers[num] や vim.current.buffer.number だとプロセスが違うので、異なる数値になり上手くいかない
     # ↓之マルチスレッドは速くならない
     # count = len(threadlist)
@@ -1062,7 +1094,8 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
         if kind == 'thread' or kind == 'search':
             vim.command('setlocal foldlevel=0')
         elif kind == 'show' or kind == 'view':
-            vim.command('setlocal foldlevel=2')
+            vim.command('setlocal foldlevel=2 concealcursor=nvic conceallevel=3' +
+                        '| call matchadd(\'Conceal\', \'[\x0C]\')')
 
 
 def open_mail(search_term, index, active_win):  # 実際にメールを表示
@@ -1129,7 +1162,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b_v['date'] = RE_TAB2SPACE.sub(
             ' ', datetime.datetime.fromtimestamp(msg.get_date()).strftime(DATE_FORMAT))
         b_v['tags'] = get_msg_tags(msg)
-        if active_win != vim.current.window.number \
+        if active_win != b_w.number \
                 and (is_same_tabpage('thread', '') or is_same_tabpage('search', search_term)):
             thread_b_v['msg_id'] = msg_id
             thread_b_v['subject'] = b_v['subject']
@@ -1200,9 +1233,27 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         for i in s_l:
             s_list.append(re.sub(r'^\s+$', '', re.sub(r'\t+$', '', i)))
 
-    def vim_append_content(out):  # 複数行を vim のカレントバッファに書き込み
+    def vim_append_content(out):  # 複数行を vim のカレントバッファに書き込みとカーソル位置の指定
+        # Attach, HTML ヘッダや本文開始位置を探す
+        header_line = len(out.main['header']) + 1
+        for s in out.main['attach'] + [('', '')]:
+            if re.match(r'(Attach|HTML|Encrypt|PGP-Public-Key|(Good-|Bad-)?Signature):',
+                        s[0]) is not None:
+                break
+            header_line += 1
+        # 折り畳んで表示するヘッダの位置取得
+        hide = '^('
+        for h in vim.vars['notmuch_show_hide_headers']:
+            hide += h.decode() + '|'
+        hide = hide[:-1] + ')'
+        fold_begin = [i for i, x in enumerate(out.main['header'])
+                      if (re.match(hide, x) is not None)]
+        if len(fold_begin) > 2:  # 連続して 2 つ以上無いと折りたたみにならない
+            fold_begin = [fold_begin[0] + 1]
+        else:
+            fold_begin = []
+        # 出力データの生成
         ls = []
-        fold_begin = []
         while out is not None:
             ls += out.main['header']
             for t in out.main['attach']:
@@ -1220,16 +1271,29 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     ls.append('\fHTML part')
                     ls += out.html['content']
             out = out.next
+        # 折り畳みに関係する message/rfc822 などの開始位置の探索
+        fold = [i for i, x in enumerate(ls) if (re.match(r'^\f', x) is not None)]
+        if len(fold):
+            b.vars['notmuch']['fold_line'] = fold[0] + 1
+        else:
+            b.vars['notmuch']['fold_line'] = 0
+        # データ出力
+        b.options['modifiable'] = 1
         b.append(ls, 0)
-        del b[-1]
+        b[len(ls):] = None
+        b.options['modifiable'] = 0
+        # 折り畳みとカーソル位置指定
         for i in fold_begin:
-            vim.current.window.cursor = (i, 0)  # カーソル位置が画面内だと先頭が表示されない
+            b_w.cursor = (i, 0)
             vim.command('normal! zc')
+        b_w.cursor = (1, 0)  # カーソル位置が画面内だと先頭が表示されないので、一度先頭に移動
+        vim.command('redraw')
+        b_w.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
         if charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
             # Content-Type: text/plain; charset="gb2312"
-            # で送ってくるのに対する対策
+            # で送られることに対する対策
             # https://ifritjp.github.io/blog/site/2019/02/07/outlook.html
             # http://sylpheed-support.good-day.net/bbs_article.php?pthread_id=744
             # 何故か日本語メールもこの gb2312 として送られてくるケースも多い
@@ -1694,6 +1758,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                             verify(msg_file, output, pre, part_ls))
         else:
             mag_walk_org(msg_file, output, part_ls, flag, pgp_info)
+        if len(output.main['header']) >= 3 and output.main['header'][1][0] == '\f':
+            output.main['header'][2] += '\t'
 
     def print_local_message(output):
         for a in output.main['attach']:
@@ -1753,14 +1819,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         vim.command('call s:make_view(\'' + vim_escape(search_term) + '\')')
     b = vim.current.buffer
     b_v = b.vars['notmuch']
-    b_v['fold_line'] = 0
-    # b_v['editing'] = True  # カーソル連続移動で落ちるので、対策を考えてみたがうまく行かない
+    b_w = vim.current.window
     if msg_id == '' or (mail_reload is False and msg_id == b_v['msg_id'].decode()):
         vim.command('call win_gotoid(bufwinid('+active_win+'))')
         return
     # 以下実際の描画
-    b.options['modifiable'] = 1
-    b[:] = None
     msg, f = get_msg()
     if msg is None:
         b.append('Already all mail file delete.')
@@ -1778,34 +1841,12 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     main_out = Output()
     make_header_content(f, main_out, 0)
     vim_append_content(main_out)
-    b.options['modifiable'] = 0
-    header_line = 1
-    for s in b:  # Attach, HTML ヘッダや本文開始位置を探す
-        if len(vim.current.buffer[:]) == header_line:
-            header_line = 1
-            break
-        elif s.find('Bad-Signature: inline') == 0 \
-                or s.find('Signature: inline') == 0 \
-                or s.find('Good-Signature: inline') == 0:
-            header_line += 1
-            continue
-        elif re.match(r'(Attach|HTML|Encrypt|PGP-Public-Key|(Good-|Bad-)?Signature)',
-                      s) is not None:
-            break
-        elif s == '':
-            header_line += 1
-            break
-        header_line += 1
-    vim.current.window.cursor = (1, 0)  # カーソル位置が画面内だと先頭が表示されないので、一度先頭に移動
-    vim.command('redraw')  # 本当は redrawstatus の位置にしたいが、上が効かなくなる
-    vim.current.window.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
     if check_end_view() and ('unread' in msg.get_tags()):
         msg = change_tags_before_core(msg.get_message_id())
         delete_msg_tags(msg, ['unread'])
         change_tags_after_core(msg, True)
     vim.command('call win_gotoid(bufwinid('+active_win+'))')
     vim.command('redrawstatus!')
-    # del b_v['editing']  # カーソル連続移動で落ちるので、対策を考えてみたがうまく行かない
 
 
 def empty_show():
@@ -1895,7 +1936,15 @@ def get_msg_all_tags_list_core():
 def get_msg_tags(msg):  # メールのタグ一覧の文字列表現
     if msg is None:
         return ''
-    return ' '.join(msg.get_tags())
+    emoji_tags = ''
+    tags = list(msg.get_tags())
+    for t, emoji in {'unread': '📩', 'draft': '📝', 'flagged': '⭐',
+                     'Trash': '🗑', 'attachment': '📎',
+                     'encrypted': '🔑', 'signed': '🖋️'}.items():
+        if t in tags:
+            emoji_tags += emoji
+            tags.remove(t)
+    return emoji_tags + ' '.join(tags)
 
 
 def add_msg_tags(msg, tags):  # メールのタグ追加→フォルダ・リスト書き換え
@@ -2129,7 +2178,10 @@ def change_tags_after(msg, change_b_tags):  # 追加/削除した時の後始末
     DBASE.close()
 
 
-def change_tags_after_core(msg, change_b_tags):  # statusline に使っているバッファ変数の変更と notmuch-folder の更新
+def change_tags_after_core(msg, change_b_tags):
+    # * statusline に使っているバッファ変数の変更
+    # * スレッド行頭のタグのアイコンの書き換え
+    # * notmuch-folder の更新
     msg.thaw()
     msg.tags_to_maildir_flags()
     msg_id = msg.get_message_id()
@@ -2137,17 +2189,42 @@ def change_tags_after_core(msg, change_b_tags):  # statusline に使っている
         return
     if change_b_tags:
         tags = get_msg_tags(msg)
+        ls_tags = list(msg.get_tags())
         for b in vim.buffers:
-            if not b.options['filetype'].decode().startswith('notmuch-') \
-                    or not ('notmuch' in b.vars):
+            if not ('notmuch' in b.vars):
                 continue
             b_v = b.vars['notmuch']
-            try:
-                b_msg_id = b_v['msg_id'].decode()
-            except KeyError:  # notmuch-folder や空のバッファ
+            if not ('msg_id' in b_v):
                 continue
-            if msg_id == b_msg_id:
+            b_msgid = b_v['msg_id'].decode()
+            if b_msgid == '':
+                continue
+            b_num = b.number
+            buf_num = vim.bindeval('s:buf_num')
+            b_show = buf_num['show']
+            b_view = buf_num['view'].values()
+            b_thread = buf_num['thread']
+            b_search = buf_num['search'].values()
+            if (b_num == b_show or (b_num in b_view)
+                or b_num == b_thread or (b_num in b_search)) \
+                    and msg_id == b_msgid:
                 b_v['tags'] = tags
+                # print(b_num, tags)
+            if b_num == b_thread or b_num in b_search:
+                search_term = b_v['search_term'].decode()
+                if search_term == '':
+                    continue
+                line = [i for i, msg in enumerate(
+                    THREAD_LISTS[search_term]['list']) if msg.get_message_id() == msg_id]
+                if len(line) == 0:
+                    continue
+                line = line[0]
+                msg = THREAD_LISTS[search_term]['list'][line]
+                msg._tags = ls_tags
+                b.options['modifiable'] = 1
+                b[line] = msg.get_list(not ('list' in THREAD_LISTS[search_term]['sort']))
+                b.options['modifiable'] = 0
+    # vim.command('redrawstatus!')
     reprint_folder()
 
 
@@ -2404,6 +2481,14 @@ def open_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位�
 
     args = [int(s) for s in args]
     for i in range(args[0], args[1]+1):
+        # if vim.bindeval('foldclosed(".")'):
+        #     vim.command('normal! zo')
+        #     return
+        close_top = vim.bindeval('foldclosed(".")')
+        if close_top != -1:
+            vim.command('normal! zo')
+            vim.current.window.cursor = (close_top, 1)
+            return
         filename, attachment, decode, full_path = get_attach_info(i)
         if filename is None:
             filename, attachment, decode, full_path = same_attach(vim.bindeval('expand("<cfile>>")'))
@@ -2412,6 +2497,7 @@ def open_attachment(args):  # vim で Attach/HTML: ヘッダのカーソル位�
                 if vim.bindeval('foldlevel(".")') >= 3 \
                         or syntax == b'mailHeader' \
                         or syntax == b'mailHeaderKey' \
+                        or syntax == b'mailNewPartHead' \
                         or syntax == b'mailNewPart':
                     vim.command('normal! za')
                 elif b'open' in vim.vars['notmuch_open_way'].keys():
@@ -3077,11 +3163,9 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
         else:
             draft_dir = PATH + os.sep + 'draft'
         if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
-            vim.command('setlocal filetype=notmuch-draft noswapfile')
-            vim.command('call s:au_write_draft()')
+            vim.command('setlocal filetype=notmuch-draft | call s:au_write_draft()')
         else:
-            vim.command('call s:fold_mail_header() | setlocal foldtext=FoldHeaderText()')
-            vim.command('setlocal filetype=notmuch-edit')
+            vim.command('setlocal filetype=notmuch-edit | call s:fold_mail_header()')
     if message != '':
         vim.command('redraw')  # redraw しないと次のメッセージがすぐに消えてしまう
         print(message)
@@ -3096,8 +3180,8 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
 #         stat_info = os.stat(filename)
 #         m_time = int(stat_info.st_mtime)
 #         os.utime(filename, (time.time(), m_time))
-
-
+#
+#
 def send_mail(filename):  # ファイルをメールとして送信←元のファイルは削除
     # 添付ファイルのエンコードなどの変換済みデータを送信済み保存
     if VIM_MODULE:
@@ -4167,7 +4251,6 @@ def before_make_draft(active_win):  # 下書き作成の前処理
     if vim.current.buffer.options['filetype'].decode()[:8] == 'notmuch-' \
             or vim.bindeval('wordcount()["bytes"]') != 0:
         vim.command(vim.vars['notmuch_open_way']['draft'].decode())
-    vim.command('call s:mail_quote()')
     if MAILBOX_TYPE == 'Maildir':
         mbox_type = mailbox.Maildir
         draft_dir = PATH + os.sep + '.draft'
@@ -4185,7 +4268,7 @@ def before_make_draft(active_win):  # 下書き作成の前処理
     else:
         f = draft_dir + os.sep + f
     vim.current.buffer.name = f
-    vim.command('setlocal filetype=notmuch-draft noswapfile')
+    vim.command('setlocal filetype=notmuch-draft')
     vim.command('call s:augroup_notmuch_select(' + active_win + ', 0)')
 
 
@@ -5331,6 +5414,67 @@ def get_sys_command(cmdline, last):  # コマンドもしくは run コマンド
             elif os.path.isdir(c):
                 cmd.add(c)
     return sorted(list(cmd))
+
+
+def get_folded_list(start, end):
+    search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
+    if search_term == '':
+        return ''
+    msg = THREAD_LISTS[search_term]['list'][start-1]
+    line = msg.get_folded_list()
+    tags = copy.copy(msg._tags)
+    while start < end:
+        tags += THREAD_LISTS[search_term]['list'][start]._tags
+        start += 1
+    emoji_tags = ''
+    for t, emoji in {'unread': '📩', 'draft': '📝', 'flagged': '⭐',
+                     'Trash': '🗑', 'attachment': '📎'}.items():
+        if t in tags:
+            emoji_tags += emoji
+    emoji_tags = emoji_tags[:3]
+    emoji_length = 6 - vim.bindeval('strdisplaywidth(\'' + emoji_tags + '\')')
+    # ↑基本的には unread, draft の両方が付くことはないので最大3つの絵文字
+    if emoji_length:
+        emoji_length = '{:' + str(emoji_length) + 's}'
+        emoji_tags += emoji_length.format('') + '\t'
+    else:
+        emoji_tags += '\t'
+    return emoji_tags + line
+
+
+def buf_kind():  # カレント・バッファの種類
+    # notmuch 関連以外は空文字
+    # notmuch-edit, notmuch-draft は filetype で判定
+    def for_filetype():
+        ftype = b.options['filetype']
+        if ftype == b'notmuch-edit':
+            return 'edit'
+        elif ftype == b'notmuch-draft':
+            return 'draft'
+        return ''
+
+    b = vim.current.buffer
+    b_num = b.number
+    if b'buf_num' in vim.bindeval('s:'):
+        buf_num = vim.bindeval('s:buf_num')
+        if not ('folders' in buf_num) \
+                or not ('folders' in buf_num) \
+                or not ('folders' in buf_num):
+            return for_filetype()
+    else:
+        return for_filetype()
+    if b_num == buf_num['folders']:
+        return 'folders'
+    elif 'thread' in buf_num and b_num == buf_num['thread']:
+        return 'thread'
+    elif 'show' in buf_num and b_num == buf_num['show']:
+        return 'show'
+    elif 'search' in buf_num and b_num in buf_num['search'].values():
+        return 'search'
+    elif 'view' in buf_num and b_num in buf_num['view'].values():
+        return 'view'
+    else:
+        return for_filetype()
 
 
 GLOBALS = globals()
