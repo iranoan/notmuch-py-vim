@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 1.02
+Version: 1.03
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -254,25 +254,24 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 * まず先頭に |g:notmuch_show_headers|、次に |g:notmuch_show_hide_headers|
 	に従い From, To, Subject, Date 等のヘッダを表示する
 * それに続いて、次の仮想ヘッダを表示
-		----------------+---------------------------------------------------~
-		 追加するヘッダ	|                 意味~
-		----------------+---------------------------------------------------~
-		Attach:					| 添付ファイル名 (添付ファイル数だけ)
-		HTML:						| HTML メール (ファイル名の代わりに index.html)
-		Decrypted:			| 暗号化メールを復号化した時の情報 (以下が主な例)
-										| S/MIME
-										| OpenPGP/MIME
-										| inline
-		Not-Decrypted:	| 暗号化メールの復号化していない時の上記情報
-		Encrypt:				| 暗号化メールを復号していない時、そのファイル名
-		PGP-Public-Key: | 添付された公開鍵
-		Good-Signature:	| 正しい署名と検証された時、そのファイル名
-		Bad-Signature:	| 不正な署名と判定された時、そのファイル名
-		Signature:			| 対応する鍵がない時、その電子署名ファイル
-		----------------+---------------------------------------------------~
-		Example: >
-			HTML: index.html
-			Attach: attachment.zip
+
+		 追加するヘッダ		                意味~
+		Attach:						添付ファイル名 (添付ファイル数だけ)
+		HTML:							HTML メール (ファイル名の代わりに index.html)
+		Decrypted:				暗号化メールを復号化した時の情報 (以下が主な例)
+											S/MIME
+											OpenPGP/MIME
+											inline
+		Not-Decrypted:		暗号化メールの復号化していない時の上記情報
+		Encrypt:					暗号化メールを復号していない時、そのファイル名
+		PGP-Public-Key: 	添付された公開鍵
+		Good-Signature:		正しい署名と検証された時、そのファイル名
+		Bad-Signature:		不正な署名と判定された時、そのファイル名
+		Signature:				対応する鍵がない時、その電子署名ファイル
+
+	Example: >
+		HTML: index.html
+		Attach: attachment.zip
 <		- どちらも削除されていれば、HTML:→Del-HTML: 等と Del- が先頭に付く
 * これらのヘッダの後に本文が続き、text/plain と text/html パートの両方が含
 	まれている時は、text/plain の後の >
@@ -308,38 +307,36 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 で設定できる
 
 実際に送信されない仮想ヘッダとして次のヘッダがある
-		----------------+---------------------------------------------------~
-		 追加するヘッダ	|                 意味~
-		----------------+---------------------------------------------------~
-		Attach:					| 添付ファイルのパスを指定
-										| 複数添付する場合は、その数だけ指定する
-										|                            *notmuch-python-vim-attach*
-		Fcc:						| 送信メールの保存先メール・フォルダの指定
-										|                               *notmuch-python-vim-fcc*
-		Encrypt:				| 暗号化の方法指定           *notmuch-python-vim-encrypt*
-		Signature:			| 電子署名の方法指定
-		----------------+---------------------------------------------------~
+
+		 追加するヘッダ			                意味~
+		Attach:							添付ファイルのパスを指定
+												複数添付する場合は、その数だけ指定する
+												                           *notmuch-python-vim-attach*
+		Fcc:								送信メールの保存先メール・フォルダの指定
+												                              *notmuch-python-vim-fcc*
+		Encrypt:						暗号化の方法指定           *notmuch-python-vim-encrypt*
+		Signature:					電子署名の方法指定
+
 	* Attach は <leader>c でも指定可能    |notmuch-python-vim-set-attach|
 	* Fcc の指定がなければ |g:notmuch_save_sent_mailbox| に従う
 		- <leader>f でも指定可能            |notmuch-python-vim-set-fcc|
 				Fcc ヘッダの編集でも可能
 	* Encrypt/Signature は <leader>e で設定可能 |notmuch-python-vim-set-encrypt|
 		- 直接編集する時に指定できる値は次の通り
-			------------------------+------------------------------------------~
-			 暗号化・電子署名の方法	| Encrypt, Signature で意味を持つ指定方法~
-			 (複数指定時の優先順)		| (大文字・小文字の区別はなし)~
-			------------------------+------------------------------------------~
-			S/MIME									| S/MIME
-															| SMIME
-															| S-MIME
-			PGP/MIME								| PGP/MIME
-															| PGPMIME
-															| PGP-MIME
-			PGP											| PGP
-															| (通常の text/plain として暗号化・電子署
-															|  名済みの内容が書き込まれ、添付ファイル
-															|  は暗号化・電子署名の対象にならない)
-			------------------------+------------------------------------------~
+
+			 暗号化・電子署名の方法			Encrypt, Signature で意味を持つ指定方法~
+			 (複数指定時の優先順)				(大文字・小文字の区別はなし)~
+			S/MIME											S/MIME
+																	SMIME
+																	S-MIME
+			PGP/MIME										PGP/MIME
+																	PGPMIME
+																	PGP-MIME
+			PGP													PGP
+																	(通常の text/plain として暗号化・電子署
+																	 名済みの内容が書き込まれ、添付ファイル
+																	 は暗号化・電子署名の対象にならない)
+
 		- Encrypt, Signature 両方の指定があれば暗号化+電子署名両方を行う
 		- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
 
@@ -477,25 +474,20 @@ g:notmuch_folder_format                               *g:notmuch_folder_format*
 
 	* |{F-WIN}| に表示する |g:notmuch_folders| の情報の表示方法
 	* Python の format() メソッドの指定を用いる必要が有る
-				            {} 内の最初の数値の意味~
-				----------+----------------------------------~
-				最初の数値|       意味~
-				----------+----------------------------------~
-				    0     | |g:notmuch_folders| の見出し部分
-				    1     | 未読 (unread タグ付き) メール数
-				    2     | 総メール数
-				    3     | 重要 (flagged タグ付き) メール数
-				    4     | |g:notmuch_folders| の |search-term|
-				----------+----------------------------------~
+				         {} 内の最初の数値の意味~
+				最初の数値		      意味~
+				    0     		|g:notmuch_folders| の見出し部分
+				    1     		未読 (unread タグ付き) メール数
+				    2     		総メール数
+				    3     		重要 (flagged タグ付き) メール数
+				    4     		|g:notmuch_folders| の |search-term|
 
-				     {} 内の残りの部分~
-				--------------+-------------~
-				      値      |   意味~
-				--------------+-------------~
-				:<            | 左詰め
-				:>            | 右詰め
-				上記に続く数  | 文字の桁数
-				--------------+-------------~
+				   {} 内の残りの部分~
+				      値    		  意味~
+				:<          		左詰め
+				:>          		右詰め
+				上記に続く数		文字の桁数
+
 	* Default で示している `'{0:<??}{1:>??}/{2:>??}|{3:>??} [{4}]'` の ?? の部
 		分は、|g:notmuch_folders| の見出し部分の設定や個々の環境のメール数を元に
 		計算される
@@ -621,20 +613,19 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 		`\ }`
 
 	* ウィンドウや subcommand (|notmuch-python-vim-start|) 使用時の開き方
-			--------+--------------------------------------------------~
-			  key		|               subcommand~
-			--------+--------------------------------------------------~
-			folders	| |{F-WIN}|
-			thread	| |{T-WIN}|
-			show		| |{F-WIN}|
-			search	| search (|notmuch-python-vim-search|),
-							| search-thread (|notmuch-python-vim-search-thread|)
-			edit		| mail-edit (|notmuch-python-vim-mail-edit|)
-			view		| search/search-thread とペアになる |{S-WIN}|
-			open		| |{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
-							| に最後に試みるコマンド
-							| - URL を開くなど好みのコマンドを指定可能
-			--------+--------------------------------------------------~
+
+			  key				     subcommand~
+			folders			|{F-WIN}|
+			thread			|{T-WIN}|
+			show				|{F-WIN}|
+			search			search (|notmuch-python-vim-search|),
+									search-thread (|notmuch-python-vim-search-thread|)
+			edit				mail-edit (|notmuch-python-vim-mail-edit|)
+			view				search/search-thread とペアになる |{S-WIN}|
+			open				|{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
+									に最後に試みるコマンド
+									- URL を開くなど好みのコマンドを指定可能
+
 		- open 以外で値に指定できるのは、'new', 'vnew', 'tabedit', 'enew' と
 			'rightbelow', 'belowright', 'topleft', 'botright' と数の組み合わせのみ
 	* Default の ?? は、デフォルト・レイアウト (|notmuch-python-vim-layout|) が
@@ -807,14 +798,12 @@ g:notmuch_view_attachment                            *g:notmuch_view_attachment*
 
 	* open (|notmuch-python-vim-open|) で添付ファイルを開く時に用いるプログラム
 	* デフォルトは OS 依存
-			--------+----------~
-				 OS		| program~
-			--------+----------~
-			Unix		| `'xdg-open'`
-			Windows	| `'start'`
-			macOS		| `'open'`
-			他			| `''`
-			--------+----------~
+
+				 OS				program~
+			Unix				`'xdg-open'`
+			Windows			`'start'`
+			macOS				`'open'`
+			他					`''`
 
 
 ==============================================================================
@@ -1073,19 +1062,18 @@ set-encrypt [{encrypt/signature}]
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
 	  {encrypt/signature} 設定
 	* {encrypt/signature} に指定できるのは大文字小文字の区別なしで次の通り
-			------------------+------------------------------------~
-			 指定できる文字列-+-意味~
-			------------------+------------------------------------~
-			Encrypt						| 暗号化する
-			Signature					| 電子署名をつける
-			S/MIME						| 暗号化/電子署名に S/MIME を用いる
-			SMIME 						|
-			S-MIME						|
-			PGP/MIME					| 暗号化/電子署名に PGP/MIME を用いる
-			PGPMIME						|
-			PGP-MIME					|
-			PGP								| 暗号化/電子署名に PGP を用いる
-			------------------------+------------------------------~
+
+			指定できる文字列			意味~
+			Encrypt							暗号化する
+			Signature						電子署名をつける
+			S/MIME							暗号化/電子署名に S/MIME を用いる
+			SMIME
+			S-MIME
+			PGP/MIME						暗号化/電子署名に PGP/MIME を用いる
+			PGPMIME
+			PGP-MIME
+			PGP									暗号化/電子署名に PGP を用いる
+
 		- 暗号化/電子署名の方法が未指定の場合 S/MIME を用いる
 	* {encrypt/signature} が無ければ指定になる
 		- E/e:   暗号化 (Encrypt) ON/OFF
@@ -1193,28 +1181,22 @@ thread-sort [{list}/{tree} {sorting-way}]
 		- この指定でも空だとキャンセルになる
 	* mark (|notmuch-python-vim-mark|) によるマークが削除される
 
-		--------------+--------------~
-		{list}/{tree} |   意味~
-		--------------+--------------~
-		list          | 一覧表示
-		tree          | ツリー表示
-		--------------+--------------~
+		{list}/{tree}		  意味~
+		list						一覧表示
+		tree						ツリー表示
 
-		--------------+----------------------------------------------------------~
-		{sorting-way} |                   意味~
-		--------------+----------------------------------------------------------~
-		date          | 日付順
-		              | {tree} では同一スレッド中の最新メールの日時が基準
-		Date          | 日時逆順
-		from          | メール送信元順
-		              | {tree} では同一スレッドに含まれるメール送信元
-		From          | メール送信元逆順
-		subject       | Subject 順
-		              | Subject そのものではなく |g:notmuch_delete_top_subject| で整形
-		              | 済みの |{T-WIN}| に表示されている件名
-		              | {tree} ではスレッド・トップが基準
-		Subject       | Subject 逆順
-		--------------+-----------------------------------------------------------~
+		{sorting-way}			      意味~
+		date							日付順
+											{tree} では同一スレッド中の最新メールの日時が基準
+		Date							日時逆順
+		from							メール送信元順
+											{tree} では同一スレッドに含まれるメール送信元
+		From							メール送信元逆順
+		subject						Subject 順
+											Subject そのものではなく |g:notmuch_delete_top_subject| で整形
+											済みの |{T-WIN}| に表示されている件名
+											{tree} ではスレッド・トップが基準
+		Subject						Subject 逆順
 
                                               *notmuch-python-vim-thread-toggle*
 thread-toggle
@@ -1272,6 +1254,12 @@ view-unread-page
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴~
+
+2022/01/23 Ver.1.03~
+* バグ修正
+	- |{SWIN}| と同じタブページに有る |{T-WIN}| で複数行選べない
+	- |g:notmuch_show_hide_headers| に一致するヘッダが 3 つ以上無いと、初期状態で折
+		りたたまれない
 
 2022/01/22 Ver.1.02~
 * バグ修正
