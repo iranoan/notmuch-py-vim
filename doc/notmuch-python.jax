@@ -1,6 +1,6 @@
 *notmuch-python-vim.txt* メールの読み書きを手助けする
 
-Version: 1.03
+Version: 1.04
 Author:  Iranoan <iranoan+vim@gmail.com>
 License: GPL Ver.3.
 
@@ -1254,6 +1254,10 @@ view-unread-page
 ==============================================================================
                                                     *notmuch-python-vim-history*
 更新履歴~
+
+2022/01/23 Ver.1.04~
+* バグ修正
+	- macros/ の追加し忘れ
 
 2022/01/23 Ver.1.03~
 * バグ修正
