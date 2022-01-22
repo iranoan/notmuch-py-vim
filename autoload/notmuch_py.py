@@ -1248,7 +1248,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         hide = hide[:-1] + ')'
         fold_begin = [i for i, x in enumerate(out.main['header'])
                       if (re.match(hide, x) is not None)]
-        if len(fold_begin) > 2:  # 連続して 2 つ以上無いと折りたたみにならない
+        if len(fold_begin) >= 2:  # 連続して 2 つ以上無いと折りたたみにならない
             fold_begin = [fold_begin[0] + 1]
         else:
             fold_begin = []
