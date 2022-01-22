@@ -947,6 +947,9 @@ function s:get_tags() abort
 endfunction
 
 function s:cursor_move_thread(search_term) abort
+	if line('.') != line('v')
+		return
+	endif
 	let l:type = py3eval('buf_kind()')
 	if l:type ==# 'thread'
 		let l:buf_num = s:buf_num['thread']
