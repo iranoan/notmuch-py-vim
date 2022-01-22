@@ -1,44 +1,39 @@
 " Vim syntax file
-" Language:		Mail file
+" Language: notmuch-show window
 
 " Quit when a syntax file was already loaded
-if exists("b:current_syntax")
-  finish
+if exists('b:current_syntax')
+	finish
 endif
 
-let s:cpo_save = &cpo
+let s:cpo_save = &cpoptions
 set cpoptions&vim
 
 " Syntax clusters
-" syntax cluster mailHeaderFields	contains=mailHeaderKey,mailSubject,mailHeaderEmail,@mailLinks,mailNewPart
-syntax cluster mailHeaderFields	contains=mailHeaderKey,mailHeaderEmail,@mailLinks,mailNewPart
+syntax cluster mailHeaderFields	contains=mailHeaderKey,mailHeaderEmail,@mailLinks
 syntax cluster mailLinks		contains=mailURL,mailEmail
 syntax cluster mailQuoteExps	contains=mailQuoteExp1,mailQuoteExp2,mailQuoteExp3,mailQuoteExp4,mailQuoteExp5,mailQuoteExp6
 
 syntax case match
-" execute 'syntax region mailHeader contains=@mailHeaderFields,@NoSpell start=''^'. escape(escape(escape(escape(getline(1), '\'), '['), ''''), '/') . '$'' skip=''^\s'' end=''^[^:]*$''me=s-1 fold'
-syntax region	mailHeader	contains=@mailHeaderFields,@NoSpell start='^.\+\t\n' end='^[^:]*\n' fold
-syntax region	mailHeader	contains=@mailHeaderFields,@NoSpell start='^[\x0C].\+ part\n' end='^\n' fold
-
-" Nothing else depends on case.
 syntax case ignore
 
+syntax region	mailNewPart	contains=mailNewPartHead,mailHeader,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
+
 " Usenet headers
-syntax match	mailHeaderKey	contained contains=mailHeaderEmail,mailEmail,@NoSpell '\v^[a-z-]+:\s*'
-syntax match	mailNewPart	contains=@mailHeaderFields,@NoSpell '^[\x0C]\zs.\+ part'
-
-
-" syntax region	mailHeaderKey	contained contains=mailHeaderEmail,mailEmail,@mailQuoteExps,@NoSpell start='\v(^(\> ?)*)@<=(to|b?cc):' skip=',$' end='$'
-" syntax match	mailHeaderKey	contained contains=mailHeaderEmail,mailEmail,@NoSpell '\v(^(\> ?)*)@<=(from|reply-to):.*$' fold
-" syntax match	mailHeaderKey	contained contains=@NoSpell '\v(^(\> ?)*)@<=date:'
-" syntax match	mailSubject	contained "\v^subject:.*$" fold
-" syntax match	mailSubject	contained contains=@NoSpell '\v(^(\> ?)+)@<=subject:.*$'
+syntax match	mailHeaderKey	contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
+syntax match	mailNewPartHead	contains=@NoSpell '^[\x0C]\zs.\+ part$'
+syntax region	mailHeader	contains=mailHideHeader,@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+\t$' skip='^\s' end='^[^:]*\n' fold
+execute 'syntax region	mailHideHeader	contains=@mailHeaderFields,@NoSpell '
+			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\):' . '''me=s-1 '
+			\ . 'end=''\(\(Del-\)\?\(Attach\|HTML\)\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+			\ . 'end=''^[^:]*\n''me=s-1  fold'
+" syntax region	mailHideHeader	contains=@mailHeaderFields,@NoSpell start='^\(Return-Path\|Reply-To\|Message-ID\|Resent-Message-ID\|In-Reply-To\|References\|Errors-To\):' end='\(\(Del-\)\?\(Attach\|HTML\)\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\)'me=s-1 end='^[^:]*\n'me=s-1 fold
 
 " Anything in the header between < and > is an email address
 syntax match	mailHeaderEmail	contained contains=@NoSpell '<.\{-}>'
 
 " Mail Signatures. (Begin with "-- ", end with change in quote level)
-syntax region	mailSignature	keepend contains=@mailLinks,@mailQuoteExps start='^--\s$' end='^$' end='^\(> \?\)\+' fold
+syntax region	mailSignature	keepend contains=@mailLinks,@mailQuoteExps start='^--\s$' end='^\n' end='^\(> \?\)\+' fold
 syntax region	mailSignature	keepend contains=@mailLinks,@mailQuoteExps,@NoSpell start='^\z(\(> \?\)\+\)--\s$' end='^\z1$' end='^\z1\@!' end='^\z1\(> \?\)\+' fold
 
 " Treat verbatim Text special.
@@ -58,7 +53,7 @@ syntax match mailQuoteExp5	contained '\v^(\> ?){5}'
 syntax match mailQuoteExp6	contained '\v^(\> ?){6}'
 
 " Even and odd quoted lines. Order is important here!
-syntax region	mailQuoted6	keepend contains=mailVerbatim,mailHeader,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{5}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
+syntax region	mailQuoted6	keepend contains=mailVerbatim,mailHemailHideHeaderader,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{5}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
 syntax region	mailQuoted5	keepend contains=mailQuoted6,mailVerbatim,mailHeader,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{4}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
 syntax region	mailQuoted4	keepend contains=mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{3}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
 syntax region	mailQuoted3	keepend contains=mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{2}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
@@ -67,9 +62,9 @@ syntax region	mailQuoted1	keepend contains=mailQuoted2,mailQuoted3,mailQuoted4,m
 
 " Need to sync on the header. Assume we can do that within 100 lines
 if exists('mail_minlines')
-    execute 'syn sync minlines=' . mail_minlines
+	execute 'syn sync minlines=' . mail_minlines
 else
-    syntax sync minlines=100
+	syntax sync minlines=100
 endif
 
 " Define the default highlighting.
@@ -81,7 +76,7 @@ highlight def link mailHeaderEmail	mailEmail
 highlight def link mailEmail		Special
 highlight def link mailURL		String
 " highlight def link mailSubject		Title
-highlight					 mailNewPart		term=reverse,bold gui=reverse,bold
+highlight					 mailNewPartHead	term=reverse,bold gui=reverse,bold
 highlight def link mailQuoted1		Comment
 highlight def link mailQuoted3		mailQuoted1
 highlight def link mailQuoted5		mailQuoted1
@@ -97,5 +92,5 @@ highlight def link mailQuoteExp6	mailQuoted6
 
 let b:current_syntax = "notmuch-mail"
 
-let &cpo = s:cpo_save
+let &cpoptions = s:cpo_save
 unlet s:cpo_save
