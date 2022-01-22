@@ -1273,7 +1273,7 @@ view-unread-page
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/01/15 Ver.1.02~
+2022/01/22 Ver.1.02~
 * バグ修正
 	- attach-delete (|notmuch-python-vim-attach-delete|) で折り畳みがおかしくなる
 		+ |{S-WIN}| のシンタックスを見直し foldmethod=syntax に変更
