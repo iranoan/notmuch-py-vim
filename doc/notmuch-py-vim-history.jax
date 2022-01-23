@@ -12,6 +12,8 @@ License: GPL Ver.3.
 2022/01/23 Ver.1.05~
 * 更新履歴を別ファイルに
 * ヘルプファイル名の変更
+* 重複メールを検索するサブコマンド search-duplication
+	(|notmuch-python-vim-search-duplication|) を追加
 
 2022/01/23 Ver.1.04~
 * バグ修正

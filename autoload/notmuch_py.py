@@ -1019,6 +1019,9 @@ def reload_thread():
     #     return
     b = vim.current.buffer
     search_term = b.vars['notmuch']['search_term'].decode()
+    if search_term == '*':
+        notmuch_duplication(True)
+        return
     notmuch_new(False)
     w = vim.current.window
     # 再作成後に同じメールを開くため Message-ID を取得しておく
@@ -5135,6 +5138,31 @@ def notmuch_thread():
     vim.current.window.cursor = (index[0]+1, 0)
 
 
+def notmuch_duplication(remake):
+    if remake or not ('*' in THREAD_LISTS):
+        DBASE.open(PATH)
+        query = notmuch.Query(DBASE, 'path:**')
+        msgs = query.search_messages()
+        ls = []
+        for msg in msgs:
+            fs = list(msg.get_filenames())
+            if len(fs) >= 2:
+                thread = notmuch.Query(DBASE, 'thread:'+msg.get_thread_id())
+                thread = list(thread.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
+                ls.append(MailData(msg, thread, 0, 0))
+        DBASE.close()
+        if len(ls) == 0:
+            print_warring('Don\'t duple mail.')
+            return
+        ls.sort(key=attrgetter('_date', '_from'))
+        THREAD_LISTS['*'] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
+    vim.command('call s:make_search_list(\'*\')')
+    b_num = vim.bindeval('s:buf_num')['search']['*']
+    print_thread(b_num, '*', False, False)
+    if is_same_tabpage('view', '*'):
+        vim.command('call s:open_mail()')
+
+
 def check_search_term(s):
     if s == '*':
         print_warring('Error: When you want to search all mail, use \'path:**\'.')
@@ -5481,6 +5509,10 @@ GLOBALS = globals()
 
 initialize()
 # if not VIM_MODULE:
+#     import time
+#     s = time.time()
+#     notmuch_duplication()
+#     print(time.time() - s)
 #     print(get_sys_command('Notmuch run mimetype t', 't'))
 #     # SEND_PARAM = ['msmtp', '-t', '-a', 'Nifty', '-X', '-']
 #     # send_search('(folder:draft or folder:.draft or tag:draft) ' +

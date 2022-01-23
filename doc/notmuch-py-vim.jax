@@ -620,8 +620,9 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 			show				|{F-WIN}|
 			search			search (|notmuch-python-vim-search|),
 									search-thread (|notmuch-python-vim-search-thread|)
+									search-duplication (|notmuch-python-vim-search-duplication|)
 			edit				mail-edit (|notmuch-python-vim-mail-edit|)
-			view				search/search-thread とペアになる |{S-WIN}|
+			view				search/search-thread/search-duplication とペアになる |{S-WIN}|
 			open				|{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
 									に最後に試みるコマンド
 									- URL を開くなど好みのコマンドを指定可能
@@ -1047,6 +1048,10 @@ search [|search-term|]
                                               *notmuch-python-vim-search-thread*
 search-thread
 	* メールを含むスレッドを新たな |{T-Win}| 枠に表示する
+
+                                          *notmuch-python-vim-search-duplication*
+search-duplication
+	* 同一 Message-ID のファイルが複数あるメールを新たな |{T-Win}| 枠にリスト・アップ
 
                                                  *notmuch-python-vim-set-attach*
 set-attach [{attachment}]

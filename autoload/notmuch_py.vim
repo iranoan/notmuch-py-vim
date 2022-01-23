@@ -618,6 +618,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['run']                 = ['s:run_shell_program', 0x07]
 				let g:notmuch_command['search']              = ['s:notmuch_search', 0x05]
 				let g:notmuch_command['search-thread']       = ['s:notmuch_thread', 0x04]
+				let g:notmuch_command['search-duplication']  = ['s:notmuch_duplication', 0x04]
 				let g:notmuch_command['tag-add']             = ['s:add_tags', 0x1f]
 				let g:notmuch_command['tag-delete']          = ['s:delete_tags', 0x1f]
 				let g:notmuch_command['tag-toggle']          = ['s:toggle_tags', 0x1f]
@@ -1401,6 +1402,10 @@ endfunction
 
 function s:notmuch_thread(args) abort
 	py3 notmuch_thread()
+endfunction
+
+function s:notmuch_duplication(args) abort
+	py3 notmuch_duplication(0)
 endfunction
 
 function Complete_search(ArgLead, CmdLine, CursorPos) abort
