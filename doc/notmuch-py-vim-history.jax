@@ -9,11 +9,12 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/01/23 Ver.1.05~
+2022/01/24 Ver.1.05~
 * 更新履歴を別ファイルに
 * ヘルプファイル名の変更
 * 重複メールを検索するサブコマンド search-duplication
 	(|notmuch-python-vim-search-duplication|) を追加
+* BASE64 のデコードでも charset を使うように変更
 
 2022/01/23 Ver.1.04~
 * バグ修正

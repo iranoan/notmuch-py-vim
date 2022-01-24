@@ -1294,7 +1294,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b_w.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
-        if charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
+        if charset == 'gb2312' or charset == 'gbk':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
             # Content-Type: text/plain; charset="gb2312"
             # で送られることに対する対策
             # https://ifritjp.github.io/blog/site/2019/02/07/outlook.html
@@ -1330,7 +1330,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                         '\n'.join(line[b_sig:])
                     return content, undecode_payload
             if encoding == 'base64':
-                decode_payload = payload.decode()
+                if charset is not None:
+                    decode_payload = payload.decode(charset)
+                else:
+                    decode_payload = payload.decode()
             else:
                 decode_payload = undecode_payload
             try:
@@ -5143,6 +5146,7 @@ def notmuch_duplication(remake):
         DBASE.open(PATH)
         query = notmuch.Query(DBASE, 'path:**')
         msgs = query.search_messages()
+        # THREAD_LISTS の作成はマルチプロセスも試したが、大抵は数が少ないために反って遅くなる
         ls = []
         for msg in msgs:
             fs = list(msg.get_filenames())

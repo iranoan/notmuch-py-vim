@@ -1189,7 +1189,7 @@ thread-sort [{list}/{tree} {sorting-way}]
 	* {list}/{tree}, {sorting-way} を指定していないと、コマンドラインモード
 	  (|CmdLine|) で指定になる
 		- この指定でも空だとキャンセルになる
-	* mark (|notmuch-python-vim-mark|) によるマークが削除される
+	* mark (|notmuch-python-vim-mark|) によるマークは削除される
 
 		{list}/{tree}		  意味~
 		list						一覧表示
