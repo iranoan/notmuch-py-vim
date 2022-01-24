@@ -5155,7 +5155,7 @@ def notmuch_duplication(remake):
             print_warring('Don\'t duple mail.')
             return
         ls.sort(key=attrgetter('_date', '_from'))
-        THREAD_LISTS['*'] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
+        THREAD_LISTS['*'] = {'list': ls, 'sort': ['date', 'list'], 'make_sort_key': False}
     vim.command('call s:make_search_list(\'*\')')
     b_num = vim.bindeval('s:buf_num')['search']['*']
     print_thread(b_num, '*', False, False)

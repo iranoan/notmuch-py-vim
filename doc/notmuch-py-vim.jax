@@ -1052,6 +1052,9 @@ search-thread
                                           *notmuch-python-vim-search-duplication*
 search-duplication
 	* 同一 Message-ID のファイルが複数あるメールを新たな |{T-Win}| 枠にリスト・アップ
+	* 常に全メールが対象
+	* |search-term| によって検索するわけではない
+		- データ管理上の値が必要なので |search-term| は * 扱いとしている
 
                                                  *notmuch-python-vim-set-attach*
 set-attach [{attachment}]
@@ -1179,6 +1182,8 @@ thread-sort [{list}/{tree} {sorting-way}]
 		{list}/{tree}: 一覧/ツリー表示の指定
 									 {sorting-way} が無ければ、ソート方法は変更せず一覧/ツリー表
 									 示の切り替えのみ行う
+									 重複メールを一覧表示する search-duplication
+									 (|notmuch-python-vim-search-duplication|) では {tree} は無視
 		{sorting-way}: ソート方法の変更
 									 {list}/{tree} が無ければ {tree} 扱い
 	* {list}/{tree}, {sorting-way} を指定していないと、コマンドラインモード
