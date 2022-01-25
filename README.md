@@ -62,6 +62,12 @@ $ sudo apt install -y python3-notmuch python3-html2text
 $ python3 -m pip install notmuch html2text
 ```
 
+### [NKF](https://ja.osdn.net/projects/nkf/)
+
+これは必須ではない
+
+ただ JIS (iso-2022-jp) としつつ JIS 外漢字を含むメールは多いが、nkf が実行可能な環境ならば、デコード失敗時に nkf で変換する
+
 ## インストール
 
 使用しているパッケージ・マネージャに従えば良い
