@@ -12,4 +12,4 @@ let b:did_ftplugin_user = 1
 " 	let g:ft_notmuch_edit = 1
 " endif
 
-runtime macros/notmuch-edit.vim
+execute 'source ' . expand('<sfile>:p:h:h') . '/macros/notmuch-edit.vim'
