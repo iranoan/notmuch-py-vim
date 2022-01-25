@@ -94,7 +94,20 @@ endfunction
 
 function s:make_folders_list() abort
 	if has_key(s:buf_num, 'folders') " && bufname(s:buf_num['folders']) !=? ''
-		py3 reopen('folders', '')
+		call s:close_notmuch('thread')
+		call s:close_notmuch('show')
+		call s:close_notmuch('search')
+		call s:close_notmuch('view')
+		call s:change_exist_tabpage_core(s:buf_num['folders'])
+		if bufwinid(s:buf_num['folders']) == -1
+			py3 reopen('folders', '')
+		else
+			call win_gotoid(bufwinid(s:buf_num['folders']))
+		endif
+		let open_way = g:notmuch_open_way['folders']
+		if open_way ==# 'enew' || open_way ==# 'tabedit'
+			only
+		endif
 	else
 		call s:new_buffer('folders', '')
 		silent file! notmuch-folder
@@ -677,10 +690,6 @@ function s:start_notmuch() abort
 	execute 'cd ' . py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
-	call s:close_notmuch('thread')
-	call s:close_notmuch('show')
-	call s:close_notmuch('search')
-	call s:close_notmuch('view')
 	if g:notmuch_open_way['thread'] !=? 'enew' && g:notmuch_open_way['thread'] !=? 'tabedit'
 		call s:make_thread_list()
 		call win_gotoid(bufwinid(s:buf_num['folders']))
@@ -694,14 +703,14 @@ function s:close_notmuch(kind) abort
 	if !exists('s:buf_num["' . a:kind . '"]')
 		return
 	endif
-	if a:kind == 'thread' || a:kind == 'show'
+	if a:kind ==# 'thread' || a:kind ==# 'show'
 		let l:bufs = [s:buf_num[a:kind]]
 	else
 		let l:bufs = values(s:buf_num[a:kind])
 	endif
 	for l:b in l:bufs
 		call s:change_exist_tabpage_core(l:b)
-		if win_gotoid(bufwinid(l:b)) != 0
+		if win_gotoid(bufwinid(l:b))
 			close
 		endif
 	endfor
