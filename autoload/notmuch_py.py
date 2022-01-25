@@ -1330,10 +1330,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                         '\n'.join(line[b_sig:])
                     return content, undecode_payload
             if encoding == 'base64':
-                if charset is not None:
-                    decode_payload = payload.decode(charset)
-                else:
-                    decode_payload = payload.decode()
+                decode_payload = payload.decode(charset, 'replace')
             else:
                 decode_payload = undecode_payload
             try:
@@ -1434,8 +1431,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         from html2text import HTML2Text     # HTML メールの整形
 
         content_type = part.get_content_type()
-        # メールを単純にファイル保存した時は UTF-8 にしているので、それをインポートしたときのため、仮の値として指定しておく
         charset = part.get_content_charset('utf-8')
+        # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
+        # * BASE64 エンコードで情報がなかった時
+        # したときのため、仮の値として指定しておく
         encoding = part.get('Content-Transfer-Encoding')
         if content_type.find('text/plain') == 0:
             tmp_text, decode_payload = get_mail_context(part, charset, encoding)
@@ -2617,7 +2616,10 @@ def write_file(part, decode, save_path):  # 添付ファイルを save_path に�
         with open(save_path, 'w') as fp:
             fp.write(s)
     elif html != '':
-        charset = part.get_content_charset()
+        charset = part.get_content_charset('utf-8')
+        # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
+        # * BASE64 エンコードで情報がなかった時
+        # したときのため、仮の値として指定しておく
         if charset == 'iso-2022-jp':
             charset = 'iso-2022-jp-3'  # 一律最上位互換の文字コード扱いにする
         elif charset == 'gb2312':
@@ -3137,8 +3139,10 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
                     break
             else:
                 content_type = part.get_content_type()
-                # メールを単純にファイル保存した時は UTF-8 にしているので、それをインポートしたときのため
                 charset = part.get_content_charset('utf-8')
+                # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
+                # * BASE64 エンコードで情報がなかった時
+                # したときのため、仮の値として指定しておく
                 encoding = part.get('Content-Transfer-Encoding')
                 if content_type.find('text/') == 0:
                     break
