@@ -27,8 +27,9 @@ if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif
 
-setlocal concealcursor=nvic conceallevel=3
+setlocal concealcursor+=nvic conceallevel=3
 call matchadd('Conceal', '[\x0C]')
+call matchadd('Conceal', '[\u200B]')
 
 " keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>

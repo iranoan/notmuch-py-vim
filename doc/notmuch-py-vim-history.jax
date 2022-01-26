@@ -9,6 +9,20 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/01/25 Ver.1.07~
+* mail-delete (|notmuch-python-vim-mail-delete|), mail-export
+	(|notmuch-python-vim-mail-export|) で複数のファイルがあったときの選択には、
+	添付ファイルなどの情報も表示
+* |{F-WIN}| での mail-info (|notmuch-python-vim-mail-info|) で |search-term|
+	が空の時は何も表示しない
+* mail-info (|notmuch-python-vim-mail-info|) の表示位置を変更
+* ヘッダ開始として用いたいた文字をタブ文字からゼロ幅スペースに変更
+* JIS 外漢字が含まれるなど Subject ヘッダのデコード内容と notmuch データベース
+  からの取得データと違う場合は、スレッドやバッファ変数を書き換える
+* 返信、転送時の Subject ヘッダの情報は notmuch データベースから取得せずバッ
+  ファ変数を使う
+* OpenPGP/MIME で Subject も復号化した時、ツリー構造が切れるバグ修正
+
 2022/01/25 Ver.1.06~
 * ドキュメントに NKF の記述を追加
 * charset が無い時は UTF-8 とする
@@ -27,7 +41,7 @@ License: GPL Ver.3.
 
 2022/01/23 Ver.1.04~
 * バグ修正
-	- macros/ の追加し忘れ
+	- macros/ のアップロードし忘れ
 
 2022/01/23 Ver.1.03~
 * バグ修正

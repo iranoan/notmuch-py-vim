@@ -860,8 +860,10 @@ mail-delete
 	* |{S-WIN}| では表示しているメール元となるメール・ファイルを削除
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* 複数のメール・ファイルがある場合は、
+	* 複数のメール・ファイルがある場合は、          *notmuch-python-vim-select-file*
 		- 更新日時
+		- HTMLパートの有無 (🌐) と添付ファイルについての情報
+			+ 添付ファイルについての情報は暗号化されていれば🔑そうでなければ📎とその数
 		- ファイル・サイズ
 		- パス
 		の表示とともに選択
@@ -876,6 +878,8 @@ mail-edit
 mail-export
 	* メール・ファイルを別ファイルにエクスポート
 	* メール・ファイルをコピーするだけなので、ファイルの中身はデコード前の状態
+	* 複数のメール・ファイルがある場合は mail-delete と同じ
+	                                              |notmuch-python-vim-select-file|
 
                                                *notmuch-python-vim-mail-forward*
 mail-forward
@@ -1177,7 +1181,7 @@ thread-connect
 
                                                  *notmuch-python-vim-thread-cut*
 thread-cut
-	* メールのスレッドを切る
+	* メールのスレッド切断
 	* In-Reply-To, Reference ヘッダを編集している
 	* mail-reindex (|notmuch-python-vim-mail-reindex|) と reload
 		(|notmuch-python-vim-reload|) が行われる

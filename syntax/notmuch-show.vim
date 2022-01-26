@@ -22,7 +22,7 @@ syntax region	mailNewPart	contains=mailNewPartHead,mailHeader,@mailHeaderFields,
 " Usenet headers
 syntax match	mailHeaderKey	contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
 syntax match	mailNewPartHead	contains=@NoSpell '^[\x0C]\zs.\+ part$'
-syntax region	mailHeader	contains=mailHideHeader,@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+\t$' skip='^\s' end='^[^:]*\n' fold
+syntax region	mailHeader	contains=mailHideHeader,@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+[\u200B]' skip='^\s' end='^[^:]*\n' fold
 execute 'syntax region	mailHideHeader	contains=@mailHeaderFields,@NoSpell '
 			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\):' . '''me=s-1 '
 			\ . 'end=''\(\(Del-\)\?\(Attach\|HTML\)\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '

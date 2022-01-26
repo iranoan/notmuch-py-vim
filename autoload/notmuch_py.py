@@ -405,7 +405,7 @@ class MailData:  # メール毎の各種データ
 
     def get_subject(self): return self.__subject
 
-    def set_subject(self, s):  # 復号化した時に呼び出され、Subject 情報を書き換える
+    def set_subject(self, s):  # 復号化した時、JIS 外漢字が使われデコード結果と異なる時に呼び出され、Subject 情報を書き換える
         self._reformed_subject = RE_TAB2SPACE.sub(
                             ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s)))
         self.__subject = s
@@ -1098,7 +1098,8 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
             vim.command('setlocal foldlevel=0')
         elif kind == 'show' or kind == 'view':
             vim.command('setlocal foldlevel=2 concealcursor=nvic conceallevel=3' +
-                        '| call matchadd(\'Conceal\', \'[\x0C]\')')
+                        '| call matchadd(\'Conceal\', \'[\x0C]\')' +
+                        '| call matchadd(\'Conceal\', \'[\u200B]\')')
 
 
 def open_mail(search_term, index, active_win):  # 実際にメールを表示
@@ -1234,7 +1235,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         while s_l[-1] == '':
             del s_l[-1]
         for i in s_l:
-            s_list.append(re.sub(r'^\s+$', '', re.sub(r'\t+$', '', i)))
+            s_list.append(re.sub(r'^\s+$', '', i))
 
     def vim_append_content(out):  # 複数行を vim のカレントバッファに書き込みとカーソル位置の指定
         # Attach, HTML ヘッダや本文開始位置を探す
@@ -1255,6 +1256,18 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             fold_begin = [fold_begin[0] + 1]
         else:
             fold_begin = []
+        # 必要に応じて thread_b のサブジェクト変更
+        for s in out.main['header']:
+            match = re.match(r'^Subject:\s*', s)
+            if match is None:
+                continue
+            else:
+                s = s[match.end():]
+                thread_s = thread_b_v['subject'].decode()
+                if s != thread_s:
+                    b_v['subject'] = s
+                    reset_subject(s)
+                break
         # 出力データの生成
         ls = []
         while out is not None:
@@ -1403,21 +1416,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             sub += decode_header(s)
         if sub != '':
             b_v['subject'] = sub
-            thread_b_v['subject'] = sub
-            index = [i for i, x in enumerate(
-                THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id][0]
-            THREAD_LISTS[search_term]['list'][index].set_subject(sub)
-            s = THREAD_LISTS[search_term]['list'][index].get_list(
-                    'list' in THREAD_LISTS[search_term]['sort'])
-            if not_search:
-                p_b = vim.buffers[vim.bindeval('s:buf_num')['thread']]
-                # p_s_b = vim.buffers[vim.bindeval('s:buf_num')['show']]
-            else:
-                p_b = vim.buffers[vim.bindeval('s:buf_num')['search'][search_term]]
-                # p_s_b = vim.buffers[vim.bindeval('s:buf_num')['view'][search_term]]
-            p_b.options['modifiable'] = 1
-            p_b[index] = s
-            p_b.options['modifiable'] = 0
+            reset_subject(sub)
             for header in vim.vars['notmuch_show_headers']:
                 if header.decode().lower() == 'subject':
                     for i, s in enumerate(output.main['header']):
@@ -1426,6 +1425,17 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                             break
                     break
         return True
+
+    def reset_subject(sub):
+        thread_b_v['subject'] = sub
+        index = [i for i, x in enumerate(
+            THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id][0]
+        THREAD_LISTS[search_term]['list'][index].set_subject(sub)
+        s = THREAD_LISTS[search_term]['list'][index].get_list(
+                not ('list' in THREAD_LISTS[search_term]['sort']))
+        thread_b.options['modifiable'] = 1
+        thread_b[index] = s
+        thread_b.options['modifiable'] = 0
 
     def get_output(part, part_ls, output):
         from html2text import HTML2Text     # HTML メールの整形
@@ -1764,7 +1774,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         else:
             mag_walk_org(msg_file, output, part_ls, flag, pgp_info)
         if len(output.main['header']) >= 3 and output.main['header'][1][0] == '\f':
-            output.main['header'][2] += '\t'
+            output.main['header'][2] += '\u200B'  # メールヘッダ開始
 
     def print_local_message(output):
         for a in output.main['attach']:
@@ -1804,15 +1814,17 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         part_ls = [1]
         msg_walk(msg_file, output, part_ls, flag)
         if not flag:
-            output.main['header'][0] += '\t'  # 行末のタブをメールヘッダの開始とするため→add_content() では行末タブを削除している
+            output.main['header'][0] += '\u200B'  # メールヘッダ開始
         print_local_message(output)
 
     not_search = vim.current.buffer.number
     not_search = vim.bindeval('s:buf_num')['thread'] == not_search \
         or vim.bindeval('s:buf_num')['show'] == not_search
     if not_search:
+        thread_b = vim.buffers[vim.bindeval('s:buf_num')['thread']]
         thread_b_v = vim.buffers[vim.bindeval('s:buf_num')['thread']].vars['notmuch']
     else:
+        thread_b = vim.buffers[vim.bindeval('s:buf_num')['search'][search_term]]
         thread_b_v = vim.buffers[vim.bindeval('s:buf_num')['search'][search_term]].vars['notmuch']
     # ↓thread から移す方法だと、逆に show で next_unread などを実行して別の search_term の thread に写った場合、その thread でのバッファ変数が書き換わらない
     # subject = thread_b_v['subject']
@@ -2367,7 +2379,7 @@ def reindex_mail(msg_id, s, args):
 
 
 def decode_header(f):
-    if f is None:  # ファイル名の記述がない
+    if f is None:
         return ''
     name = ''
     for string, charset in email.header.decode_header(f):
@@ -2395,7 +2407,7 @@ def decode_header(f):
                     name += ret.stdout.decode()
             except Exception:
                 name += string.decode('raw_unicode_escape')
-    return name.replace('\n', ' ')
+    return re.sub('[\u200B-\u200D\uFEFF]', '', name.replace('\n', ' '))  # ゼロ幅文字削除
 
 
 def get_part_deocde(part):
@@ -3035,19 +3047,21 @@ def view_mail_info():  # メール情報表示
             return lists
         if bnum == vim.bindeval('s:buf_num')['folders']:
             search_term = vim.vars['notmuch_folders'][vc.window.cursor[0]-1][1].decode()
+            if search_term == '':
+                return None
             return [search_term]
         msg_id = get_msg_id()
         if msg_id == '':
-            return
+            return None
         DBASE.open(PATH)
         msg = DBASE.find_message(msg_id)
         if msg is None:  # メール・ファイルが全て削除されている場合
-            return
+            return None
         if f_type != 'notmuch-edit':
             search_term = b_v['search_term'].decode()
         # msg = DBASE.find_message(msg_id)
         # if msg is None:  # メール・ファイルが全て削除されている場合
-        #     return
+        #     return None
         if f_type == 'notmuch-edit':
             lists = []
         elif bnum == vim.bindeval('s:buf_num')['thread'] \
@@ -3090,7 +3104,8 @@ def view_mail_info():  # メール情報表示
                     '"close": "click",' +
                     '"moved": "any",' +
                     '"filter": function("s:close_popup"),' +
-                    '"col": 0,' +
+                    '"col": "cursor",' +
+                    '"wrap": 0,' +
                     '"mapping": 0' +
                     '})')
         # '"minwidth": 400,' +
@@ -4080,7 +4095,7 @@ def reply_mail():  # 返信メールの作成
                 x_ls.remove(x)
         return exist, dup
 
-    active_win, msg_id = check_org_mail()
+    active_win, msg_id, subject = check_org_mail()
     if not active_win:
         return
     msg_data = get_mail_body(active_win)
@@ -4119,7 +4134,7 @@ def reply_mail():  # 返信メールの作成
         if header_lower == 'from':
             b.append('From: ' + send_from_name)
         elif header_lower == 'subject':
-            subject = 'Re: ' + msg.get_header('Subject')
+            subject = 'Re: ' + subject
             b.append('Subject: ' + subject)
             b_v['subject'] = subject
         elif header_lower == 'to':
@@ -4146,7 +4161,7 @@ def reply_mail():  # 返信メールの作成
 
 
 def forward_mail():
-    windo, msg_id = check_org_mail()
+    windo, msg_id, subject = check_org_mail()
     if not windo:
         return
     msg_data = get_mail_body(windo)  # 実際には後からヘッダ情報なども追加
@@ -4160,11 +4175,12 @@ def forward_mail():
     cut_line = 70
     for h in ['Cc', 'To', 'Date', 'Subject', 'From']:
         s = msg.get_header(h).replace('\t', ' ')
-        if s != '':
-            msg_data = h + ': ' + ' ' * (7-len(h)) + s + '\n' + msg_data
         if h == 'Subject':
-            subject = 'FWD:' + s
+            msg_data = h + ': ' + subject + '\n' + msg_data
+            subject = 'FWD:' + subject
             b_v['subject'] = subject
+        elif s != '':
+            msg_data = h + ': ' + ' ' * (7-len(h)) + s + '\n' + msg_data
         s_len = 9 + vim.bindeval('strdisplaywidth("' + s.replace('"', '\\"') + '")')
         cut_line = max(cut_line, s_len)
     headers = vim.vars['notmuch_draft_header']
@@ -4194,7 +4210,7 @@ def forward_mail():
 
 
 def forward_mail_attach():
-    windo, msg_id = check_org_mail()
+    windo, msg_id, s = check_org_mail()
     if not windo:
         return
     DBASE.open(PATH)
@@ -4207,7 +4223,7 @@ def forward_mail_attach():
         h = h.decode()
         h_lower = h.lower()
         if h_lower == 'subject':
-            s = 'FWD:' + msg.get_header(h).replace('\t', ' ')
+            s = 'FWD:' + s
             b_v['subject'] = s
             b.append('Subject: ' + s)
         elif h_lower == 'attach':  # 元メールを添付するので何もしない
@@ -4225,7 +4241,7 @@ def forward_mail_attach():
 
 
 def forward_mail_resent():
-    windo, msg_id = check_org_mail()
+    windo, msg_id, s = check_org_mail()
     if not windo:
         return
     DBASE.open(PATH)
@@ -4234,7 +4250,7 @@ def forward_mail_resent():
     b = vim.current.buffer
     b.vars['notmuch'] = {}
     b_v = b.vars['notmuch']
-    s = 'Resent-FWD:' + msg.get_header('subject').replace('\t', ' ')
+    s = 'Resent-FWD:' + s
     b_v['subject'] = s
     b.append('Subject: ' + s)
     b.append('From: ')
@@ -4337,7 +4353,7 @@ def check_org_mail():  # 返信・転送可能か? 今の bufnr() と msg_id を
     b = vim.current.buffer
     is_search = b.number
     b_v = b.vars['notmuch']
-    b_v['subject'] = ''
+    # JIS 外漢字が含まれ notmcuh データベースの取得結果とは異なる可能性がある
     active_win = str(is_search)
     show_win = vim.bindeval('s:buf_num')['show']
     is_search = not(vim.bindeval('s:buf_num')['folders'] == is_search
@@ -4347,12 +4363,13 @@ def check_org_mail():  # 返信・転送可能か? 今の bufnr() と msg_id を
         show_win = \
             vim.bindeval('s:buf_num')["view"][b_v['search_term'].decode()]
     if vim.bindeval('win_gotoid(bufwinid(' + str(show_win) + '))') == 0:
-        return 0, ''
+        return 0, '', ''
     msg_id = get_msg_id()
     if msg_id == '':
         vim.command('call win_gotoid(bufwinid(' + active_win + '))')
-        return 0, ''
-    return active_win, msg_id
+        return 0, '', ''
+    subject = b_v['subject'].decode()
+    return active_win, msg_id, subject
 
 
 def get_mail_body(active_win):
@@ -4750,6 +4767,29 @@ def import_mail():
 
 
 def select_file(msg_id, question):  # get mail file list
+    def get_attach_info(f):
+        with open(f, 'rb') as fp:
+            msg = email.message_from_binary_file(fp)
+        t = msg.get_content_subtype().lower()
+        if t == 'encrypted' or t == 'pkcs7-mime':
+            return '🔑'
+        if not msg.is_multipart():
+            return '📎0'
+        count = 0
+        if msg.get_content_type().lower() == 'text/html':
+            html = '🌐'
+        else:
+            html = ''
+        for part in msg.walk():
+            if part.is_multipart():
+                continue
+            t = part.get_content_type().lower()
+            if t == 'text/html' and (part.get_payload()):
+                html = '🌐'
+            elif t != 'text/plain' and t != 'text/html' and (part.get_payload()):
+                count += 1
+        return html + '📎' + str(count)
+
     if msg_id == '':
         msg_id = get_msg_id()
         if msg_id == '':
@@ -4771,7 +4811,7 @@ def select_file(msg_id, question):  # get mail file list
     lst = ''
     size = 0
     len_i = 1
-    for i, f in enumerate(msg.get_filenames()):
+    for i, f in enumerate(msg.get_filenames()):  # ファイル・サイズの最大桁数の算出
         if os.path.isfile(f):
             len_i += 1
             f_size = os.path.getsize(f)
@@ -4781,10 +4821,12 @@ def select_file(msg_id, question):  # get mail file list
     len_i = len(str(len_i))
     for i, f in enumerate(msg.get_filenames()):
         if os.path.isfile(f):
-            fmt = '{0:<' + str(len_i) + '}|{1}| {2:>' + str(size) + '} B| {3}\n'
+            fmt = '{0:<' + str(len_i) + '}|{1}{2:<5}{3:>' + str(size) + '} B| {4}\n'
+            attach = get_attach_info(f)
             lst += fmt.format(
                     str(i+1),
                     datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
+                    attach,
                     str(os.path.getsize(f)),
                     f[prefix:])
             files.append(f)
