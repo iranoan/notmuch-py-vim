@@ -805,14 +805,14 @@ def print_thread_core(b_num, search_term, select_unread, remake):
         unread = notmuch.Query(
             DBASE, '('+search_term+') and tag:unread').count_messages()
         if len(index):
-            index = index[0]
-            vim.current.window.cursor = (index+1, 0)
+            reset_cursor_position(b, vim.current.window, index[0]+1)
             vim.command('call s:fold_open()')
         elif unread:  # フォルダリストに未読はないが新規メールを受信していた場合
             print_thread_core(b_num, search_term, True, True)
         else:
             vim.command('normal! Gz-')
             vim.command('call s:fold_open()')
+            reset_cursor_position(b, vim.current.window, vim.current.window.cursor[0])
 
 
 def make_thread_line(msg, i, flag):
@@ -947,7 +947,7 @@ def thread_change_sort(sort_way):
     index = [i for i, msg in enumerate(threadlist) if msg.get_message_id() == msg_id]
     vim.command('normal! Gz-')
     if len(index):  # 実行前のメールがリストに有れば選び直し
-        vim.current.window.cursor = (index[0]+1, 0)
+        reset_cursor_position(b, vim.current.window, index[0]+1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
         vim.command('normal! G')
@@ -1042,7 +1042,7 @@ def reload_thread():
     # ウィンドウ下部にできるだけ空間表示がない様にする為一度最後のメールに移動後にウィンドウ最下部にして表示
     vim.command('normal! Gz-')
     if msg_id != '' and len(index):  # 実行前のメールがリストに有れば選び直し
-        w.cursor = (index[0]+1, 0)
+        reset_cursor_position(b, w, index[0]+1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
     change_buffer_vars_core()
@@ -2240,15 +2240,26 @@ def change_tags_after_core(msg, change_b_tags):
                 msg._tags = ls_tags
                 b.options['modifiable'] = 1
                 b[line] = msg.get_list(not ('list' in THREAD_LISTS[search_term]['sort']))
+                winnr = vim.bindeval('bufwinnr(' + str(b_num) + ')')
+                if winnr != -1:
+                    for w in vim.windows:
+                        if winnr == w.number:
+                            reset_cursor_position(b, w, line+1)
                 b.options['modifiable'] = 0
     # vim.command('redrawstatus!')
     reprint_folder()
 
 
+def reset_cursor_position(b, winid, line):  # thread でタグ絵文字の後にカーソルを置く
+    s = b[line-1]
+    match = re.match(r'^[^\t]+\t', s)
+    winid.cursor = (line, 22 - 2 * match.end())
+
+
 def next_unread(active_win):  # 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない)
     def open_mail_by_index(buf_num, index):
         vim.command('call win_gotoid(bufwinid(s:buf_num' + buf_num + '))')
-        vim.current.window.cursor = (index+1, 0)
+        reset_cursor_position(vim.current.buffer, vim.current.window, index+1)
         vim.command('call s:fold_open()')
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
@@ -2274,7 +2285,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
             print_thread_core(b_num, search_term, False, True)
             index = get_unread_in_THREAD_LISTS(search_term)
             index = index[0]
-        vim.current.window.cursor = (index+1, 0)
+        reset_cursor_position(vim.current.buffer, vim.current.window, index+1)
         vim.command('call s:fold_open()')
         change_buffer_vars_core()
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
@@ -2924,7 +2935,7 @@ def cut_thread(msg_id, dumy):
         index = [i for i, x in enumerate(
             THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id]
         if len(index):
-            vim.current.window.cursor = (index[0]+1, 0)
+            reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
             vim.command('call s:fold_open()')
         else:
             print('Already Delete/Move/Change folder/tag')
@@ -2979,7 +2990,7 @@ def connect_thread_tree():
     index = [i for i, x in enumerate(
         THREAD_LISTS[search_term]['list']) if x.get_message_id() == r_msg_id]
     if len(index):
-        vim.current.window.cursor = (index[0]+1, 0)
+        reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
         vim.command('call s:fold_open()')
     else:
         print('Already Delete/Move/Change folder/tag')
@@ -5184,7 +5195,7 @@ def notmuch_thread():
     vim.command('normal! zO')
     index = [i for i, msg in enumerate(
         THREAD_LISTS[search_term]['list']) if msg.get_message_id() == msg_id]
-    vim.current.window.cursor = (index[0]+1, 0)
+    reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
 
 
 def notmuch_duplication(remake):
