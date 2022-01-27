@@ -341,10 +341,10 @@ class MailData:  # メール毎の各種データ
             ls += '\t'
         for item in DISPLAY_ITEM:
             if item == 'date':
-                ls += self.__reformed_date+'\t'
+                ls += RE_TAB2SPACE.sub(' ', self.__reformed_date)+'\t'
             elif item == 'subject':
                 subject = self.__thread_depth * flag_thread *\
-                    (' '+'\t')+'  ' + self._reformed_subject
+                    ('  ')+'  ' + RE_TAB2SPACE.sub(' ', self._reformed_subject)
                 if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
                     ls += str_just_length(subject, SUBJECT_LENGTH)+'\t'
                 else:
@@ -366,7 +366,7 @@ class MailData:  # メール毎の各種データ
             if item == 'date':
                 ls += self.__reformed_date+'\t'
             elif item == 'subject':
-                subject = (self.__thread_depth) * (' \t') + '+ ' + self._reformed_subject
+                subject = (self.__thread_depth) * ('  ') + '+ ' + self._reformed_subject
                 if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
                     ls += str_just_length(subject, SUBJECT_LENGTH)+'\t'
                 else:
