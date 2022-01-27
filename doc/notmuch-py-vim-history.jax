@@ -12,6 +12,7 @@ License: GPL Ver.3.
 2022/01/26 Ver.1.08~
 * ドキュメントに |{T-WIN}| の行頭に📩📝⭐🗑📎🔑🖋️を付ける記述追加
 * 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定する
+* バッファ再表示処理の見直し
 
 2022/01/26 Ver.1.07~
 * mail-delete (|notmuch-python-vim-mail-delete|), mail-export

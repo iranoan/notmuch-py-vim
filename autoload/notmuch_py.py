@@ -1068,8 +1068,12 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
         buf_num = vim.eval('s:buf_num')[kind][search_term]
     else:
         buf_num = vim.eval('s:buf_num')[kind]
-    if vim.bindeval('win_gotoid(bufwinid(' + buf_num + '))') == 0:
-        # 失敗しているので他のタプページにもなかった
+    # if vim.bindeval('win_gotoid(bufwinid(' + buf_num + '))') == 0:
+    win_id = vim.bindeval('win_findbuf(' + buf_num + ')')
+    if len(win_id):
+        vim.command('call win_gotoid(' + str(win_id[0]) + ')')
+        return
+    else:  # 他のタプページにもなかった
         if kind == 'thread':
             vim.command('call win_gotoid(bufwinid(s:buf_num["folders"])) | silent only')
         open_way = vim.vars['notmuch_open_way'][kind].decode()
