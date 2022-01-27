@@ -2240,20 +2240,20 @@ def change_tags_after_core(msg, change_b_tags):
                 msg._tags = ls_tags
                 b.options['modifiable'] = 1
                 b[line] = msg.get_list(not ('list' in THREAD_LISTS[search_term]['sort']))
-                winnr = vim.bindeval('bufwinnr(' + str(b_num) + ')')
-                if winnr != -1:
-                    for w in vim.windows:
-                        if winnr == w.number:
-                            reset_cursor_position(b, w, line+1)
                 b.options['modifiable'] = 0
+                for t in vim.tabpages:
+                    for i in [i for i, x in enumerate(list(
+                            vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
+                            if x == b_num]:
+                        reset_cursor_position(b, t.windows[i], line+1)
     # vim.command('redrawstatus!')
     reprint_folder()
 
 
-def reset_cursor_position(b, winid, line):  # thread でタグ絵文字の後にカーソルを置く
+def reset_cursor_position(b, w, line):  # thread でタグ絵文字の後にカーソルを置く
     s = b[line-1]
     match = re.match(r'^[^\t]+\t', s)
-    winid.cursor = (line, 22 - 2 * match.end())
+    w.cursor = (line, 22 - 2 * match.end())
 
 
 def next_unread(active_win):  # 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない)
@@ -2273,8 +2273,12 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         if search_term == '' or not notmuch.Query(DBASE, '('+search_term+') and tag:unread').count_messages():
             vim.command('call win_gotoid(bufwinid('+active_win+'))')
             return False
-        if vim.bindeval("win_gotoid(bufwinid(s:buf_num['folders']))"):
-            vim.current.window.cursor = (index+1, 0)  # ここまではフォルダ・リストの順番としてindex使用
+        b_num = vim.bindeval('s:buf_num')['folders']
+        for t in vim.tabpages:
+            for i in [i for i, x in enumerate(list(
+                    vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
+                    if x == b_num]:
+                t.windows[i].cursor = (index+1, 0)  # ここまではフォルダ・リストの順番としてindex使用
         b_num = vim.bindeval('s:buf_num')['thread']
         print_thread_core(b_num, search_term, False, False)
         # ここからはスレッド・リストの順番としてindex使用
