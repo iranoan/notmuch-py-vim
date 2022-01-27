@@ -1073,12 +1073,12 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
         vim.command('call win_gotoid(' + str(win_id[0]) + ')')
         return
     else:  # 他のタプページにもなかった
-        if kind == 'thread':
-            vim.command('call win_gotoid(bufwinid(s:buf_num["folders"])) | silent only')
+        # if kind == 'thread':
+        #     vim.command('call win_gotoid(bufwinid(s:buf_num["folders"])) | silent only')
         open_way = vim.vars['notmuch_open_way'][kind].decode()
         if open_way == 'enew':
             vim.command('silent buffer '+buf_num)
-        if open_way == 'tabedit':
+        elif open_way == 'tabedit':
             vim.command('silent tab sbuffer '+buf_num)
         else:
             open_way = re.sub(r'\bnew\b',       'split',     open_way)

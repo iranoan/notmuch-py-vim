@@ -94,19 +94,19 @@ endfunction
 
 function s:make_folders_list() abort
 	if has_key(s:buf_num, 'folders') " && bufname(s:buf_num['folders']) !=? ''
-		call s:close_notmuch('thread')
-		call s:close_notmuch('show')
-		call s:close_notmuch('search')
-		call s:close_notmuch('view')
 		call s:change_exist_tabpage_core(s:buf_num['folders'])
 		if bufwinid(s:buf_num['folders']) == -1
 			py3 reopen('folders', '')
 		else
 			call win_gotoid(bufwinid(s:buf_num['folders']))
 		endif
+		call s:close_notmuch('thread')
+		call s:close_notmuch('show')
+		call s:close_notmuch('search')
+		call s:close_notmuch('view')
 		let open_way = g:notmuch_open_way['folders']
 		if open_way ==# 'enew' || open_way ==# 'tabedit'
-			only
+			silent only
 		endif
 	else
 		call s:new_buffer('folders', '')

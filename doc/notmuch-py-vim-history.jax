@@ -15,6 +15,7 @@ License: GPL Ver.3.
 * バッファ再表示処理の見直し
 * notmuch-thread, notmuch-show setlocal の設定を ftplgin/* に移動
 	- :tab ba 等によってウィンドウが再構成された時の対処
+* 起動済み時の start (|notmuch-python-vim-start|) による再レイアウトが不完全
 
 2022/01/26 Ver.1.07~
 * mail-delete (|notmuch-python-vim-mail-delete|), mail-export
