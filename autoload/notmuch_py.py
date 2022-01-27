@@ -783,6 +783,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     # マルチスレッド化しないバージョン
     b.vars['notmuch']['search_term'] = search_term
     b[:] = None
+    vim.command('redraw')  # 直前より行数の少ないスレッドを開いた時、後に選択する行がウィンドウ先頭に表示されるのを防ぐ
     ls = []
     for msg in threadlist:
         ls.append(msg.get_list(flag))
@@ -810,9 +811,9 @@ def print_thread_core(b_num, search_term, select_unread, remake):
         elif unread:  # フォルダリストに未読はないが新規メールを受信していた場合
             print_thread_core(b_num, search_term, True, True)
         else:
-            vim.command('normal! Gz-')
-            vim.command('call s:fold_open()')
+            vim.command('normal! Gzb')
             reset_cursor_position(b, vim.current.window, vim.current.window.cursor[0])
+            vim.command('call s:fold_open()')
 
 
 def make_thread_line(msg, i, flag):
@@ -945,7 +946,7 @@ def thread_change_sort(sort_way):
     b[0] = None
     b.options['modifiable'] = 0
     index = [i for i, msg in enumerate(threadlist) if msg.get_message_id() == msg_id]
-    vim.command('normal! Gz-')
+    vim.command('normal! Gzb')
     if len(index):  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, vim.current.window, index[0]+1)
     else:
@@ -1040,7 +1041,7 @@ def reload_thread():
             empty_show()
         return
     # ウィンドウ下部にできるだけ空間表示がない様にする為一度最後のメールに移動後にウィンドウ最下部にして表示
-    vim.command('normal! Gz-')
+    vim.command('normal! Gzb')
     if msg_id != '' and len(index):  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, w, index[0]+1)
     else:
@@ -1841,23 +1842,21 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     if msg is None:
         b.append('Already all mail file delete.')
         b.options['modifiable'] = 0
-        vim.command('call win_gotoid(bufwinid('+active_win+'))')
-        vim.command('redrawstatus!')
-        return
-    vim.options['guitabtooltip'] = 'tags['+get_msg_tags(msg)+']'
-    # * 添付ファイル名
-    # * part番号
-    # * 下書きをそのまま送信メールとした時のファイルの保存ディレクトリ
-    # vim とやり取りするので辞書のキーは、行番号。item は tuple でなく list
-    b_v['attachments'] = {}
-    b_v['pgp_result'] = ''
-    main_out = Output()
-    make_header_content(f, main_out, 0)
-    vim_append_content(main_out)
-    if check_end_view() and ('unread' in msg.get_tags()):
-        msg = change_tags_before_core(msg.get_message_id())
-        delete_msg_tags(msg, ['unread'])
-        change_tags_after_core(msg, True)
+    else:
+        vim.options['guitabtooltip'] = 'tags['+get_msg_tags(msg)+']'
+        # * 添付ファイル名
+        # * part番号
+        # * 下書きをそのまま送信メールとした時のファイルの保存ディレクトリ
+        # vim とやり取りするので辞書のキーは、行番号。item は tuple でなく list
+        b_v['attachments'] = {}
+        b_v['pgp_result'] = ''
+        main_out = Output()
+        make_header_content(f, main_out, 0)
+        vim_append_content(main_out)
+        if check_end_view() and ('unread' in msg.get_tags()):
+            msg = change_tags_before_core(msg.get_message_id())
+            delete_msg_tags(msg, ['unread'])
+            change_tags_after_core(msg, True)
     vim.command('call win_gotoid(bufwinid('+active_win+'))')
     vim.command('redrawstatus!')
 
@@ -2242,7 +2241,6 @@ def change_tags_after_core(msg, change_b_tags):
                             vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
                             if x == b_num]:
                         reset_cursor_position(b, t.windows[i], line+1)
-    # vim.command('redrawstatus!')
     reprint_folder()
 
 
@@ -2295,7 +2293,6 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
                                THREAD_LISTS[search_term]['list'][index].get_message_id(),
                                active_win, False)
         if str(vim.bindeval('s:buf_num')['folders']) == active_win:
-            # and is_same_tabpage('thread', ''):
             vim.command('call win_gotoid(bufwinid(' +
                         str(vim.bindeval('s:buf_num')['thread'])+'))')
         else:
@@ -2319,10 +2316,8 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     search_term = search_term.decode()
     if is_same_tabpage('search', search_term) or is_same_tabpage('view', search_term):
         search_view = True  # 検索スレッドや検索ビューや否かのフラグ
-        # vim.command('call win_gotoid(bufwinid(s:buf_num["view"][\\\'' + search_term + '\\\']))')
     else:
         search_view = False
-        # vim.command('call win_gotoid(bufwinid(s:buf_num["show"]))')
     # タグを変更することが有るので、書き込み権限も
     DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
     if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合

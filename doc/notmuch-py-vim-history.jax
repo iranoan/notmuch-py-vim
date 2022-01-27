@@ -16,6 +16,7 @@ License: GPL Ver.3.
 * notmuch-thread, notmuch-show setlocal の設定を ftplgin/* に移動
 	- :tab ba 等によってウィンドウが再構成された時の対処
 * 起動済み時の start (|notmuch-python-vim-start|) による再レイアウトが不完全
+* 直前より行数の少ないスレッドを開いた時、後に選択する行がウィンドウ先頭に表示されるのを防ぐ
 
 2022/01/26 Ver.1.07~
 * mail-delete (|notmuch-python-vim-mail-delete|), mail-export
