@@ -1068,7 +1068,6 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
         buf_num = vim.eval('s:buf_num')[kind][search_term]
     else:
         buf_num = vim.eval('s:buf_num')[kind]
-    # if vim.bindeval('win_gotoid(bufwinid(' + buf_num + '))') == 0:
     win_id = vim.bindeval('win_findbuf(' + buf_num + ')')
     if len(win_id):
         vim.command('call win_gotoid(' + str(win_id[0]) + ')')
@@ -1097,13 +1096,6 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
             if open_way != 'enew' and open_way != 'tabedit':
                 vim.command('call s:make_view(\'' + vim_escape(search_term) + '\')')
         vim.command('call win_gotoid(bufwinid(' + buf_num + '))')
-        # reset 'foldlevel'
-        if kind == 'thread' or kind == 'search':
-            vim.command('setlocal foldlevel=0')
-        elif kind == 'show' or kind == 'view':
-            vim.command('setlocal foldlevel=2 concealcursor=nvic conceallevel=3' +
-                        '| call matchadd(\'Conceal\', \'[\x0C]\')' +
-                        '| call matchadd(\'Conceal\', \'[\u200B]\')')
 
 
 def open_mail(search_term, index, active_win):  # 実際にメールを表示

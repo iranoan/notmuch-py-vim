@@ -8,9 +8,20 @@ if exists('b:did_ftplugin_user')
 endif
 let b:did_ftplugin_user = 1
 
-" if !exists('g:ft_notmuch_show')
-" 	let g:ft_notmuch_thread = 1
-" endif
+if !exists('g:ft_notmuch_show')
+	let g:ft_notmuch_show = 1
+	augroup NotmuchShowType
+		autocmd!
+		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show' |
+					\ setlocal concealcursor=nvic conceallevel=3 |
+					\ call matchadd('Conceal', '[\x0C]') |
+					\ call matchadd('Conceal', '[\u200B]') |
+					\ endif
+		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-show' |
+					\ setlocal foldlevel=2 |
+					\ endif
+	augroup END
+endif
 
 if &statusline !=? ''
 	let s:status = substitute(&statusline, '"', '''', 'g')
@@ -22,14 +33,10 @@ if &statusline !=? ''
 else
 	setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
-setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldlevel=2 foldtext=FoldHeaderText()
+setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=FoldHeaderText()
 if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif
-
-setlocal concealcursor+=nvic conceallevel=3
-call matchadd('Conceal', '[\x0C]')
-call matchadd('Conceal', '[\u200B]')
 
 " keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>

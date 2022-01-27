@@ -8,14 +8,20 @@ if exists('b:did_ftplugin_user')
 endif
 let b:did_ftplugin_user = 1
 
-" if !exists('g:ft_notmuch_thread')
-" 	let g:ft_notmuch_thread = 1
-" endif
+if !exists('g:ft_notmuch_thread')
+	let g:ft_notmuch_thread = 1
+	augroup NotmuchThreadType
+		autocmd!
+		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' |
+					\ setlocal foldlevel=0 |
+					\ endif
+	augroup END
+endif
 
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes
 sign define notmuch text=* texthl=notmuchMark
-setlocal foldmethod=expr foldlevel=0 foldminlines=1 foldcolumn=0
+setlocal foldmethod=expr foldminlines=1 foldcolumn=0
 if exists('g:notmuch_display_item')
 	execute 'setlocal foldexpr=FoldThread(' . index(g:notmuch_display_item, 'Subject', 0, v:true) . ')'
 else
