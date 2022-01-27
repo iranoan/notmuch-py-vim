@@ -5525,7 +5525,10 @@ def get_folded_list(start, end):
         emoji_tags += emoji_length.format('') + '\t'
     else:
         emoji_tags += '\t'
-    return emoji_tags + line
+    if vim.bindeval('has(\'patch-8.2.2518\')'):
+        return (emoji_tags + line).replace('\t', '|')
+    else:
+        return emoji_tags + line
 
 
 def buf_kind():  # カレント・バッファの種類

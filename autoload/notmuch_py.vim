@@ -66,7 +66,7 @@ function s:new_buffer(type, search_term) abort
 	elseif a:type ==# 'show' || a:type ==# 'view'
 		setlocal filetype=notmuch-show
 	endif
-	setlocal modifiable buftype=nofile bufhidden=hide noequalalways fileencoding=utf-8 noswapfile nolist
+	setlocal modifiable buftype=nofile bufhidden=hide noequalalways fileencoding=utf-8 noswapfile
 	keepjumps 0d
 endfunction
 

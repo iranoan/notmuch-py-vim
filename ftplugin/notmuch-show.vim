@@ -13,7 +13,7 @@ if !exists('g:ft_notmuch_show')
 	augroup NotmuchShowType
 		autocmd!
 		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show' |
-					\ setlocal concealcursor=nvic conceallevel=3 |
+					\ setlocal concealcursor=nvic conceallevel=3 nolist|
 					\ call matchadd('Conceal', '[\x0C]') |
 					\ call matchadd('Conceal', '[\u200B]') |
 					\ endif
@@ -33,11 +33,10 @@ if &statusline !=? ''
 else
 	setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
-setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=FoldHeaderText()
+setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=FoldHeaderText() foldlevel=2 nolist
 if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif
-setlocal foldlevel=2
 
 " keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>

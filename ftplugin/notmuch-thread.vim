@@ -13,22 +13,27 @@ if !exists('g:ft_notmuch_thread')
 	augroup NotmuchThreadType
 		autocmd!
 		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' |
-					\ setlocal foldlevel=0 |
+					\ if has('patch-8.2.2518') |
+					\		setlocal list foldlevel=0 |
+					\ else |
+					\		setlocal nolist foldlevel=0 |
+					\ endif |
 					\ endif
 	augroup END
 endif
 
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
-setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes
 sign define notmuch text=* texthl=notmuchMark
-setlocal foldmethod=expr foldminlines=1 foldcolumn=0
+if has('patch-8.2.2518')
+	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() list foldlevel=0 listchars=tab:\|,
+else
+	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() nolist foldlevel=0
+endif
 if exists('g:notmuch_display_item')
 	execute 'setlocal foldexpr=FoldThread(' . index(g:notmuch_display_item, 'Subject', 0, v:true) . ')'
 else
 	setlocal foldexpr=FoldThread(0)
 endif
-setlocal foldtext=FoldThreadText()
-setlocal foldlevel=0
 
 " keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>
