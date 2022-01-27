@@ -2252,6 +2252,8 @@ def change_tags_after_core(msg, change_b_tags):
 
 def reset_cursor_position(b, w, line):  # thread でタグ絵文字の後にカーソルを置く
     s = b[line-1]
+    if s == '':
+        return
     match = re.match(r'^[^\t]+\t', s)
     w.cursor = (line, 22 - 2 * match.end())
 
