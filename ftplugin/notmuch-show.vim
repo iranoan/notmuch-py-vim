@@ -37,6 +37,7 @@ setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> 
 if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif
+setlocal foldlevel=2
 
 " keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>

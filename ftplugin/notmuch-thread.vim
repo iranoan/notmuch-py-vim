@@ -28,6 +28,7 @@ else
 	setlocal foldexpr=FoldThread(0)
 endif
 setlocal foldtext=FoldThreadText()
+setlocal foldlevel=0
 
 " keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>
