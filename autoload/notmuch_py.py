@@ -68,6 +68,7 @@ except re.error:
         RE_SUBJECT = re.compile(DELETE_TOP_SUBJECT)
     except re.error:
         print_err('Error: Regurlar Expression')
+RE_TOP_SPACE = re.compile(r'^\s+')
 # スレッドに表示する Date の書式
 if not ('DATE_FORMAT' in globals()):
     DATE_FORMAT = '%Y-%m-%d %H:%M'
@@ -280,8 +281,8 @@ class MailData:  # メール毎の各種データ
         self.__reformed_date = RE_TAB2SPACE.sub(
             ' ', datetime.datetime.fromtimestamp(self._date).strftime(DATE_FORMAT))
         # 整形した Subject
-        self._reformed_subject = RE_TAB2SPACE.sub(
-            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject)))
+        self._reformed_subject = RE_TOP_SPACE.sub('', RE_TAB2SPACE.sub(
+            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject))))
         # 整形した宛名
         m_from = msg.get_header('From')
         try:

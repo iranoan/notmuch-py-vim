@@ -19,6 +19,7 @@ License: GPL Ver.3.
 * 直前より行数の少ないスレッドを開いた時、後に選択する行がウィンドウ先頭に表示されるのを防ぐ
 * |{T-WIN}| スレッドの深さ判定にタブ文字とスペースからスペース 2 つに変更
 * patch-8.2.2518 が適用済みの環境では、|{T-WIN}| では setlocal list listchars=tab:\|
+* |{T-WIN}| で Subject ヘッダの情報が最後にあるとスレッド・ツリーがおかしいバグ修正
 
 2022/01/26 Ver.1.07~
 * mail-delete (|notmuch-python-vim-mail-delete|), mail-export
