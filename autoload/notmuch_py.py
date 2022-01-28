@@ -133,8 +133,8 @@ def get_subject_length():  # スレッド・リストに表示する Subject の
         else:
             width = vim.options['columns'] / 2 - 1
     width -= len(datetime.datetime.now().strftime(DATE_FORMAT)) + \
-        6 + 2 + 2 + 2
-    # 最後の数字は、絵文字で表示するタグ、区切りのタブ*2, sing, ウィンドウ境界
+        6 + 3 + 2
+    # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
     if SUBJECT_LENGTH < FROM_LENGTH * 2:
         SUBJECT_LENGTH = int(width * 2 / 3)
         FROM_LENGTH = width - SUBJECT_LENGTH
