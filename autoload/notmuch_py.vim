@@ -1553,7 +1553,7 @@ function FoldThread(n) abort " スレッド・リストの折畳設定
 	elseif a:n == 1
 		let l:str = substitute(l:str, '^[^\t]\+\t[^\t]\+\t  ', '', 'g')
 	elseif a:n == 2
-		let l:str = substitute(l:str, '^[^\t]\+[^\t]\+\t[^\t]\+\t  ', '', 'g')
+		let l:str = substitute(l:str, '^[^\t]\+\t[^\t]\+\t[^\t]\+\t  ', '', 'g')
 	endif
 	let l:depth = strlen(matchstr(l:str, '^ \+')) / 2
 	if l:depth
