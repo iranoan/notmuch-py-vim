@@ -9,9 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/01/26 Ver.1.08~
+2022/01/28 Ver.1.08~
 * ドキュメントに |{T-WIN}| の行頭に📩📝⭐🗑📎🔑🖋️を付ける記述追加
 * 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定する
+	- 折り畳みでは Vim の仕様のため常に行頭
 * バッファ再表示処理の見直し
 * notmuch-thread, notmuch-show setlocal の設定を ftplgin/* に移動
 	- :tab ba 等によってウィンドウが再構成された時の対処
@@ -20,6 +21,7 @@ License: GPL Ver.3.
 * |{T-WIN}| スレッドの深さ判定にタブ文字とスペースからスペース 2 つに変更
 * patch-8.2.2518 が適用済みの環境では、|{T-WIN}| では setlocal list listchars=tab:\|
 * |{T-WIN}| で Subject ヘッダの情報が最後にあるとスレッド・ツリーがおかしいバグ修正
+* |{T-WIN}| の Subject ヘッダの情報表示幅の計算修正
 
 2022/01/26 Ver.1.07~
 * mail-delete (|notmuch-python-vim-mail-delete|), mail-export
