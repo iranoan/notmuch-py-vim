@@ -2248,8 +2248,7 @@ def reset_cursor_position(b, w, line):  # thread でタグ絵文字の後にカ�
     s = b[line-1]
     if s == '':
         return
-    match = re.match(r'^[^\t]+\t', s)
-    w.cursor = (line, 22 - 2 * match.end())
+    w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()))
 
 
 def next_unread(active_win):  # 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない)
