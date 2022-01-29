@@ -687,6 +687,7 @@ function s:start_notmuch() abort
 		return
 	endif
 	py3 get_subject_length()
+	py3 set_display_format()
 	execute 'cd ' . py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
