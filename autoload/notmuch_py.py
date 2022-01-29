@@ -86,6 +86,10 @@ if not ('FROM_LENGTH' in globals()):
 # スレッドの各行に表示する Subject の長さ
 if not ('SUBJECT_LENGTH' in globals()):
     SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
+# スレッドに表示する順序
+if not ('DISPLAY_FORMAT' in globals()):
+    DISPLAY_FORMAT = '{0}\t{1}\t{2}\t{3}'
+    DISPLAY_FORMAT2 = '{0}\t{1}\t{2}'
 # 送信済みを表すタグ
 if not ('SENT_TAG' in globals()):
     SENT_TAG = 'sent'
@@ -132,8 +136,8 @@ def get_subject_length():  # スレッド・リストに表示する Subject の
             width = vim.options['columns']
         else:
             width = vim.options['columns'] / 2 - 1
-    width -= len(datetime.datetime.now().strftime(DATE_FORMAT)) + \
-        6 + 3 + 2
+    time_length = len(datetime.datetime.now().strftime(DATE_FORMAT))
+    width -= time_length + 6 + 3 + 2
     # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
     if SUBJECT_LENGTH < FROM_LENGTH * 2:
         SUBJECT_LENGTH = int(width * 2 / 3)
@@ -142,13 +146,29 @@ def get_subject_length():  # スレッド・リストに表示する Subject の
         SUBJECT_LENGTH = width - FROM_LENGTH
 
 
+def set_display_format():
+    global DISPLAY_FORMAT, DISPLAY_FORMAT2
+    DISPLAY_FORMAT = '{0}'
+    DISPLAY_FORMAT2 = ''
+    for item in DISPLAY_ITEM:
+        if item == 'subject':
+            DISPLAY_FORMAT += '\t{1}'
+            DISPLAY_FORMAT2 += '\t{0}'
+        elif item == 'from':
+            DISPLAY_FORMAT += '\t{2}'
+            DISPLAY_FORMAT2 += '\t{1}'
+        elif item == 'date':
+            DISPLAY_FORMAT += '\t{3}'
+            DISPLAY_FORMAT2 += '\t{2}'
+
+
 def delete_gloval_variable():
     global ATTACH_DIR, DATE_FORMAT, DELETE_TOP_SUBJECT, \
         DISPLAY_ITEM, FOLDER_FORMAT, FROM_LENGTH, SENT_TAG, SUBJECT_LENGTH,\
-        THREAD_LISTS, SEND_PARAM, SENT_CHARSET
+        THREAD_LISTS, SEND_PARAM, SENT_CHARSET, DISPLAY_FORMAT, DISPLAY_FORMAT2
     del ATTACH_DIR, DATE_FORMAT, DELETE_TOP_SUBJECT,\
         DISPLAY_ITEM, FOLDER_FORMAT, FROM_LENGTH, SENT_TAG, SUBJECT_LENGTH, \
-        THREAD_LISTS, SEND_PARAM, SENT_CHARSET
+        THREAD_LISTS, SEND_PARAM, SENT_CHARSET, DISPLAY_FORMAT, DISPLAY_FORMAT2
 
 
 # 変数によっては正規表現チェック+正規表現検索方法をパックしておく←主にスレッド・リストで使用
@@ -333,55 +353,24 @@ class MailData:  # メール毎の各種データ
             if t in tags:
                 ls += emoji
         ls = ls[:3]
-        emoji_length = 6 - vim.bindeval('strdisplaywidth(\'' + ls + '\')')
         # ↑基本的には unread, draft の両方が付くことはないので最大3つの絵文字
+        emoji_length = 6 - vim.bindeval('strdisplaywidth(\'' + ls + '\')')
         if emoji_length:
             emoji_length = '{:' + str(emoji_length) + 's}'
-            ls += emoji_length.format('') + '\t'
-        else:
-            ls += '\t'
-        for item in DISPLAY_ITEM:
-            if item == 'date':
-                ls += RE_TAB2SPACE.sub(' ', self.__reformed_date)+'\t'
-            elif item == 'subject':
-                subject = self.__thread_depth * flag_thread *\
-                    ('  ')+'  ' + RE_TAB2SPACE.sub(' ', self._reformed_subject)
-                if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
-                    ls += str_just_length(subject, SUBJECT_LENGTH)+'\t'
-                else:
-                    ls += subject+'\t'
-            elif item == 'from':
-                if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
-                    ls += str_just_length(
-                            RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)+'\t'
-                else:
-                    ls += RE_TAB2SPACE.sub(
-                            ' ', RE_END_SPACE.sub('', self.__reformed_name))+'\t'
-            else:
-                print_err("Don't add '" + item + "' element in thread list.  Reset g:notmuch_display_item.")
-        return RE_END_SPACE.sub('', ls)
+            ls += emoji_length.format('')
+        subject = str_just_length(self.__thread_depth * flag_thread * ('  ') +
+                                  '  ' + RE_TAB2SPACE.sub(' ', self._reformed_subject),
+                                  SUBJECT_LENGTH)
+        adr = str_just_length(RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)
+        date = RE_TAB2SPACE.sub(' ', self.__reformed_date)
+        return RE_END_SPACE.sub('', DISPLAY_FORMAT.format(ls, subject, adr, date))
 
     def get_folded_list(self):
-        ls = ''
-        for item in DISPLAY_ITEM:
-            if item == 'date':
-                ls += self.__reformed_date+'\t'
-            elif item == 'subject':
-                subject = (self.__thread_depth) * ('  ') + '+ ' + self._reformed_subject
-                if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
-                    ls += str_just_length(subject, SUBJECT_LENGTH)+'\t'
-                else:
-                    ls += subject+'\t'
-            elif item == 'from':
-                if item != DISPLAY_ITEM[-1]:  # 最後でない時は長さを揃えるために空白で埋める
-                    ls += str_just_length(
-                            RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)+'\t'
-                else:
-                    ls += RE_TAB2SPACE.sub(
-                            ' ', RE_END_SPACE.sub('', self.__reformed_name))+'\t'
-            else:
-                print_err("Don't add '" + item + "' element in thread list.  Reset g:notmuch_display_item.")
-        return RE_END_SPACE.sub('', ls)
+        date = self.__reformed_date
+        subject = str_just_length((self.__thread_depth) * ('  ') + '+ ' + self._reformed_subject,
+                                  SUBJECT_LENGTH)
+        adr = str_just_length(RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)
+        return RE_END_SPACE.sub('', DISPLAY_FORMAT2.format(subject, adr, date))
 
     def make_sort_key(self):
         query = notmuch.Query(DBASE, 'id:"' + self._msg_id + '"')
@@ -5522,9 +5511,7 @@ def get_folded_list(start, end):
     # ↑基本的には unread, draft の両方が付くことはないので最大3つの絵文字
     if emoji_length:
         emoji_length = '{:' + str(emoji_length) + 's}'
-        emoji_tags += emoji_length.format('') + '\t'
-    else:
-        emoji_tags += '\t'
+        emoji_tags += emoji_length.format('')
     if vim.bindeval('has(\'patch-8.2.2518\')'):
         return (emoji_tags + line).replace('\t', '|')
     else:

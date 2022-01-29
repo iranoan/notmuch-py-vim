@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/01/28 Ver.1.09~
+* |{T-WIN}| の表示を少し速度改善
+
 2022/01/28 Ver.1.08~
 * ドキュメントに |{T-WIN}| の行頭に📩📝⭐🗑📎🔑🖋️を付ける記述追加
 * 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定する
