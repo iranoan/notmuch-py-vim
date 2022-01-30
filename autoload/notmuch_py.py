@@ -751,26 +751,9 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     b.options['modifiable'] = 1
     flag = not ('list' in THREAD_LISTS[search_term]['sort'])
     # マルチプロセスだと、vim.buffers[num] や vim.current.buffer.number だとプロセスが違うので、異なる数値になり上手くいかない
-    # ↓之マルチスレッドは速くならない
-    # count = len(threadlist)
-    # j = count - vim.bindeval('getbufinfo(' + str(b_num) + ')')[0]['linecount']
-    # if j > 0:
-    #     ls = [''] * j
-    #     b.append(ls)
-    # b.vars['notmuch']['search_term'] = search_term
-    # from concurrent import futures
-    # with futures.ThreadPoolExecutor() as executor:
-    #     for i, msg in enumerate(threadlist):
-    #         executor.submit(print_thread_line, b, i, msg, flag)
-    # b[count:] = None
+    # マルチスレッドは速くならない
     # 出力部分の作成だけマルチプロセス化するバージョン←やはり速くならない
-    # with futures.ThreadPoolExecutor() as executor:
-    #     f = [executor.submit(make_thread_line, msg, i, flag) for i, msg in enumerate(threadlist)]
-    #     for r in f:
-    #         ret = r.result()
-    #         b[ret[0]] = ret[1]
-    # b[count:] = None
-    # マルチスレッド化しないバージョン
+    # マルチスレッドも速くならない
     b.vars['notmuch']['search_term'] = search_term
     b[:] = None
     vim.command('redraw')  # 直前より行数の少ないスレッドを開いた時、後に選択する行がウィンドウ先頭に表示されるのを防ぐ
@@ -804,15 +787,6 @@ def print_thread_core(b_num, search_term, select_unread, remake):
             vim.command('normal! Gzb')
             reset_cursor_position(b, vim.current.window, vim.current.window.cursor[0])
             vim.command('call s:fold_open()')
-
-
-def make_thread_line(msg, i, flag):
-    return (i, msg.get_list(flag))
-
-
-def print_thread_line(b, i, msg, flag):
-    b[i] = msg.get_list(flag)
-    return
 
 
 def thread_change_sort(sort_way):
