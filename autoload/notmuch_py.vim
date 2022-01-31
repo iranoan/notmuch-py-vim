@@ -1547,6 +1547,17 @@ function s:change_fold_highlight() abort " Folded の色変更↑highlight の�
 	endif
 endfunction
 
+function s:is_gtk() abort
+	if !has('gui_running')
+		return 0
+	endif
+	let l:gtk = execute('version')
+	if match(l:gtk, '\<with GTK\d\? GUI\.') != -1
+		return 1
+	endif
+		return 0
+endfunction
+
 augroup ChangeFoldHighlight
 	autocmd!
 	autocmd BufEnter,WinEnter * call <SID>change_fold_highlight()

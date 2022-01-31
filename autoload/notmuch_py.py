@@ -2985,8 +2985,11 @@ def get_save_filename(path):  # 保存ファイル名の取得 (既存ファイ�
         if path == '':
             return ''
         elif os.path.isfile(path):
-            over_write = vim.bindeval(
-                    'confirm("Overwrite?", "&Yes\n&No", 1, "Question")')
+            if vim.bindeval('s:is_gtk()'):
+                over_write = 'confirm("Overwrite?", "(&Y)Yes\n(&N)No", 1, "Question")'
+            else:
+                over_write = 'confirm("Overwrite?", "&Yes\n&No", 1, "Question")'
+            over_write = vim.bindeval(over_write)
             if over_write == 1:
                 return path
         elif os.path.isdir(path):
@@ -4413,8 +4416,11 @@ def set_resent_after(n):  # そのまま転送メールの From ヘッダの設�
     vim.command('autocmd! NotmuchResentAfter' + str(n))
     to, h_from = set_from()
     if len(to):
-        s = vim.bindeval(
-                'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n&Cancel", 1, "Question")')
+        if vim.bindeval('s:is_gtk()'):
+            s = 'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n(&C)Cancel", 1, "Question")'
+        else:
+            s = 'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n&Cancel", 1, "Question")'
+        s = vim.bindeval(s)
         if s == 1:
             send_vim_buffer()
         elif s == 2:
@@ -4877,8 +4883,11 @@ def do_mail(cmd, args):  # mail に対しての処理、folders では警告表�
 def delete_mail(msg_id, s, args):  # s, args はダミー
     files, tmp, num = select_file(msg_id, 'Select delete file')
     if num == 1:
-        s = vim.bindeval(
-                'confirm("Delete ' + files[0] + '?", "&Yes\n&No", 2, "Question")')
+        if vim.bindeval('s:is_gtk()'):
+            s = 'confirm("Delete ' + files[0] + '?", "(&Y)Yes\n(&N)No", 2, "Question")'
+        else:
+            s = 'confirm("Delete ' + files[0] + '?", "&Yes\n&No", 2, "Question")'
+        s = vim.bindeval(s)
         if s != 1:
             return
     for f in files:
