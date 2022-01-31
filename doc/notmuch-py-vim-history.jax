@@ -10,11 +10,14 @@ License: GPL Ver.3.
 更新履歴~
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 2022/01/30 Ver.1.10~
 * 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定処理改善
 
 =======
 >>>>>>> bde33b5c8ee4df732d480d691b62fc2d7ee270d2
+=======
+>>>>>>> refs/remotes/origin/main
 2022/01/30 Ver.1.09~
 * |{T-WIN}| の表示を少し速度改善
 * 未使用関数削除
@@ -34,12 +37,16 @@ License: GPL Ver.3.
 * |{T-WIN}| で Subject ヘッダの情報が最後にあるとスレッド・ツリーがおかしいバグ修正
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 * |{T-WIN}| の Subject ヘッダの情報表示幅の計算修正
 =======
 >>>>>>> e15eb2e (bug fix: thread tree is strange when subject is at end)
 =======
 * |{T-WIN}| の Subject ヘッダの情報表示幅の計算修正
 >>>>>>> bde33b5c8ee4df732d480d691b62fc2d7ee270d2
+=======
+* |{T-WIN}| の Subject ヘッダの情報表示幅の計算修正
+>>>>>>> refs/remotes/origin/main
 
 2022/01/26 Ver.1.07~
 * mail-delete (|notmuch-python-vim-mail-delete|), mail-export
