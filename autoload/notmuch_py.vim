@@ -632,6 +632,9 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['search']              = ['s:notmuch_search', 0x05]
 				let g:notmuch_command['search-thread']       = ['s:notmuch_thread', 0x04]
 				let g:notmuch_command['search-duplication']  = ['s:notmuch_duplication', 0x04]
+				let g:notmuch_command['search-refine']       = ['s:notmuch_refine', 0x05]
+				let g:notmuch_command['search-up-refine']    = ['s:notmuch_up_refine', 0x04]
+				let g:notmuch_command['search-down-refine']  = ['s:notmuch_down_refine', 0x04]
 				let g:notmuch_command['tag-add']             = ['s:add_tags', 0x1f]
 				let g:notmuch_command['tag-delete']          = ['s:delete_tags', 0x1f]
 				let g:notmuch_command['tag-toggle']          = ['s:toggle_tags', 0x1f]
@@ -1303,7 +1306,7 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 				return s:complete_tag_common('get_msg_tags_any_kind', a:CmdLine, a:CursorPos, v:true)
 			elseif l:cmd ==# 'tag-toggle'
 				return s:complete_tag_common('get_msg_all_tags_list', a:CmdLine, a:CursorPos, v:true)
-			elseif l:cmd ==# 'search'
+			elseif l:cmd ==# 'search' || l:cmd ==# 'search-refine'
 				let l:snippet = s:get_snippet('get_search_snippet', a:CmdLine, a:CursorPos, v:true)
 				return s:is_one_snippet(l:snippet)
 			elseif l:cmd ==# 'thread-sort'
@@ -1521,6 +1524,18 @@ function s:is_sametab_thread() abort
 		return v:false
 	endif
 	return v:false
+endfunction
+
+function s:notmuch_refine(s) abort
+	py3 notmuch_refine(vim.eval('a:s'))
+endfunction
+
+function s:notmuch_down_refine(dummy) abort
+	py3 notmuch_down_refine()
+endfunction
+
+function s:notmuch_up_refine(dummy) abort
+	py3 notmuch_up_refine()
 endfunction
 
 let s:fold_highlight = substitute(execute('highlight Folded'), '^\nFolded\s\+xxx\s\+', '', '')

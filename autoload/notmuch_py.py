@@ -343,8 +343,6 @@ class MailData:  # メール毎の各種データ
 
     # def get_path(self): return self.get_filenames() ←このデータは msg データ自身でないので当然駄目
 
-    def get_message_id(self): return self._msg_id
-
     def get_list(self, flag_thread):
         ls = ''
         tags = self._tags
@@ -688,8 +686,8 @@ def print_thread_view(search_term):  # vim 外からの呼び出し時のスレ�
 
 def get_unread_in_THREAD_LISTS(search_term):  # THREAD_LISTS から未読を探す
     return [i for i, x in enumerate(THREAD_LISTS[search_term]['list'])
-            if (DBASE.find_message(x.get_message_id()) is not None)  # 削除済みメール・ファイルがデータベースに残っていると起きる
-            and ('unread' in DBASE.find_message(x.get_message_id()).get_tags())]
+            if (DBASE.find_message(x._msg_id) is not None)  # 削除済みメール・ファイルがデータベースに残っていると起きる
+            and ('unread' in DBASE.find_message(x._msg_id).get_tags())]
 
 
 def open_thread(line, select_unread, remake):  # フォルダ・リストからスレッドリストを開く
@@ -909,7 +907,7 @@ def thread_change_sort(sort_way):
     b.append(ls)
     b[0] = None
     b.options['modifiable'] = 0
-    index = [i for i, msg in enumerate(threadlist) if msg.get_message_id() == msg_id]
+    index = [i for i, msg in enumerate(threadlist) if msg._msg_id == msg_id]
     vim.command('normal! Gzb')
     if len(index):  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, vim.current.window, index[0]+1)
@@ -997,7 +995,7 @@ def reload_thread():
     print_thread_core(b.number, search_term, False, True)
     if msg_id != '':
         index = [i for i, msg in enumerate(
-            THREAD_LISTS[search_term]['list']) if msg.get_message_id() == msg_id]
+            THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
     # else:  # 開いていれば notmuch-show を一旦空に←同一タブページの時は vim script 側メールを開くので不要
     # ただし、この関数内でその処理をすると既読にしてしまいかねないので、ここや print_thread() ではやらない
     if b[0] == '':  # リロードの結果からのスレッド空←スレッドなので最初の行が空か見れば十分
@@ -1019,7 +1017,7 @@ def reload_thread():
             DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
             open_mail_by_msgid(
                     search_term,
-                    THREAD_LISTS[search_term]['list'][w.cursor[0] - 1].get_message_id(),
+                    THREAD_LISTS[search_term]['list'][w.cursor[0] - 1]._msg_id,
                     str(b.number), False)
             DBASE.close()
 
@@ -1067,7 +1065,7 @@ def open_mail(search_term, index, active_win):  # 実際にメールを表示
     # タグを変更することが有るので書き込み権限も
     DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
     threadlist = THREAD_LISTS[search_term]['list']
-    msg_id = threadlist[index].get_message_id()
+    msg_id = threadlist[index]._msg_id
     open_mail_by_msgid(search_term, msg_id, active_win, False)
     DBASE.close()
 
@@ -1390,7 +1388,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     def reset_subject(sub):
         thread_b_v['subject'] = sub
         index = [i for i, x in enumerate(
-            THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id][0]
+            THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id][0]
         THREAD_LISTS[search_term]['list'][index].set_subject(sub)
         s = THREAD_LISTS[search_term]['list'][index].get_list(
                 not ('list' in THREAD_LISTS[search_term]['sort']))
@@ -1874,7 +1872,7 @@ def get_msg_id():  # notmuch-thread, notmuch-show で Message_ID 取得
     elif bufnr == s_bufnum['thread'] \
         or (search_term in s_bufnum['search']
             and bufnr == s_bufnum['search'][search_term]):
-        return THREAD_LISTS[search_term]['list'][vim.current.window.cursor[0]-1].get_message_id()
+        return THREAD_LISTS[search_term]['list'][vim.current.window.cursor[0]-1]._msg_id
     return ''
 
 
@@ -2191,7 +2189,7 @@ def change_tags_after_core(msg, change_b_tags):
                 if search_term == '':
                     continue
                 line = [i for i, msg in enumerate(
-                    THREAD_LISTS[search_term]['list']) if msg.get_message_id() == msg_id]
+                    THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
                 if len(line) == 0:
                     continue
                 line = line[0]
@@ -2222,7 +2220,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         vim.command('call s:fold_open()')
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
-                               THREAD_LISTS[search_term]['list'][index].get_message_id(),
+                               THREAD_LISTS[search_term]['list'][index]._msg_id,
                                active_win, False)
         DBASE.close()
 
@@ -2253,7 +2251,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         change_buffer_vars_core()
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
-                               THREAD_LISTS[search_term]['list'][index].get_message_id(),
+                               THREAD_LISTS[search_term]['list'][index]._msg_id,
                                active_win, False)
         if str(vim.bindeval('s:buf_num')['folders']) == active_win:
             vim.command('call win_gotoid(bufwinid(' +
@@ -2307,7 +2305,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         DBASE.close()
         return
     index = [i for i, x in enumerate(
-        THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id][0]
+        THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id][0]
     indexes = get_unread_in_THREAD_LISTS(search_term)
     # ↑ len(indexes) > 0 なら未読有り
     index = [i for i, i in enumerate(indexes) if i > index]
@@ -2808,7 +2806,7 @@ def delete_attachment(args):
         DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
         for i in range(args[0], args[1]+1):
-            msg_id = THREAD_LISTS[search_term]['list'][i-1].get_message_id()
+            msg_id = THREAD_LISTS[search_term]['list'][i-1]._msg_id
             msg = DBASE.find_message(msg_id)
             for f in msg.get_filenames():
                 delete_attachment_all(f)
@@ -2893,7 +2891,7 @@ def cut_thread(msg_id, dumy):
         search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
         print_thread(bufnr, search_term, False, True)
         index = [i for i, x in enumerate(
-            THREAD_LISTS[search_term]['list']) if x.get_message_id() == msg_id]
+            THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id]
         if len(index):
             reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
             vim.command('call s:fold_open()')
@@ -2919,7 +2917,7 @@ def connect_thread_tree():
         return
     DBASE.open(PATH)
     for line in lines:
-        msg_id = THREAD_LISTS[search_term]['list'][line].get_message_id()
+        msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
         if r_msg_id == msg_id:
             continue
         msg = DBASE.find_message(msg_id)
@@ -2948,7 +2946,7 @@ def connect_thread_tree():
     DBASE.close()
     print_thread(bufnr, search_term, False, True)
     index = [i for i, x in enumerate(
-        THREAD_LISTS[search_term]['list']) if x.get_message_id() == r_msg_id]
+        THREAD_LISTS[search_term]['list']) if x._msg_id == r_msg_id]
     if len(index):
         reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
         vim.command('call s:fold_open()')
@@ -4867,7 +4865,7 @@ def do_mail(cmd, args):  # mail に対しての処理、folders では警告表�
         args[0] = int(args[0])
         args[1] = int(args[1])
         for i in range(args[0], args[1]+1):
-            msg_id = THREAD_LISTS[search_term]['list'][i-1].get_message_id()
+            msg_id = THREAD_LISTS[search_term]['list'][i-1]._msg_id
             args = cmd(msg_id, search_term, args)
     elif (('show' in vim.bindeval('s:buf_num'))
             and bnum == vim.bindeval('s:buf_num')['show']) \
@@ -5069,7 +5067,7 @@ def command_marked(cmdline):
     # 実際にここのメールにコマンド実行
     for i, cmd in enumerate(cmd_arg):
         for line in marked_line:
-            msg_id = THREAD_LISTS[search_term]['list'][line].get_message_id()
+            msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
             if cmd[0] in [  # 複数選択対応で do_mail() から呼び出されるものは search_term が必要
                           # 不要な場合はダミーの文字列
                           'add_tags',
@@ -5154,7 +5152,7 @@ def notmuch_thread():
     notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
     vim.command('normal! zO')
     index = [i for i, msg in enumerate(
-        THREAD_LISTS[search_term]['list']) if msg.get_message_id() == msg_id]
+        THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
     reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
 
 
@@ -5426,6 +5424,115 @@ def set_encrypt(args):
             b.append('Encrypt: PGP/MIME', l_encrypt)
         else:
             b.append('Encrypt: PGP', l_encrypt)
+
+
+def notmuch_refine(args):
+    b = vim.current.buffer
+    if b.number == vim.bindeval('s:buf_num[\'folders\']'):
+        return
+    b_v = b.vars
+    if not ('search_term' in b_v['notmuch']):
+        return
+    b_v = b_v['notmuch']
+    search_term = b_v['search_term'].decode()
+    if search_term == '':
+        return
+    args = args[2:]
+    if args == []:  # コマンド空
+        args = vim.eval('input("search term: ", "", "customlist,Complete_search")')
+        if args == '':
+            return
+    elif type(args) == list:
+        args = ' '.join(args)
+    if not check_search_term(args):
+        return
+    vim.command('let s:refined_search_term = \'' + vim_escape(args) + '\'')
+    notmuch_down_refine()
+
+
+def get_refine_index():
+    b = vim.current.buffer
+    b_num = b.number
+    if b_num == vim.bindeval('s:buf_num[\'folders\']'):
+        return -1, '', []
+    b_v = b.vars
+    if not ('search_term' in b_v['notmuch']):
+        return -1, '', []
+    search_term = b_v['notmuch']['search_term'].decode()
+    if search_term == '':
+        return -1, '', []
+    if b_num != vim.bindeval('s:buf_num[\'thread\']') \
+        and b_num != vim.bindeval('s:buf_num[\'show\']') \
+        and not (search_term in vim.bindeval('s:buf_num')['search']
+                 and b_num != vim.bindeval('s:buf_num')['search'][search_term]) \
+        and not (search_term in vim.bindeval('s:buf_num')['view']
+                 and b_num != vim.bindeval('s:buf_num')['view'][search_term]):
+        return -1, '', []
+    if not (b'refined_search_term' in vim.bindeval('s:')):
+        print_warring('Do not execute \'search-refine\'')
+        return -1, '', []
+    msg_id = get_msg_id()
+    DBASE.open(PATH)
+    index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
+             if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and (' +
+                              vim.bindeval('s:refined_search_term').decode() +
+                              ')').count_messages()]
+    if len(index) == 0:
+        return -1, '', []
+    DBASE.close()
+    return [i for i, msg in enumerate(
+            THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id][0], \
+        search_term, index
+
+
+def notmuch_refine_common(s, index):
+    org_b_num = vim.current.buffer.number
+    b_num = org_b_num
+    f_show = False
+    if org_b_num == vim.bindeval('s:buf_num[\'show\']'):
+        b_num = vim.bindeval('s:buf_num[\'thread\']')
+        f_show = True
+    elif s in vim.bindeval('s:buf_num[\'view\']') \
+            and org_b_num == vim.bindeval('s:buf_num[\'view\'][\'' + s + '\']'):
+        b_num = vim.bindeval('s:buf_num[\'thread\'][\'' + s + '\']')
+        f_show = True
+    for b in vim.buffers:
+        if b.number == b_num:
+            break
+    for t in vim.tabpages:
+        for i in [i for i, x in enumerate(list(
+                vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
+                if x == b_num]:
+            reset_cursor_position(b, t.windows[i], index+1)
+            if (is_same_tabpage('thread', '') or is_same_tabpage('search', s)):
+                vim.command('call s:fold_open()')
+    if f_show:
+        DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+        msg_id = THREAD_LISTS[s]['list'][index]._msg_id
+        open_mail_by_msgid(s, msg_id, str(org_b_num), True)
+        DBASE.close()
+
+
+def notmuch_down_refine():
+    current_l, search_term, refine = get_refine_index()
+    if current_l < 0:
+        return
+    index = [i for i in refine if i > current_l]
+    if index:
+        notmuch_refine_common(search_term, index[0])
+    elif vim.options['wrapscan']:
+        notmuch_refine_common(search_term, refine[0])
+
+
+def notmuch_up_refine():
+    current_l, search_term, refine = get_refine_index()
+    if current_l < 0:
+        return
+    index = [i for i in refine if i < current_l]
+    if index:
+        notmuch_refine_common(search_term, index[-1])
+    elif vim.options['wrapscan']:
+        notmuch_refine_common(search_term, refine[-1])
 
 
 def get_sys_command(cmdline, last):  # コマンドもしくは run コマンドで用いる <path:>, <id:> を返す

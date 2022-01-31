@@ -1065,16 +1065,29 @@ search [|search-term|]
 	* 検索にヒットするメールがなければ、メッセージを表示のみおこない、|{T-WIN}| を
 	  開かない
 
-                                              *notmuch-python-vim-search-thread*
-search-thread
-	* メールを含むスレッドを新たな |{T-Win}| 枠に表示する
-
                                           *notmuch-python-vim-search-duplication*
 search-duplication
 	* 同一 Message-ID のファイルが複数あるメールを新たな |{T-Win}| 枠にリスト・アップ
 	* 常に全メールが対象
 	* |search-term| によって検索するわけではない
 		- データ管理上の値が必要なので |search-term| は * 扱いとしている
+
+                                              *notmuch-python-vim-search-refine*
+search-refine
+	* |{T-WIN}| 中のメールから |search-term| で絞り込んで検索
+	* vim 自身の |/| に近いが notmuch による検索にマッチするメールを探す
+
+                                         *notmuch-python-vim-search-down-refine*
+search-down-refine
+	* search-refine (|notmuch-python-vim-search-refine|) で指定した検索の下候補
+
+                                           *notmuch-python-vim-search-up-refine*
+search-up-refine
+	* search-refine (|notmuch-python-vim-search-refine|) で指定した検索の上候補
+
+                                              *notmuch-python-vim-search-thread*
+search-thread
+	* メールを含むスレッドを新たな |{T-Win}| 枠に表示する
 
                                                  *notmuch-python-vim-set-attach*
 set-attach [{attachment}]
