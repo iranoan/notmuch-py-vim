@@ -1225,6 +1225,7 @@ endfunction
 function s:fold_open() abort " 折畳全開を試み、無くてもエラーとしない
 	try
 		normal! zO
+		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0])
 	catch /^Vim\%((\a\+)\)\=:E490:/
 		" 何もしない
 	endtry
@@ -1480,6 +1481,7 @@ function s:toggle_thread(args) abort
 			endif
 		endif
 		normal! zO
+		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0])
 	endif
 endfunction
 

@@ -1,5 +1,6 @@
 /attach/
 /temp/
+/.temp/
 
 !/README.md
 !/autoload/
