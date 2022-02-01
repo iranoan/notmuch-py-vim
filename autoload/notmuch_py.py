@@ -3976,7 +3976,11 @@ def new_mail(s):  # 新規メールの作成 s: mailto プロトコルを想定
 
     def get_user_To(b):  # notmuch_folders のカーソル位置や search_term から宛先取得
         def get_user_To_folder():
-            s = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1].decode()
+            win_nr = vim.bindeval('bufwinnr(s:buf_num["folders"])')
+            for w in vim.windows:
+                if w.number == win_nr:
+                    s = vim.vars['notmuch_folders'][w.cursor[0]-1][1].decode()
+                    break
             to = ''
             for i in vim.vars.get('notmuch_to', []):
                 d = i[0].decode()
@@ -3986,7 +3990,6 @@ def new_mail(s):  # 新規メールの作成 s: mailto プロトコルを想定
                     return i[1].decode()
             return to
 
-        bufnr = str(b.number)
         msg_id = get_msg_id()
         to = ''
         if msg_id != '':
@@ -3997,9 +4000,7 @@ def new_mail(s):  # 新規メールの作成 s: mailto プロトコルを想定
                     return i[1].decode()
             DBASE.close()
         elif is_same_tabpage('folders', ''):
-            vim.command('call win_gotoid(bufwinid(s:buf_num["folders"]))')
             to = get_user_To_folder()
-            vim.command('call win_gotoid(bufwinid(' + bufnr + '))')
         return to
 
     headers = {'subject': ''}
