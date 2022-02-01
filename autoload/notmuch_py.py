@@ -1797,6 +1797,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     b_v = b.vars['notmuch']
     b_w = vim.current.window
     if msg_id == '' or (mail_reload is False and msg_id == b_v['msg_id'].decode()):
+        b_v['search_term'] = search_term  # 別の検索条件で同じメールを開いていることはあり得るので、search-term の情報だけは必ず更新
         vim.command('call win_gotoid(bufwinid('+active_win+'))')
         return
     # 以下実際の描画
@@ -5515,6 +5516,7 @@ def notmuch_refine_common(s, index):
                 if x == b_num]:
             reset_cursor_position(b, t.windows[i], index+1)
             if (is_same_tabpage('thread', '') or is_same_tabpage('search', s)):
+                vim.command('call win_gotoid(bufwinid(' + str(b.number) + '))')
                 vim.command('call s:fold_open()')
     if f_show:
         DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
