@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/01 Ver.1.12~
+* ヘルプのモードラインが消えていた
+
 2022/02/01 Ver.1.11~
 * GTK の環境では |confirm()| 使用部分のキー選択が利く様に (Y)Yes 等と一部表記変更
 * 余分なウィンドウ切り替え改善

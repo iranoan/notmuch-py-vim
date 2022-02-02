@@ -1103,20 +1103,19 @@ set-encrypt [{encrypt/signature}]
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
 	  {encrypt/signature} 設定
 	* {encrypt/signature} に指定できるのは大文字小文字の区別なしで次の通り
-
-			指定できる文字列			意味~
-			Encrypt							暗号化する
-			Signature						電子署名をつける
-			S/MIME							暗号化/電子署名に S/MIME を用いる
-			SMIME
-			S-MIME
-			PGP/MIME						暗号化/電子署名に PGP/MIME を用いる
-			PGPMIME
-			PGP-MIME
-			PGP									暗号化/電子署名に PGP を用いる
-
+				指定できる文字列				意味~
+					Encrypt							暗号化する
+					Signature						電子署名をつける
+					S/MIME							暗号化/電子署名に S/MIME を用いる
+					SMIME
+					S-MIME
+					PGP/MIME						暗号化/電子署名に PGP/MIME を用いる
+					PGPMIME
+					PGP-MIME
+					PGP									暗号化/電子署名に PGP を用いる
 		- 暗号化/電子署名の方法が未指定の場合 S/MIME を用いる
-	* {encrypt/signature} が無ければ指定になる
+	* {encrypt/signature} が無ければダイアログ・ボックスやコマンドラインモード
+	  (|CmdLine|) で指定になる
 		- E/e:   暗号化 (Encrypt) ON/OFF
 		- S/s:   電子署名 (Signature) ON/OFF
 		- M/m:   暗号化/電子署名の方法 (Method) をサイクリックに切り替え
@@ -1297,3 +1296,5 @@ view-unread-page
 ==============================================================================
 更新履歴~
 * |notmuch-python-vim-history| に移動
+
+vim:tw=78:ts=2:ft=help:norl:noet:fen:
