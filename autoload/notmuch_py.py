@@ -1145,7 +1145,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def get_header(msg, output, notmuch_headers):  # vim からの呼び出し時に msg に有るヘッダ出力
         for header in notmuch_headers:
-            header = header.decode()
+            if type(header) == bytes:
+                header = header.decode()
             h_cont = msg.get_all(header)
             if h_cont is None:
                 continue
@@ -1595,6 +1596,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 out.main['header'].append('\f' + content_type + ' part')
                 get_header(part, out, vim.vars['notmuch_show_headers'])
                 get_header(part, out, vim.vars['notmuch_show_hide_headers'])
+                get_header(part, out, ['Encrypt', 'Signature'])
                 get_virtual_header(part, out, 'X-Attach')
                 get_virtual_header(part, out, 'Attach')
                 part_ls[-1] += 1
@@ -1771,6 +1773,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
         get_header(msg_file, output, vim.vars['notmuch_show_headers'])
         get_header(msg_file, output, vim.vars['notmuch_show_hide_headers'])
+        get_header(msg_file, output, ['Encrypt', 'Signature'])
         get_virtual_header(msg_file, output, 'X-Attach')
         get_virtual_header(msg_file, output, 'Attach')
         part_ls = [1]
