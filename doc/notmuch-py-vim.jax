@@ -212,7 +212,7 @@ o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
 										(4) 一部のヘッダや HTML パート等の開閉
 										(5) |g:notmuch_open_way|['open'] で指定されたコマンド実行
 O					|{T-WIN}| で |{S-WIN}| を開く       |notmuch-python-vim-open|
-c					新規メール (Create new mail)    |notmuch-python-vim-mail-new|
+c					新規メール (Compose new mail)   |notmuch-python-vim-mail-new|
 r					返信メール (Reply)              |notmuch-python-vim-mail-reply|
 R					転送メール                      |notmuch-python-vim-mail-forward|
 u					未読/既読トグル (toggle Unread) |notmuch-python-vim-tag-toggle|

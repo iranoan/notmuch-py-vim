@@ -1263,7 +1263,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             vim.command('normal! zc')
         b_w.cursor = (1, 0)  # カーソル位置が画面内だと先頭が表示されないので、一度先頭に移動
         vim.command('redraw')
-        b_w.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
+        if len(ls) < header_line:
+            b_w.cursor = (1, 0)  # カーソルを先頭
+        else:
+            b_w.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
         if charset == 'gb2312' or charset == 'gbk':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
