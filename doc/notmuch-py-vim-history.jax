@@ -11,6 +11,8 @@ License: GPL Ver.3.
 
 2022/02/01 Ver.1.12~
 * ヘルプのモードラインが消えていた
+* set-encrypt (|notmuch-python-vim-set-encrypt|) の暗号化/電子署名方法サイクリッ
+  ク選択の順序変更
 
 2022/02/01 Ver.1.11~
 * GTK の環境では |confirm()| 使用部分のキー選択が利く様に (Y)Yes 等と一部表記変更

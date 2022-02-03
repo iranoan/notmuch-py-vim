@@ -1267,7 +1267,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
         if charset == 'gb2312' or charset == 'gbk':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
-            # Content-Type: text/plain; charset="gb2312"
+            # Content-Type: text/plain; charset='gb2312'
             # で送られることに対する対策
             # https://ifritjp.github.io/blog/site/2019/02/07/outlook.html
             # http://sylpheed-support.good-day.net/bbs_article.php?pthread_id=744
@@ -1698,7 +1698,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     return ''
             make_dir(TEMP_DIR)
             verify_tmp = TEMP_DIR + 'verify.tmp'
-            with open(verify_tmp, 'w', newline="\r\n") as fp:  # 改行コードを CR+LF に統一して保存
+            with open(verify_tmp, 'w', newline='\r\n') as fp:  # 改行コードを CR+LF に統一して保存
                 fp.write(verify.as_string())
             # pgp_tmp = TEMP_DIR + 'pgp.tmp'
             # write_file(part, 1, pgp_tmp)
@@ -2359,7 +2359,7 @@ def decode_header(f):
             else:  # デコードされず bytes 型でないのでそのまま
                 name += string
         elif charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
-            # Content-Type: text/plain; charset="gb2312"
+            # Content-Type: text/plain; charset='gb2312'
             # で送ってくるのに対する対策
             # filename にも該当するか不明だが、念の為
             charset = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
@@ -2816,9 +2816,9 @@ def delete_attachment(args):
         if bnum == vim.bindeval('s:buf_num')['thread'] \
                 and is_same_tabpage('show', ''):
             b = vim.buffers[vim.bindeval('s:buf_num')['show']]
-        elif bnum == vim.bindeval('s:buf_num')["search"][search_term] \
+        elif bnum == vim.bindeval('s:buf_num')['search'][search_term] \
                 and is_same_tabpage('view', search_term):
-            b = vim.buffers[vim.bindeval('s:buf_num')["view"][search_term]]
+            b = vim.buffers[vim.bindeval('s:buf_num')['view'][search_term]]
         else:
             return
         b_attachments = b.vars['notmuch']['attachments']
@@ -3412,7 +3412,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             cmd.append('--recipient')
             cmd.append(i)
         body_tmp = TEMP_DIR + 'body.tmp'
-        # with open(body_tmp, 'w', encoding=charset, newline="\r\n") as fp:
+        # with open(body_tmp, 'w', encoding=charset, newline='\r\n') as fp:
         #     fp.write(s)  # UTF-8 以外が保存できるようにエンコードを指定し、改行コードを CR+LF に統一して保存
         with open(body_tmp, 'w', encoding=charset) as fp:
             fp.write(s)  # UTF-8 以外が保存できるようにエンコードを指定して保存
@@ -3445,7 +3445,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             return False, s
         body_tmp = TEMP_DIR + 'body.tmp'
         with open(body_tmp, 'w', encoding=charset,  # UTF-8 以外が保存できるようにエンコードを指定
-                  newline="\r\n") as fp:  # 署名用に改行コード CR+LF 指定
+                  newline='\r\n') as fp:  # 署名用に改行コード CR+LF 指定
             fp.write(s)
         cmd.append(body_tmp)
         ret = run(cmd, stdout=PIPE, stderr=PIPE, text=True)
@@ -3761,8 +3761,8 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             msg1['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
             msg1['Content-Description'] = 'OpenPGP digital signature'
             msg1.set_payload(sig)
-            msg_send = MIMEMultipart(_subtype="signed", micalg="pgp-sha1",
-                                     protocol="application/pgp-signature")
+            msg_send = MIMEMultipart(_subtype='signed', micalg='pgp-sha1',
+                                     protocol='application/pgp-signature')
             msg_send.attach(msg0)
             msg_send.attach(msg1)
         if (flag & SMIME_ENCRYPT):  # S/MIME 暗号化
@@ -3773,30 +3773,30 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 ret, mail_body = encrypt(msg_send.as_string(), h_data, charset)
             if not ret:
                 return False
-            msg_send = MIMEBase(_maintype="application", _subtype="pkcs7-mime",
-                                name="smime.p7m", smime_type="enveloped-data")
-            # msg_send = MIMEBase(_maintype="application", _subtype="pkcs7-mime", name="smime.p7m")
-            # msg_send.replace_header(_name="Content-Type",
+            msg_send = MIMEBase(_maintype='application', _subtype='pkcs7-mime',
+                                name='smime.p7m', smime_type='enveloped-data')
+            # msg_send = MIMEBase(_maintype='application', _subtype='pkcs7-mime', name='smime.p7m')
+            # msg_send.replace_header(_name='Content-Type',
             #     _value='application/pkcs7-mime; name="smime.p7m"; smime-type=enveloped-data')
-            msg_send.add_header(_name="Content-Transfer-Encoding", _value="base64")
-            msg_send.add_header(_name="Content-Disposition", _value="attachment", filename="smime.p7m")
-            msg_send.add_header(_name="Content-Description", _value="S/MIME Encrypted Message")
+            msg_send.add_header(_name='Content-Transfer-Encoding', _value='base64')
+            msg_send.add_header(_name='Content-Disposition', _value='attachment', filename='smime.p7m')
+            msg_send.add_header(_name='Content-Description', _value='S/MIME Encrypted Message')
             msg_send.set_payload(mail_body)
         elif (flag & PGPMIME_ENCRYPT):  # PGP/MIME 暗号化
             msg0 = EmailMessage()
-            msg0.add_header(_name="Content-Type", _value="application/pgp-encrypted")
-            msg0.add_header(_name="Content-Description", _value="PGP/MIME version identification")
-            msg0.set_payload("Version: 1" + "\n")
+            msg0.add_header(_name='Content-Type', _value='application/pgp-encrypted')
+            msg0.add_header(_name='Content-Description', _value='PGP/MIME version identification')
+            msg0.set_payload('Version: 1\n')
             ret, mail_body = encrypt(msg_send.as_string(), h_data, charset)
             if not ret:
                 return False
             msg = EmailMessage()
-            msg.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
-            msg.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
-            msg.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
+            msg.add_header(_name='Content-Type', _value='application/octet-stream', name='encrypted.asc')
+            msg.add_header(_name='Content-Description', _value='OpenPGP encrypted message')
+            msg.add_header(_name='Content-Disposition', _value='inline', filename='encrypted.asc')
             msg.set_payload(mail_body)
-            msg_send = MIMEBase(_maintype="multipart", _subtype="encrypted",
-                                protocol="application/pgp-encrypted")
+            msg_send = MIMEBase(_maintype='multipart', _subtype='encrypted',
+                                protocol='application/pgp-encrypted')
             msg_send.attach(msg0)
             msg_send.attach(msg)
         return msg_send
@@ -4335,7 +4335,7 @@ def check_org_mail():  # 返信・転送可能か? 今の bufnr() と msg_id を
                     or show_win == is_search)
     if is_search:
         show_win = \
-            vim.bindeval('s:buf_num')["view"][b_v['search_term'].decode()]
+            vim.bindeval('s:buf_num')['view'][b_v['search_term'].decode()]
     if vim.bindeval('win_gotoid(bufwinid(' + str(show_win) + '))') == 0:
         return 0, '', ''
     msg_id = get_msg_id()
@@ -5408,11 +5408,11 @@ def set_encrypt(args):
                 flag ^= SIGNATURE
             elif applies == 3 or applies == b'M' or applies == b'm':
                 if flag & SMIME:
-                    flag = flag ^ SMIME | PGP
+                    flag = flag ^ SMIME | PGPMIME
                 elif flag & PGPMIME:
-                    flag = flag ^ PGPMIME | SMIME
+                    flag = flag ^ PGPMIME | PGP
                 else:
-                    flag = flag ^ PGP | PGPMIME
+                    flag = flag ^ PGP | SMIME
             elif applies == 4 or applies == b'A' or applies == b'a':
                 break
     l_encrypt = h_last
