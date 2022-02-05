@@ -34,7 +34,7 @@ $ vim --version | grep +python3
 
 他には +folding 等も必要だが、調べきれていない
 
-### Notmuch
+#### Notmuch
 
 Notmuch をセットアップし、
 
@@ -46,7 +46,7 @@ $ notmuch new
 
 Notmuch が動作条件なので、対応しているメール・ボックスの種類は Maildir, MH のいずれかになる
 
-### Python Ver.3.x
+#### Python Ver.3.x
 
 加えて Python Ver.3 の notmuch, html2text パッケージが必要
 
@@ -62,11 +62,45 @@ $ sudo apt install -y python3-notmuch python3-html2text
 $ python3 -m pip install notmuch html2text
 ```
 
-### [NKF](https://ja.osdn.net/projects/nkf/)
+### あれば便利になるツール
 
-これは必須ではない
+必須ではないがあれば、有用なツールや Python のパッケージがある
 
-ただ JIS (iso-2022-jp) としつつ JIS 外漢字を含むメールは多いが、nkf が実行可能な環境ならば、デコード失敗時に nkf で変換する
+#### [NKF](https://ja.osdn.net/projects/nkf/)
+
+JIS (iso-2022-jp) としつつ JIS 外漢字を含むメールは多いが、nkf が実行可能な環境ならば、デコード失敗時に nkf で変換する
+
+### [python-magic](https://github.com/ahupp/python-magic)
+
+ファイル添付時に拡張子から MIME Type が類推できない時に用いる
+
+Ubuntu 等の Debian 系なら
+
+```sh
+$ sudo apt install -y python3-magic
+```
+
+他では例えば
+
+```sh
+$ python3 -m pip install python-magic
+```
+
+### [chardet](https://github.com/chardet/chardet)
+
+テキスト・ファイル添付時に文字コードの類推に用いる
+
+Ubuntu 等の Debian 系なら
+
+```sh
+$ sudo apt install -y python3-chardet
+```
+
+他では例えば
+
+```sh
+$ python3 -m pip install chardet
+```
 
 ## インストール
 
