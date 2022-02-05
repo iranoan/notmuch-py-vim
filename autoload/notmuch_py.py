@@ -3268,17 +3268,18 @@ def get_flag(s, search):  # s に search があるか?
 def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定従い送信済みに保存
     from email.message import Message
     import mimetypes            # ファイルの MIMETYPE を調べる
-    # ATTACH = 0x01
     PGP_ENCRYPT = 0x10
     PGP_SIGNATURE = 0x20
     PGPMIME_ENCRYPT = 0x100
     PGPMIME_SIGNATURE = 0x200
     SMIME_ENCRYPT = 0x1000
     SMIME_SIGNATURE = 0x2000
-    # MIME_ON = PGPMIME_ENCRYPT | PGPMIME_SIGNATURE | SMIME_ENCRYPT | SMIME_SIGNATURE
+    PGPMIME_SUBJECT = 0x10000
+    PGPMIME_PUBLIC = 0x20000
+    PGPMIME_SUBJECT_ON = PGPMIME_SUBJECT | PGPMIME_ENCRYPT
+    PGPMIME_PUBLIC_ON = PGPMIME_PUBLIC | PGPMIME_ENCRYPT
     ALL_ENCRYPT = SMIME_ENCRYPT | PGP_ENCRYPT | PGPMIME_ENCRYPT
     ALL_SIGNATURE = SMIME_SIGNATURE | PGP_SIGNATURE | PGPMIME_SIGNATURE
-    # ALL_FLAG = ALL_ENCRYPT | ALL_SIGNATURE
     HEADER_ADDRESS = ['Sender', 'Resent-Sender', 'From', 'Resent-From',
                       'To', 'Resent-To', 'Cc', 'Resent-Cc', 'Bcc', 'Resent-Bcc']
 
@@ -3516,7 +3517,9 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 elif h_term_l == 'encrypt':
                     flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_ENCRYPT) \
                          | (get_flag(h_item, r'\bPGP\b') * PGP_ENCRYPT) \
-                         | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT)
+                         | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT) \
+                         | (get_flag(h_item, r'\bSubject\b') * PGPMIME_SUBJECT) \
+                         | (get_flag(h_item, r'\bPublic-?Key\b') * PGPMIME_PUBLIC)
                     if not flag_check:
                         print_error('The encryption method is wrong.')
                         return None, None, None
@@ -3565,7 +3568,8 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         if flag & SMIME_ENCRYPT:
             flag = SMIME_ENCRYPT | (SMIME_SIGNATURE if flag & ALL_SIGNATURE else 0x0)
         elif flag & PGPMIME_ENCRYPT:
-            flag = PGPMIME_ENCRYPT | (PGPMIME_SIGNATURE if flag & ALL_SIGNATURE else 0x0)
+            flag = PGPMIME_ENCRYPT | (PGPMIME_SIGNATURE if flag & ALL_SIGNATURE else 0x0) \
+                    | (flag & PGPMIME_SUBJECT) | (flag & PGPMIME_PUBLIC)
         elif flag & PGP_ENCRYPT:
             flag = PGP_ENCRYPT | (PGP_SIGNATURE if flag & ALL_SIGNATURE else 0x0)
         elif flag & SMIME_SIGNATURE:
@@ -3660,6 +3664,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             return
         make_dir(TEMP_DIR)
         send_tmp = TEMP_DIR + 'send.tmp'
+        # flag = False
         with open(send_tmp, 'w') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
             if flag:
                 msg_data = msg_data[1:]
@@ -3729,25 +3734,50 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             data[delete] = del_ls
 
     def make_send_message(msg_send, h_data, context, flag):  # そのまま転送以外の送信データの作成
-        def set_content(msg, s, charset, encoding):
-            def set_attach(msg):
-                for attachment in attachments:  # 添付ファイル追加
-                    if not attach_file(msg, attachment):
-                        return False
-                return True
+        def set_content(msg, s, charset, encoding):  # 本文と添付ファイルの追加
+            def set_attach_main(msg):  # 添付ファイルを付けるかどうかの場合分け
+                def set_attach(msg):  # 実際の添付ファイルの追加
+                    for attachment in attachments:  # 添付ファイル追加
+                        if not attach_file(msg, attachment):
+                            return False
+                    return True
 
-            if len(attachments) == 0:
-                msg.set_payload(context, charset)
-                msg.replace_header('Content-Transfer-Encoding', encoding)
+                if len(attachments) == 0 \
+                        and (flag & PGPMIME_PUBLIC_ON) != PGPMIME_PUBLIC_ON:
+                    msg.set_payload(context, charset)
+                    msg.replace_header('Content-Transfer-Encoding', encoding)
+                    return True
+                part = Message()
+                part.set_payload(context, charset)
+                part.replace_header('Content-Transfer-Encoding', encoding)
+                msg['Content-Type'] = 'multipart/mixed'
+                msg.attach(part)
+                if set_attach(msg):
+                    return True
+                # Content-Type: application/pgp-keys; name="OpenPGP_0xB0FDD32F9B2BCA56.asc"
+                # Content-Disposition: attachment; filename="OpenPGP_0xB0FDD32F9B2BCA56.asc"
+                # Content-Description: OpenPGP public key
+                # Content-Transfer-Encoding: quoted-printable
+                #
+                # -----BEGIN PGP PUBLIC KEY BLOCK-----
+                #
+                # -----END PGP PUBLIC KEY BLOCK-----
+                return False
+
+            if (flag & PGPMIME_SUBJECT_ON) != PGPMIME_SUBJECT_ON:
+                if set_attach_main(msg):
+                    return True
+                return False
+            else:  # PGP/MIME でヘッダを暗号化部分に写し Subject だけは元を書き換え
+                msg['Content-Type'] = 'multipart/mixed; protected-headers="v1"'
+                for h in msg_send.keys():
+                    msg[h] = msg_send[h]
+                msg_send.replace_header('Subject', '...')
+                part = Message()
+                if not set_attach_main(part):
+                    return False
+                msg.attach(part)
                 return True
-            part = Message()
-            part.set_payload(context, charset)
-            part.replace_header('Content-Transfer-Encoding', encoding)
-            msg['Content-Type'] = 'multipart/mixed'
-            msg.attach(part)
-            if set_attach(msg):
-                return True
-            return False
 
         def set_mime_sig(msg, mail_body):
             ret, sig = signature(mail_body.as_string(), h_data, charset)
@@ -5386,7 +5416,10 @@ def set_encrypt(args):
     SIGNATURE = 0x02
     PGP = 0x10
     PGPMIME = 0x20
+    PGPMIME_ENCRYPT = PGPMIME | ENCRYPT
     SMIME = 0x40
+    SUBJECT = 0x100
+    PUBLIC = 0x200
     if not is_draft():
         return
     encrypt = []
@@ -5408,7 +5441,9 @@ def set_encrypt(args):
             flag = flag | ENCRYPT \
              | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
              | (get_flag(h_item, r'\bPGP\b') * PGP) \
-             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME)
+             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME) \
+             | (get_flag(h_item, r'\bSubject\b') * SUBJECT) \
+             | (get_flag(h_item, r'\bPublic-?Key\b') * PUBLIC)
         elif h_term == 'signature':
             flag = flag | SIGNATURE \
              | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
@@ -5429,6 +5464,10 @@ def set_encrypt(args):
             flag = flag | PGP
         else:
             flag = flag | SMIME
+        if 'subject' in encrypt:
+            flag = flag | SUBJECT
+        if 'signature' in encrypt:
+            flag = flag | PUBLIC
     else:
         # 暗号化・署名が複数指定されていた時、暗号化と署名方法に矛盾していた時のために flag を指定し直す
         if flag & SMIME:
@@ -5453,16 +5492,31 @@ def set_encrypt(args):
             else:
                 flag |= SMIME
                 method = 'S/MIME'
+            if flag & SUBJECT:
+                subject = 'ON'
+            else:
+                subject = 'OFF'
+            if flag & PUBLIC:
+                public_key = 'ON'
+            else:
+                public_key = 'OFF'
+            if (flag & PGPMIME_ENCRYPT) == PGPMIME_ENCRYPT:
+                select = '\nSubject : ' + subject + \
+                        ' | Public Key: ' + public_key + \
+                        '", "&Encrypt\n&Digital Signature\n&Method\n&Subject\n' + \
+                        '&Public Kye\n&Apply", 6, "Question")'
+            else:
+                select = '", "&Encrypt\n&Digital Signature\n&Method\n&Apply", 4, "Question")'
             applies = vim.bindeval(
                 'confirm("Encrypt: ' + encrypt +
                 ' | Signature: ' + signature +
                 ' | Method: ' + method +
-                '", "&Encrypt\n&Signature\n&Method\n&Apply", 4, "Question")')
+                select)
             if applies == 0 or applies == b'':
                 return
             elif applies == 1 or applies == b'E' or applies == b'e':
                 flag ^= ENCRYPT
-            elif applies == 2 or applies == b'S' or applies == b's':
+            elif applies == 2 or applies == b'D' or applies == b'd':
                 flag ^= SIGNATURE
             elif applies == 3 or applies == b'M' or applies == b'm':
                 if flag & SMIME:
@@ -5471,7 +5525,11 @@ def set_encrypt(args):
                     flag = flag ^ PGPMIME | PGP
                 else:
                     flag = flag ^ PGP | SMIME
-            elif applies == 4 or applies == b'A' or applies == b'a':
+            elif applies == 4 or applies == b'S' or applies == b's':
+                flag ^= SUBJECT
+            elif applies == 5 or applies == b'P' or applies == b'p':
+                flag ^= PUBLIC
+            elif applies == 6 or applies == b'A' or applies == b'a':
                 break
     l_encrypt = h_last
     while h_last >= 0:  # 全ての Encrypt/Signature ヘッダ削除と Encrypt/Signature が最初に有った位置の取得
@@ -5490,7 +5548,12 @@ def set_encrypt(args):
         if flag & SMIME:
             b.append('Encrypt: S/MIME', l_encrypt)
         elif flag & PGPMIME:
-            b.append('Encrypt: PGP/MIME', l_encrypt)
+            encrypt = 'Encrypt: PGP/MIME'
+            if flag & SUBJECT:
+                encrypt += ' Subject'
+            if flag & PUBLIC:
+                encrypt += ' Public-Key'
+            b.append(encrypt, l_encrypt)
         else:
             b.append('Encrypt: PGP', l_encrypt)
 

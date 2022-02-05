@@ -9,6 +9,11 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/03 Ver.1.14~
+* PGP/MIME 使用時の Subject 暗号化に対応
+	- set-encrypt (|notmuch-python-vim-set-encrypt|) 使用時のアクセラレーション・
+		キーを変更
+
 2022/02/03 Ver.1.13~
 * Subject がなくなるバグ修正
 

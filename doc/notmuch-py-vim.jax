@@ -381,6 +381,8 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 
 		- Encrypt, Signature 両方の指定があれば暗号化+電子署名両方を行う
 		- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
+		- Encrypt (暗号化方法) が PGP/MIME だと次を追加で指定可能
+			+ Subject: Subject ヘッダの内容を暗号化
 
 本文部分にカーソルが移動すると
 	* |g:notmuch_from| などによって From ヘッダ
@@ -1140,12 +1142,14 @@ set-encrypt [{encrypt/signature}]
 					PGPMIME
 					PGP-MIME
 					PGP									暗号化/電子署名に PGP を用いる
+					Subject							PGP/MIME 暗号使用時に Subject も暗号化
 		- 暗号化/電子署名の方法が未指定の場合 S/MIME を用いる
 	* {encrypt/signature} が無ければダイアログ・ボックスやコマンドラインモード
 	  (|CmdLine|) で指定になる
 		- E/e:   暗号化 (Encrypt) ON/OFF
-		- S/s:   電子署名 (Signature) ON/OFF
+		- D/d:   電子署名 (Signature) ON/OFF
 		- M/m:   暗号化/電子署名の方法 (Method) をサイクリックに切り替え
+		- S/s:   暗号化方法が PGP/MIME の時のみ出現し、Subject 暗号化 ON/OFF
 		- A/a:   バッファへ反映
 		- <Esc>: キャンセル
 			o コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
