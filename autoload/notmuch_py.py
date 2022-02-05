@@ -3371,11 +3371,23 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                         if (charset == 'ascii' or charset == 'us-ascii') and '\x1B' in s:
                             continue
                         part.set_payload(s, charset=charset)
+                        charset = '; charset="' + charset + '"'
                         break
                     except UnicodeDecodeError:
                         continue
             else:
                 part = attach_binary(path, maintype, subtype, name_param, file_param)
+                try:
+                    import chardet
+                    charset = '; charset="' + chardet.detect(bs)['encoding'].lower() + '"'
+                except ImportError:
+                    charset = ''
+                    pass
+                except ModuleNotFoundError:
+                    charset = ''
+                    pass
+            part.replace_header('Content-Type', 'text/' + subtype + charset +
+                                '; name="' + name_param['name'] + '"')
         else:
             part = attach_binary(path, maintype, subtype, name_param, file_param)
         part.add_header('Content-Disposition', 'attachment', **file_param)

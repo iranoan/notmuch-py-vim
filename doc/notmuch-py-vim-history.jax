@@ -15,6 +15,8 @@ License: GPL Ver.3.
   ク選択の順序変更
 * 下書きメールで Encrypt, Signature ヘッダを表示する
 * テキスト・ファイルの添付時の文字コード判定にも |g:notmuch_send_encode| を使う
+* テキスト・ファイルの添付時の文字コード判定時に |g:notmuch_send_encode| で見つか
+	らなければ chardet モジュールを使う
 * バグ修正
 	- 本文が空のメールだとエラー
 	- スレッドが空になる |{F-WIN}| で送信するとエラー
