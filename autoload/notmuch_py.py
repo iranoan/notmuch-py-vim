@@ -13,7 +13,7 @@ except ModuleNotFoundError:
 import notmuch
 import mailbox
 import email
-from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
 from subprocess import Popen, PIPE, run, TimeoutExpired  # API で出来ないことは notmuch コマンド
 import os                           # ディレクトリの存在確認、作成
 import shutil                       # ファイル移動
@@ -3266,10 +3266,7 @@ def get_flag(s, search):  # s に search があるか?
 
 
 def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定従い送信済みに保存
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.base import MIMEBase
-    from email.mime.message import MIMEMessage
-    from email.message import EmailMessage
+    from email.message import Message
     import mimetypes            # ファイルの MIMETYPE を調べる
     # ATTACH = 0x01
     PGP_ENCRYPT = 0x10
@@ -3291,7 +3288,9 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 if charset == 'us-ascii' or charset == 'ascii':
                     data.encode(charset)
                     # ↑ASCII 指定で ASCII 以外が含まれると全て UTF-8 として扱うので本当に ASCII 変換可能か試す
-                msg[header] = email.header.Header(data, charset)
+                    msg[header] = data
+                else:
+                    msg[header] = email.header.Header(data, charset)
                 break
             except UnicodeEncodeError:
                 pass
@@ -3350,9 +3349,11 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 or mimetype == 'message/rfc2822' \
                 or path.find(PATH + os.sep) == 0:
             with open(path, 'rb') as fp:
+                part = MIMEBase('message', mimetype[8:])
                 msg_f = email.message_from_binary_file(fp)
+                part.attach(msg_f)
+                part.set_default_type(mimetype)
                 encoding = msg_f.get('Content-Transfer-Encoding')
-                part = MIMEMessage(msg_f)
                 if encoding is not None:
                     part['Content-Transfer-Encoding'] = encoding
             msg.attach(part)
@@ -3365,7 +3366,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             part = MIMEBase(_maintype='text', _subtype=subtype)
             for charset in SENT_CHARSET:
                 with open(path, 'rb') as fp:
-            try:
+                    try:
                         bs = fp.read()
                         s = bs.decode(charset)
                         if (charset == 'ascii' or charset == 'us-ascii') and '\x1B' in s:
@@ -3576,7 +3577,19 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         for h_term in HEADER_ADDRESS:
             if h_term in h_data:
                 h_data[h_term] = uniq_address(address2ls(h_data[h_term]))
-        return h_data, attach, flag
+        h_data_k = h_data.keys()
+        if 'From' in h_data_k:
+            h_data_changed = {}
+        else:
+            h_data_changed = {'From': [get_user()]}
+        for h in ['From', 'Sender', 'To', 'Cc', 'Bcc', 'Subject']:
+            if h in h_data_k:
+                h_data_changed[h] = h_data[h]
+                del h_data[h]
+        if not ('Subject' in h_data_k):
+            h_data_changed['Subject'] = ''
+        h_data_changed.update(h_data)
+        return h_data_changed, attach, flag
 
     def check_sender(h_data, resent):
         if resent + 'From' in h_data and resent + 'Sender' in h_data:
@@ -3715,123 +3728,142 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         else:
             data[delete] = del_ls
 
-    def make_send_message(h_data, context, flag):  # そのまま転送以外の送信データの作成
+    def make_send_message(msg_send, h_data, context, flag):  # そのまま転送以外の送信データの作成
+        def set_content(msg, s, charset, encoding):
+            def set_attach(msg):
+                for attachment in attachments:  # 添付ファイル追加
+                    if not attach_file(msg, attachment):
+                        return False
+                return True
+
+            if len(attachments) == 0:
+                msg.set_payload(context, charset)
+                msg.replace_header('Content-Transfer-Encoding', encoding)
+                return True
+            part = Message()
+            part.set_payload(context, charset)
+            part.replace_header('Content-Transfer-Encoding', encoding)
+            msg['Content-Type'] = 'multipart/mixed'
+            msg.attach(part)
+            if set_attach(msg):
+                return True
+            return False
+
+        def set_mime_sig(msg, mail_body):
+            ret, sig = signature(mail_body.as_string(), h_data, charset)
+            if not ret:
+                return False
+            msg_sig = Message()
+            if flag & SMIME_SIGNATURE:
+                msg_sig['Content-Type'] = 'application/pkcs7-signature; name="smime.p7s"'
+                msg_sig['Content-Transfer-Encoding'] = 'base64'
+                msg_sig['Content-Disposition: attachment'] = 'filename="smime.p7s"'
+                msg_sig['Content-Description'] = 'S/MIME Cryptographic Signature'
+            else:
+                msg_sig['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
+                msg_sig['Content-Description'] = 'OpenPGP digital signature'
+            msg_sig.set_payload(sig)
+            msg.attach(mail_body)
+            msg.attach(msg_sig)
+            return True
+
         if ('utf-8' in SENT_CHARSET):  # utf-8+8bit を可能にする 無いとutf-8+base64
             email.charset.add_charset(
                 'utf-8', email.charset.SHORTEST, None, 'utf-8')
-        for charset in SENT_CHARSET:  # 可能な charset の判定
+        for charset in SENT_CHARSET:  # 可能な charset の判定とエンコード方法の選択
             try:
-                mail_body = context.encode(charset)
+                context.encode(charset)
+                if charset == 'utf-8':
+                    t_encoding = '8bit'
+                else:
+                    t_encoding = '7bit'
                 break
             except UnicodeEncodeError:
                 pass
         else:
             charset = 'utf-8'
-            mail_body = context.encode('utf-8')
-        if flag & PGP_ENCRYPT:
+            t_encoding = 'base64'
+        if not (flag & (ALL_SIGNATURE | ALL_ENCRYPT)):
+            if set_content(msg_send, context, charset, t_encoding):
+                return True
+        elif flag & PGP_ENCRYPT:
             ret, mail_body = encrypt(context, h_data, charset)
             if not ret:
                 return False
-            mail_body = MIMEText(mail_body, 'plain', charset)
+            if set_content(msg_send, mail_body, charset, t_encoding):
+                return True
         elif flag & PGP_SIGNATURE:
-            msg = EmailMessage()
-            if charset == 'us-ascii' or charset == 'ascii':
-                t_encoding = '7bit'
-            # elif charset == 'utf-8': utf-8 でも PGP 署名では quoted-printable
-            #     t_encoding = 'base64'
-            else:
+            # PGP 署名では ASCII 以外 quoted-printable
+            if charset != 'us-ascii' and charset != 'ascii':
                 t_encoding = 'quoted-printable'
-            msg.set_content(context, cte=t_encoding, charset=charset)
+            msg = Message()
+            msg.set_payload(context, charset)
             context = msg.get_payload()
-            ret, context = signature(context, h_data, charset)
+            ret, mail_body = signature(context, h_data, charset)
             if not ret:
                 return False
-            mail_body = MIMEText(context, 'plain', charset)
-            mail_body.replace_header('Content-Transfer-Encoding', t_encoding)
-        else:
+            if set_content(msg_send, mail_body, charset, t_encoding):
+                return True
+        else:  # PGP/MIME, S/MIME
             if (flag & ALL_SIGNATURE) and not (flag & ALL_ENCRYPT):
                 # 暗号化なしの署名付きは quoted-printable か base64 使用
-                mail_body = EmailMessage()
-                if charset == 'us-ascii' or charset == 'ascii':
-                    t_encoding = '7bit'
-                elif charset == 'utf-8':
+                if charset == 'utf-8':
                     t_encoding = 'base64'
                 else:
                     t_encoding = 'quoted-printable'
-                mail_body.set_content(context, cte=t_encoding, charset=charset)
+            mail_body = Message()
+            if not set_content(mail_body, context, charset, t_encoding):
+                return False
+        if flag & (SMIME_SIGNATURE | PGPMIME_SIGNATURE):  # S/MIME, PGP/MIME 電子署名
+            if flag & SMIME_SIGNATURE:
+                micalg_kind = 'sha-256'
+                sig_kind = 'pkcs7'
             else:
-                mail_body = MIMEText(mail_body, 'plain', charset)
-        if len(attachments) != 0:
-            msg_send = MIMEMultipart()
-            msg_send.attach(mail_body)
-        else:
-            msg_send = mail_body
-        for attachment in attachments:  # 添付ファイル追加
-            if not attach_file(msg_send, attachment):
-                return False
-        if (flag & SMIME_SIGNATURE):  # PGP/MIME 電子署名
-            msg0 = msg_send
-            ret, sig = signature(msg0.as_string(), h_data, charset)
-            if not ret:
-                return False
-            msg1 = EmailMessage()
-            msg1['Content-Type'] = 'application/pkcs7-signature; name="smime.p7s"'
-            msg1['Content-Transfer-Encoding'] = 'base64'
-            msg1['Content-Disposition: attachment'] = 'filename="smime.p7s"'
-            msg1['Content-Description'] = 'S/MIME Cryptographic Signature'
-            msg1.set_payload(sig)
-            msg_send = MIMEMultipart(_subtype="signed", micalg="sha-256",
-                                     protocol="application/pkcs7-signature")
-            msg_send.attach(msg0)
-            msg_send.attach(msg1)
-        elif (flag & PGPMIME_SIGNATURE):  # PGP/MIME 電子署名
-            msg0 = msg_send
-            ret, sig = signature(msg0.as_string(), h_data, charset)
-            if not ret:
-                return False
-            msg1 = EmailMessage()
-            msg1['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
-            msg1['Content-Description'] = 'OpenPGP digital signature'
-            msg1.set_payload(sig)
-            msg_send = MIMEMultipart(_subtype='signed', micalg='pgp-sha1',
-                                     protocol='application/pgp-signature')
-            msg_send.attach(msg0)
-            msg_send.attach(msg1)
+                micalg_kind = 'pgp-sha1'
+                sig_kind = 'pgp'
+            if flag & (SMIME_ENCRYPT | PGPMIME_ENCRYPT):  # この後 S/MIME, PGP/MIME 暗号化する
+                mail_sig = mail_body
+                mail_body = MIMEBase(_maintype='multipart', _subtype='signed', micalg=micalg_kind,
+                                     protocol='application/' + sig_kind + '-signature')
+                if not (set_mime_sig(mail_body, mail_sig)):
+                    return False
+            else:
+                msg_send['Content-Type'] = 'multipart/signed; micalg="' + micalg_kind + '"; ' + \
+                        'protocol="application/' + sig_kind + '-signature"'
+                if set_mime_sig(msg_send, mail_body):
+                    return True
         if (flag & SMIME_ENCRYPT):  # S/MIME 暗号化
             if SMIME_SIGNATURE:  # 改行コードを CR+LF に統一して渡す
                 ret, mail_body = encrypt(re.sub(r'(\r\n|\n\r|\n|\r)', r'\r\n',
-                                                msg_send.as_string()), h_data, charset)
+                                                mail_body.as_string()), h_data, charset)
             else:
-                ret, mail_body = encrypt(msg_send.as_string(), h_data, charset)
+                ret, mail_body = encrypt(mail_body.as_string(), h_data, charset)
             if not ret:
                 return False
-            msg_send = MIMEBase(_maintype='application', _subtype='pkcs7-mime',
-                                name='smime.p7m', smime_type='enveloped-data')
-            # msg_send = MIMEBase(_maintype='application', _subtype='pkcs7-mime', name='smime.p7m')
-            # msg_send.replace_header(_name='Content-Type',
-            #     _value='application/pkcs7-mime; name="smime.p7m"; smime-type=enveloped-data')
-            msg_send.add_header(_name='Content-Transfer-Encoding', _value='base64')
-            msg_send.add_header(_name='Content-Disposition', _value='attachment', filename='smime.p7m')
-            msg_send.add_header(_name='Content-Description', _value='S/MIME Encrypted Message')
+            msg_send['Content-Type'] = 'application/pkcs7-mime; name="smime.p7m"; smime-type="enveloped-data"'
+            msg_send['Content-Transfer-Encoding'] = 'base64'
+            msg_send['Content-Disposition'] = 'attachment; filename="smime.p7m"'
+            msg_send['Content-Description'] = 'S/MIME Encrypted Message'
             msg_send.set_payload(mail_body)
+            return True
         elif (flag & PGPMIME_ENCRYPT):  # PGP/MIME 暗号化
-            msg0 = EmailMessage()
-            msg0.add_header(_name='Content-Type', _value='application/pgp-encrypted')
-            msg0.add_header(_name='Content-Description', _value='PGP/MIME version identification')
+            msg0 = Message()
+            msg0['Content-Type'] = 'application/pgp-encrypted'
+            msg0['Content-Description'] = 'PGP/MIME version identification'
             msg0.set_payload('Version: 1\n')
-            ret, mail_body = encrypt(msg_send.as_string(), h_data, charset)
+            ret, mail_body = encrypt(mail_body.as_string(), h_data, charset)
             if not ret:
                 return False
-            msg = EmailMessage()
-            msg.add_header(_name='Content-Type', _value='application/octet-stream', name='encrypted.asc')
-            msg.add_header(_name='Content-Description', _value='OpenPGP encrypted message')
-            msg.add_header(_name='Content-Disposition', _value='inline', filename='encrypted.asc')
+            msg = Message()
+            msg['Content-Type'] = 'application/octet-stream; name="encrypted.asc"'
+            msg['Content-Description'] = 'OpenPGP encrypted message'
+            msg['Content-Disposition'] = 'inline; filename="encrypted.asc"'
             msg.set_payload(mail_body)
-            msg_send = MIMEBase(_maintype='multipart', _subtype='encrypted',
-                                protocol='application/pgp-encrypted')
+            msg_send['Content-Type'] = 'multipart/encrypted; protocol="application/pgp-encrypted"'
             msg_send.attach(msg0)
             msg_send.attach(msg)
-        return msg_send
+            return True
+        return False
 
     if shutil.which(SEND_PARAM[0]) is None:
         print_error('\'' + SEND_PARAM[0] + '\' is not executable.')
@@ -3894,18 +3926,12 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         msg_data += '\nResent-Date: ' + msg_date
         msg_id = reset_msgid(msg_send, header_data['Resent-From'][0], 'Resent-')
         msg_data += '\nResent-Message-ID: ' + msg_id
-        # if not send(msg_send):
-        #     return False
-        save_draft(msg_send, msg_data, msg_id, msg_date, 1)
-        return True
     else:
-        msg_send = make_send_message(header_data, mail_context, flag)
         check_sender(header_data, '')
         if not check_address(header_data, ''):
             return False
-        if not ('From' in header_data):
-            header_data['From'] = [get_user()]
         msg_data = ''  # 送信済みとして下書きを使う場合に備えたデータ初期化
+        msg_send = Message()
         # ヘッダ設定
         for header_term, h_data in header_data.items():
             header_lower = header_term.lower()
@@ -3920,15 +3946,15 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             else:
                 msg_data += '\n' + header_term + ': ' + h_data
                 set_header(msg_send, header_term, h_data)
-        if not ('Subject' in header_data):
-            msg_send['Subject'] = ''
-        msg_id = reset_msgid(msg_send, header_data['From'][0], '')
         msg_date = reset_date(msg_send, '')
-        if not send(msg_send):
+        msg_id = reset_msgid(msg_send, header_data['From'][0], '')
+        if not make_send_message(msg_send, header_data, mail_context, flag):
             return False
+    if send(msg_send):
         save_draft(msg_send, msg_data, msg_id, msg_date,
                    (vim.vars.get('notmuch_save_draft', 0) if VIM_MODULE else 0))
-    return True
+        return True
+    return False
 
 
 def send_search(search_term):
@@ -4674,7 +4700,7 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):  # メ�
         print_err('Not support Mailbox type: ' + MAILBOX_TYPE)
         return False
     mbox.lock()
-    msg_data = MIMEText('')
+    msg_data = MIMEBase('text', 'plain')
     save_path += os.sep + str(mbox.add(msg_data))  # MH では返り値が int
     shutil.move(path, save_path)
     mbox.flush()
