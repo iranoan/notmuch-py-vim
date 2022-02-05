@@ -101,8 +101,8 @@ Ubuntu 等の Debian 系なら >
 
 NKF (https://ja.osdn.net/projects/nkf/)~
 
-ただ JIS (iso-2022-jp) としつつ JIS 外漢字を含むメールは多いが、nkf が実行可能
-な環境ならば、デコード失敗時に nkf で変換する
+JIS (iso-2022-jp) としつつ JIS 外漢字を含むメールは多いが、nkf が実行可能な環境
+ならば、デコード失敗時に nkf で変換する
 
 python-magic (https://github.com/ahupp/python-magic)~
 
