@@ -700,6 +700,7 @@ g:notmuch_send_encode                                *g:notmuch_send_encode*
 	* 送信時のエンコード優先順位
 	* エンコードを試みて失敗した場合に次の候補が用いられる
 	* 最後の候補も失敗した時は BASE64 エンコード
+	* テキスト・ファイルの添付時の文字コード判定にも使う
 
 g:notmuch_send_param                                 *g:notmuch_send_param*
 	Type: |List|

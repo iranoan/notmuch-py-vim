@@ -3362,10 +3362,19 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             mimetype = 'application/octet-stream'
         maintype, subtype = mimetype.split('/')
         if maintype == 'text':
+            part = MIMEBase(_maintype='text', _subtype=subtype)
+            for charset in SENT_CHARSET:
+                with open(path, 'rb') as fp:
             try:
-                with open(path, 'r') as fp:
-                    part = MIMEText(fp.read(), _subtype=subtype)
-            except UnicodeDecodeError:  # utf-8 以外の text ファイルで失敗するケースがある
+                        bs = fp.read()
+                        s = bs.decode(charset)
+                        if (charset == 'ascii' or charset == 'us-ascii') and '\x1B' in s:
+                            continue
+                        part.set_payload(s, charset=charset)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+            else:
                 part = attach_binary(path, maintype, subtype, name_param, file_param)
         else:
             part = attach_binary(path, maintype, subtype, name_param, file_param)
