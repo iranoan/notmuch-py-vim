@@ -5139,7 +5139,7 @@ def notmuch_search(search_term):
                 vim.command('call win_gotoid(bufwinid(s:buf_num["thread"]))')
             else:
                 open_thread(vim.current.window.cursor[0], True, False)
-                if is_same_tabpage('show', ''):
+                if vim.current.buffer[0] != '' and is_same_tabpage('show', ''):
                     open_mail(search_term,
                               vim.windows[vim.bindeval('s:buf_num')['thread']].cursor[0] - 1,
                               str(vim.buffers[vim.bindeval('s:buf_num')['thread']].number))
