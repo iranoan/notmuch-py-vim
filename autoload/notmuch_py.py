@@ -1809,6 +1809,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     # 以下実際の描画
     msg, f = get_msg()
     if msg is None:
+        b.options['modifiable'] = 1
         b.append('Already all mail file delete.')
         b.options['modifiable'] = 0
     else:
