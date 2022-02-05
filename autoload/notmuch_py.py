@@ -3577,7 +3577,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         for h_term in HEADER_ADDRESS:
             if h_term in h_data:
                 h_data[h_term] = uniq_address(address2ls(h_data[h_term]))
-        h_data_k = h_data.keys()
+        h_data_k = list(h_data.keys())
         if 'From' in h_data_k:
             h_data_changed = {}
         else:

@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/03 Ver.1.13~
+* Subject がなくなるバグ修正
+
 2022/02/03 Ver.1.12~
 * set-encrypt (|notmuch-python-vim-set-encrypt|) の暗号化/電子署名方法サイクリッ
   ク選択の順序変更
@@ -16,7 +19,10 @@ License: GPL Ver.3.
 * テキスト・ファイルの添付時の文字コード判定にも |g:notmuch_send_encode| を使う
 	- それで見つからず、chardet モジュールが利用可能なら使用する
 * 送信メールでは From, Sender, To, Cc, Bcc, Subject ヘッダを先に付ける
-	- ファイル先頭の Content-Type は syntax=mail でヘッダ扱いにならない
+	- ファイル先頭の Content-Type: は >
+			:set syntax=mail
+<		でヘッダ扱いにならない
+	- 使用するモジュールを減らした
 * バグ修正
 	- ヘルプのモードラインが消えていた
 	- 本文が空のメールだとエラー
