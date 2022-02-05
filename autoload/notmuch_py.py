@@ -1879,6 +1879,10 @@ def get_msg_id():  # notmuch-thread, notmuch-show で Message_ID 取得
     elif bufnr == s_bufnum['thread'] \
         or (search_term in s_bufnum['search']
             and bufnr == s_bufnum['search'][search_term]):
+        if len(THREAD_LISTS[search_term]['list']) < vim.current.window.cursor[0]-1:
+            # メールが削除/移動され、ずれている場合がある
+            # メール送信による draft→sent の以降など
+            make_thread_core(search_term)
         return THREAD_LISTS[search_term]['list'][vim.current.window.cursor[0]-1]._msg_id
     return ''
 
