@@ -20,6 +20,7 @@ License: GPL Ver.3.
 		- デフォルト・キーマップ (送信メール)         |notmuch-python-vim-draft-keymap|
 		- {S-WIN} 詳細                                |notmuch_virtual_header|
 		- 送信メール・バッファの使用法                |notmuch-python-vim-sendmail|
+			+ 暗号化・電子署名の指定方法                |notmuch-python-vim-encrypt|
 		- 関連付け                                    |notmuch-python-vim-associate|
 	* 設定/オプション                               |notmuch-python-vim-custom|
 		- deoplete.nvim 使用時の注意                  |notmuch-python-vim-deoplete|
@@ -296,7 +297,6 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 * まず先頭に |g:notmuch_show_headers|、次に |g:notmuch_show_hide_headers|
 	に従い From, To, Subject, Date 等のヘッダを表示する
 * それに続いて、次の仮想ヘッダを表示
-
 		 追加するヘッダ		                意味~
 		Attach:						添付ファイル名 (添付ファイル数だけ)
 		HTML:							HTML メール (ファイル名の代わりに index.html)
@@ -310,7 +310,6 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 		Good-Signature:		正しい署名と検証された時、そのファイル名
 		Bad-Signature:		不正な署名と判定された時、そのファイル名
 		Signature:				対応する鍵がない時、その電子署名ファイル
-
 	Example: >
 		HTML: index.html
 		Attach: attachment.zip
@@ -349,40 +348,18 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 で設定できる
 
 実際に送信されない仮想ヘッダとして次のヘッダがある
-
 		 追加するヘッダ			                意味~
 		Attach:							添付ファイルのパスを指定
 												複数添付する場合は、その数だけ指定する
 												                           *notmuch-python-vim-attach*
 		Fcc:								送信メールの保存先メール・フォルダの指定
 												                              *notmuch-python-vim-fcc*
-		Encrypt:						暗号化の方法指定           *notmuch-python-vim-encrypt*
-		Signature:					電子署名の方法指定
-
+		Encrypt:						暗号化の方法指定   |notmuch-python-vim-encrypt|
+		Signature:					電子署名の方法指定 |notmuch-python-vim-encrypt|
 	* Attach は <leader>c でも指定可能    |notmuch-python-vim-set-attach|
 	* Fcc の指定がなければ |g:notmuch_save_sent_mailbox| に従う
 		- <leader>f でも指定可能            |notmuch-python-vim-set-fcc|
-				Fcc ヘッダの編集でも可能
-	* Encrypt/Signature は <leader>e で設定可能 |notmuch-python-vim-set-encrypt|
-		- 直接編集する時に指定できる値は次の通り
-
-			 暗号化・電子署名の方法			Encrypt, Signature で意味を持つ指定方法~
-			 (複数指定時の優先順)				(大文字・小文字の区別はなし)~
-			S/MIME											S/MIME
-																	SMIME
-																	S-MIME
-			PGP/MIME										PGP/MIME
-																	PGPMIME
-																	PGP-MIME
-			PGP													PGP
-																	(通常の text/plain として暗号化・電子署
-																	 名済みの内容が書き込まれ、添付ファイル
-																	 は暗号化・電子署名の対象にならない)
-
-		- Encrypt, Signature 両方の指定があれば暗号化+電子署名両方を行う
-		- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
-		- Encrypt (暗号化方法) が PGP/MIME だと次を追加で指定可能
-			+ Subject: Subject ヘッダの内容を暗号化
+	* Encrypt/Signature は <leader>e でも設定可能 |notmuch-python-vim-set-encrypt|
 
 本文部分にカーソルが移動すると
 	* |g:notmuch_from| などによって From ヘッダ
@@ -390,12 +367,42 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 が入力される
 
 実際の送信は <leader>s                  |notmuch-python-vim-mail-send|
-	* 送信時はどのヘッダも「:」以降の内容がなければそのヘッダ自身がないものとし
-		て処理する
+	* 送信時は必須でないヘッダは「:」以降の内容がなければそのヘッダ自身がないもの
+	  として処理する
 
 下書きの保存は普通に >
 	:w
 <(|:write|) などを使えばよく、再編集は mail-edit (|notmuch-python-vim-mail-edit|)
+
+                                                    *notmuch-python-vim-encrypt*
+暗号化・電子署名の指定方法~
+
+* Encrypt, Signature ヘッダで直接編集する時に指定できる値は次の通り
+		暗号化・電子署名の方法		Encrypt, Signature で意味を持つ指定方法~
+		(複数指定時の優先順)			(大文字・小文字の区別はなし)~
+		S/MIME										S/MIME
+															SMIME
+															S-MIME
+		PGP/MIME									PGP/MIME
+															PGPMIME
+															PGP-MIME
+		PGP												PGP
+
+			Encrypt ヘッダで PGP/MIME 指定時、追加指定できる値~
+		(大文字・小文字の区別はなく、PGP/MIME 以外では無視される)~
+		Subject				Subject も暗号化
+		Public-Key		From ヘッダのアドレスの PGP公開鍵を添付
+		PublicKey
+* <leader>e で設定可能                  |notmuch-python-vim-set-encrypt|
+* Encrypt, Signature 両方の指定があれば暗号化+電子署名の両方を行う
+	- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
+* PGP/MIME でない PGP は注意が必要
+	- 対応しているアプリが少ない
+	- 通常の text/plain として暗号化・電子署名済みの内容が書き込むだけ
+	- 非対応アプリでは
+		+ 電子署名の検証は自動で行われない
+		+ 暗号化された内容がそのまま表示される
+	- 添付ファイルは暗号化・電子署名の対象にならない
 
 ------------------------------------------------------------------------------
                                                   *notmuch-python-vim-associate*
@@ -531,7 +538,6 @@ g:notmuch_folder_format                               *g:notmuch_folder_format*
 				:<          		左詰め
 				:>          		右詰め
 				上記に続く数		文字の桁数
-
 	* Default で示している `'{0:<??}{1:>??}/{2:>??}|{3:>??} [{4}]'` の ?? の部
 		分は、|g:notmuch_folders| の見出し部分の設定や個々の環境のメール数を元に
 		計算される
@@ -657,7 +663,6 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 		`\ }`
 
 	* ウィンドウや subcommand (|notmuch-python-vim-start|) 使用時の開き方
-
 			  key				     subcommand~
 			folders			|{F-WIN}|
 			thread			|{T-WIN}|
@@ -670,7 +675,6 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 			open				|{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
 									に最後に試みるコマンド
 									- URL を開くなど好みのコマンドを指定可能
-
 		- open 以外で値に指定できるのは、'new', 'vnew', 'tabedit', 'enew' と
 			'rightbelow', 'belowright', 'topleft', 'botright' と数の組み合わせのみ
 	* Default の ?? は、デフォルト・レイアウト (|notmuch-python-vim-layout|) が
@@ -844,7 +848,6 @@ g:notmuch_view_attachment                            *g:notmuch_view_attachment*
 
 	* open (|notmuch-python-vim-open|) で添付ファイルを開く時に用いるプログラム
 	* デフォルトは OS 依存
-
 				 OS				program~
 			Unix				`'xdg-open'`
 			Windows			`'start'`
@@ -961,7 +964,7 @@ mail-info
                                                   *notmuch-python-vim-mail-move*
 mail-move [{mailbox}]
 	* メール・ファイルを別のメール・フォルダ {mailbox} に移動
-	* {mailbox} が無ければコマンドラインモード (|CmdLine|) で指定になる
+	* {mailbox} が無ければコマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 	* 複数指定は最初以外を無視する
 	* |{T-WIN}| では、カーソル位置、もしくは選択メールの移動
@@ -1086,7 +1089,7 @@ run [{arglist}]
                                                      *notmuch-python-vim-search*
 search [|search-term|]
 	* Notmuch を用いて検索し、ヒットしたメール一覧を新たな |{T-WIN}| に表示する
-	* |search-term| を指定していないと、コマンドラインモード (|CmdLine|) で指定になる
+	* |search-term| を指定していないと、コマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 	* 実行時のコマンドラインモード (|CmdLine|) のデフォルト |search-term| は
 			|{F-WIN}|		枠のカーソル位置に対応する |g:notmuch_folders| の |search-term|
@@ -1130,7 +1133,7 @@ set-attach [{attachment}]
                                                 *notmuch-python-vim-set-encrypt*
 set-encrypt [{encrypt/signature}]
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
-	  {encrypt/signature} 設定
+	  方法 を {encrypt/signature} で設定
 	* {encrypt/signature} に指定できるのは大文字小文字の区別なしで次の通り
 				指定できる文字列				意味~
 					Encrypt							暗号化する
@@ -1143,14 +1146,19 @@ set-encrypt [{encrypt/signature}]
 					PGP-MIME
 					PGP									暗号化/電子署名に PGP を用いる
 					Subject							PGP/MIME 暗号使用時に Subject も暗号化
+					Public-Key					PGP/MIME 暗号使用時に From ヘッダのアドレスの PGP
+															公開鍵を添付
+		- 少なくとも Encrypt, Signature どちらか一方が必要
+			+ 両方なければ全て無視される
 		- 暗号化/電子署名の方法が未指定の場合 S/MIME を用いる
 	* {encrypt/signature} が無ければダイアログ・ボックスやコマンドラインモード
-	  (|CmdLine|) で指定になる
+	  (|CmdLine|) の指定になる
 		- E/e:   暗号化 (Encrypt) ON/OFF
-		- D/d:   電子署名 (Signature) ON/OFF
+		- D/d:   電子署名 (Digital signature) ON/OFF
 		- M/m:   暗号化/電子署名の方法 (Method) をサイクリックに切り替え
 		- S/s:   暗号化方法が PGP/MIME の時のみ出現し、Subject 暗号化 ON/OFF
-		- A/a:   バッファへ反映
+		- P/p:   暗号化方法が PGP/MIME の時のみ出現し、PGP 公開鍵を添付
+		- A/a:   バッファの Encrypt, Signature ヘッダへ反映
 		- <Esc>: キャンセル
 			o コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
 
@@ -1158,7 +1166,7 @@ set-encrypt [{encrypt/signature}]
 set-fcc [{mailbox}]
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で {mailbox}
 	  を Fcc: (|notmuch-python-vim-fcc|) に設定
-	* {mailbox} が無ければコマンドラインモード (|CmdLine|) で指定になる
+	* {mailbox} が無ければコマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 
                                                       *notmuch-python-vim-start*
@@ -1250,10 +1258,9 @@ thread-sort [{list}/{tree} {sorting-way}]
 		{sorting-way}: ソート方法の変更
 									 {list}/{tree} が無ければ {tree} 扱い
 	* {list}/{tree}, {sorting-way} を指定していないと、コマンドラインモード
-	  (|CmdLine|) で指定になる
+	  (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 	* mark (|notmuch-python-vim-mark|) によるマークは削除される
-
 		{list}/{tree}		  意味~
 		list						一覧表示
 		tree						ツリー表示

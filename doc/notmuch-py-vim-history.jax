@@ -9,15 +9,16 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/02/03 Ver.1.14~
+2022/02/06 Ver.1.14~
 * PGP/MIME 使用時の Subject 暗号化に対応
 	- set-encrypt (|notmuch-python-vim-set-encrypt|) 使用時のアクセラレーション・
 		キーを変更
+* PGP/MIME 使用時の PGP 公開鍵の添付に対応
 
-2022/02/03 Ver.1.13~
+2022/02/05 Ver.1.13~
 * Subject がなくなるバグ修正
 
-2022/02/03 Ver.1.12~
+2022/02/05 Ver.1.12~
 * set-encrypt (|notmuch-python-vim-set-encrypt|) の暗号化/電子署名方法サイクリッ
   ク選択の順序変更
 * 下書きメールで Encrypt, Signature ヘッダを表示する

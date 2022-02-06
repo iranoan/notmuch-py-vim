@@ -1313,7 +1313,7 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 				let l:snippet = s:get_sort_snippet(a:CmdLine, a:CursorPos, v:true)
 				return s:is_one_snippet(l:snippet)
 			elseif l:cmd ==# 'set-encrypt'
-				let l:snippet = [ 'Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP' ]
+				let l:snippet = ['Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP', 'Subject', 'Public-Key']
 			elseif l:cmd ==# 'set-attach'
 				let l:dir = substitute(a:CmdLine, '^Notmuch\s\+set-attach\s\+', '', '')
 				if l:dir ==# ''

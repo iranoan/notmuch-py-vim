@@ -3664,7 +3664,6 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             return
         make_dir(TEMP_DIR)
         send_tmp = TEMP_DIR + 'send.tmp'
-        # flag = False
         with open(send_tmp, 'w') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
             if flag:
                 msg_data = msg_data[1:]
@@ -3742,6 +3741,19 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                             return False
                     return True
 
+                def attach_pub_key(msg):
+                    ret = run(['gpg', '--armor', '--export',
+                               email2only_address(h_data['From'][0])],
+                              stdout=PIPE, stderr=PIPE, text=True).stdout
+                    if ret != '':
+                        part = Message()
+                        part['Content-Type'] = 'application/pgp-keys; name="OpenPGP_public_key.asc"'
+                        part['Content-Disposition'] = 'attachment; filename="OpenPGP_public_key.asc"'
+                        part['Content-Description'] = 'OpenPGP public key'
+                        part['Content-Transfer-Encoding'] = '7bit'
+                        part.set_payload(ret)
+                        msg.attach(part)
+
                 if len(attachments) == 0 \
                         and (flag & PGPMIME_PUBLIC_ON) != PGPMIME_PUBLIC_ON:
                     msg.set_payload(context, charset)
@@ -3752,17 +3764,11 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 part.replace_header('Content-Transfer-Encoding', encoding)
                 msg['Content-Type'] = 'multipart/mixed'
                 msg.attach(part)
-                if set_attach(msg):
-                    return True
-                # Content-Type: application/pgp-keys; name="OpenPGP_0xB0FDD32F9B2BCA56.asc"
-                # Content-Disposition: attachment; filename="OpenPGP_0xB0FDD32F9B2BCA56.asc"
-                # Content-Description: OpenPGP public key
-                # Content-Transfer-Encoding: quoted-printable
-                #
-                # -----BEGIN PGP PUBLIC KEY BLOCK-----
-                #
-                # -----END PGP PUBLIC KEY BLOCK-----
-                return False
+                if not set_attach(msg):
+                    return False
+                if (flag & PGPMIME_PUBLIC_ON) == PGPMIME_PUBLIC_ON:
+                    attach_pub_key(msg)
+                return True
 
             if (flag & PGPMIME_SUBJECT_ON) != PGPMIME_SUBJECT_ON:
                 if set_attach_main(msg):
@@ -5504,7 +5510,7 @@ def set_encrypt(args):
                 select = '\nSubject : ' + subject + \
                         ' | Public Key: ' + public_key + \
                         '", "&Encrypt\n&Digital Signature\n&Method\n&Subject\n' + \
-                        '&Public Kye\n&Apply", 6, "Question")'
+                        '&Public Key\n&Apply", 6, "Question")'
             else:
                 select = '", "&Encrypt\n&Digital Signature\n&Method\n&Apply", 4, "Question")'
             applies = vim.bindeval(
@@ -5525,7 +5531,12 @@ def set_encrypt(args):
                     flag = flag ^ PGPMIME | PGP
                 else:
                     flag = flag ^ PGP | SMIME
-            elif applies == 4 or applies == b'S' or applies == b's':
+            elif applies == 4:
+                if select == '", "&Encrypt\n&Digital Signature\n&Method\n&Apply", 4, "Question")':
+                    break
+                else:
+                    flag ^= SUBJECT
+            elif applies == b'S' or applies == b's':
                 flag ^= SUBJECT
             elif applies == 5 or applies == b'P' or applies == b'p':
                 flag ^= PUBLIC
