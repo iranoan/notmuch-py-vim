@@ -223,7 +223,7 @@ Vim packadd~
 
 <F1>			ヘルプでこの項目を開く
 <leader>h
-<Space>		未読ページダウン                |notmuch-python-vim-view-unread-mail|
+<Space>		未読ページダウン                |notmuch-python-vim-view-unread-page|
 <S-Space>	GUI など <S-Space> が認識される環境なら、メールのページアップ
 					                                |notmuch-python-vim-view-previous|
 o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
@@ -233,8 +233,8 @@ o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
 										* なお |{S-WIN}| のウィンドウが有ればカーソル移動だけで
 											カーソルのメール内容を |{S-WIN}| で表示される
 					|{S-WIN}|	次の順序で試みる
-										(1) 閉じていたら開く
-										(2) Attach, HTML ヘッダなら添付ファイルを開く
+										(1) 折り畳まれていれば開く
+										(2) Attach, HTML ヘッダ等の添付ファイルなら開く
 										(3) カーソル位置が本文内に書かれた添付ファイル名なら開く
 										(4) 一部のヘッダや HTML パート等の開閉
 										(5) |g:notmuch_open_way|['open'] で指定されたコマンド実行
@@ -244,7 +244,7 @@ r					返信メール (Reply)              |notmuch-python-vim-mail-reply|
 R					転送メール                      |notmuch-python-vim-mail-forward|
 u					未読/既読トグル (toggle Unread) |notmuch-python-vim-tag-toggle|
 					|{T-WIN}| では加えて次のメールを選択 (|j|)
-J					次の未読メール (j の拡張)       |notmuch-python-vim-view-unread-page|
+J					次の未読メール (j の拡張)       |notmuch-python-vim-view-unread-mail|
 d					メールの Trash タグをトグル (追加/削除) と既読化
 					                                |notmuch-python-vim-tag-toggle|
 					|{T-WIN}| では加えて次のメールを選択 (|j|)
@@ -269,7 +269,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 <leader>s	メール送信 (mail-send)          |notmuch-python-vim-mail-send|
 
 -------------------------------------------------------------------------------
-                                               *notmuch-python-vim-draft-keymap*
+                                                *notmuch-python-vim-draft-keymap*
 デフォルト・キーマップ (送信メール)~
 
 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) のデフォルト・キー
@@ -291,7 +291,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 <leader>q バッファを閉じる (Quit)         |:quit|! /|:bwipeout|!
 
 ------------------------------------------------------------------------------
-                                                  *notmuch_virtual_header*
+                                                        *notmuch_virtual_header*
 {S-WIN} 詳細~
 
 * まず先頭に |g:notmuch_show_headers|、次に |g:notmuch_show_hide_headers|
