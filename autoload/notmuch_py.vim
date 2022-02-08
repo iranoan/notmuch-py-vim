@@ -345,28 +345,22 @@ function s:set_defaults() abort
 		let g:notmuch_view_attachment = ''
 	endif
 
-	" Python スクリプト側のグローバル変数設定
-	" execute "py3 CACHE_DIR = '" . s:script_root . "/.cache/'"
 	" vim の変数で指定が有れば、Python スクリプト側のグローバル変数より優先
+	" g:notmuch_folder_format は notmuch_folders によって適した長さが違い、python スクリプトを読み込み後でないと指定できないので、あとから python スクリプト内で処理
+	" 必要になる SUBJECT_LENGTH の設定も python スクリプト読み込み後
+	" これに依存する g:notmuch_open_way も同様なので、これを設定時に s:set_open_way() を呼び出している
 	if exists('g:notmuch_delete_top_subject')
 		py3 DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
 	endif
 	if exists('g:notmuch_date_format')
 		py3 DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
 	endif
-	" if exists('g:notmuch_folder_format') " notmuch_folders によって適した長さが違い、python スクリプトを読み込み後でないと指定できない
-	" これに依存する g:notmuch_open_way も同様なので、これを設定時に s:set_open_way() を呼び出している
-	" 	py3 FOLDER_FORMAT = vim.vars['notmuch_folder_format'].decode()
-	" else
-	" 	py3 set_folder_format()
-	" endif
 	if exists('g:notmuch_display_item')
 		py3 DISPLAY_ITEM = tuple(vim.eval('g:notmuch_display_item'))
 	endif
 	if exists('g:notmuch_from_length')
 		py3 FROM_LENGTH = vim.vars['notmuch_from_length']
 	endif
-	" ここで確認していない SUBJECT_LENGTH の設定は、python スクリプト読み込み後
 	if exists('g:notmuch_sent_tag')
 		py3 SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
 	endif
@@ -374,6 +368,7 @@ function s:set_defaults() abort
 		py3 SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
 	endif
 	if exists('g:notmuch_send_param')
+		echomsg 1
 		py3 SEND_PARAM = vim.eval('g:notmuch_send_param')
 	endif
 	py3 import os
@@ -397,14 +392,20 @@ endfunction
 
 function s:next_unread_page(args) abort " メール最後の行が表示されていればスクロールしない+既読にする
 	let l:buf_num = bufnr('')
+	if !has_key(s:buf_num, 'thread')
+		call s:make_thread_list()
+	endif
+	if !has_key(s:buf_num, 'show')
+		call s:make_show()
+	endif
 	if win_gotoid(bufwinid(s:buf_num['show'])) == 0
 		if has_key(s:buf_num, 'view')
 					\ && has_key(b:notmuch, 'search_term')
 					\ && b:notmuch.search_term !=# ''
 					\ && has_key(s:buf_num.view, b:notmuch.search_term)
 			call win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
-		" else
-		" 	return
+		else
+			py3 reopen('show', '')
 		endif
 	endif
 	if !exists('b:notmuch.msg_id') || b:notmuch.msg_id ==# ''
@@ -452,6 +453,12 @@ endfunction
 
 function s:previous_page(args) abort
 	let l:buf_num = bufnr('')
+	if !has_key(s:buf_num, 'thread')
+		call s:make_thread_list()
+	endif
+	if !has_key(s:buf_num, 'show')
+		call s:make_show()
+	endif
 	if win_gotoid(bufwinid(s:buf_num['show'])) == 0
 		if has_key(s:buf_num, 'view')
 					\ && has_key(b:notmuch, 'search_term')
@@ -459,7 +466,7 @@ function s:previous_page(args) abort
 					\ && has_key(s:buf_num.view, b:notmuch.search_term)
 			call win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
 		else
-			return
+			py3 reopen('show', '')
 		endif
 	endif
 	execute "normal! \<PageUp>"
@@ -675,10 +682,10 @@ function s:start_notmuch() abort
 	if !exists('s:buf_num')
 		let s:buf_num = {}
 	endif
-	if !exists('s:buf_num["search"]')
+	if !has_key(s:buf_num, 'search')
 		let s:buf_num['search'] = {}
 	endif
-	if !exists('s:buf_num["view"]')
+	if !has_key(s:buf_num, 'view')
 		let s:buf_num['view'] = {}
 	endif
 	if !s:set_defaults()
@@ -704,7 +711,7 @@ function s:start_notmuch() abort
 endfunction
 
 function s:close_notmuch(kind) abort
-	if !exists('s:buf_num["' . a:kind . '"]')
+	if !has_key(s:buf_num, a:kind)
 		return
 	endif
 	if a:kind ==# 'thread' || a:kind ==# 'show'
@@ -768,7 +775,7 @@ function! MakeGUITabline() abort
 			return '%N| ' . l:label . 'notmuch [Draft] %{b:notmuch.subject}%<'
 		elseif l:type ==# 'search'
 			return s:get_gui_tab(l:vars['notmuch'])
-		elseif exists('s:buf_num["thread"]') " notmuch-folder では notmuch-search と同じにするのを兼ねている
+		elseif has_key(s:buf_num, 'thread') " notmuch-folder では notmuch-search と同じにするのを兼ねている
 			return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch'])
 		else
 			return s:get_gui_tab(l:vars['notmuch'])

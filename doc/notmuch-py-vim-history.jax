@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/08 Ver.1.16~
+* |{S-WIN}| のバッファがない時 view-previous (|notmuch-python-vim-view-previous|),
+  view-unread-page (|notmuch-python-vim-view-unread-page|) がエラーになるバグ修正
+
 2022/02/08 Ver.1.15~
 * |{T-WIN}| のバッファがない時 view-unread-mail
   (|notmuch-python-vim-view-unread-mail|) がエラーになるバグ修正
