@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/08 Ver.1.15~
+* |{T-WIN}| のバッファがない時 view-unread-mail
+  (|notmuch-python-vim-view-unread-mail|) がエラーになるバグ修正
+
 2022/02/06 Ver.1.14~
 * PGP/MIME 使用時の Subject 暗号化に対応
 	- set-encrypt (|notmuch-python-vim-set-encrypt|) 使用時のアクセラレーション・

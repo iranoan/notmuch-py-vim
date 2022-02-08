@@ -338,11 +338,6 @@ class MailData:  # メール毎の各種データ
     def __del__(self):  # デストラクタ←本当に必要か不明
         del self
 
-    # データ取得関数
-    # def get_newest_date(self): return self.__newest_date
-
-    # def get_path(self): return self.get_filenames() ←このデータは msg データ自身でないので当然駄目
-
     def get_list(self, flag_thread):
         ls = ''
         tags = self._tags
@@ -2276,6 +2271,8 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     if not ('search_term' in vim.current.buffer.vars['notmuch']):
         if vim.current.buffer.number == vim.bindeval('s:buf_num')['folders']:
             msg_id = ''
+            if not ('thread' in vim.bindeval('s:buf_num')):
+                vim.command('call s:make_thread_list()')
             active_win = str(vim.bindeval('s:buf_num')['thread'])
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1]
         else:
