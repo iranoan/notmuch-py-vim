@@ -13,7 +13,10 @@ let b:did_ftplugin_user = 1
 " endif
 
 execute 'source ' . expand('<sfile>:p:h:h') . '/macros/notmuch-edit.vim'
-setlocal syntax=mail
+setlocal signcolumn=auto foldmethod=syntax
+if &foldcolumn == 0
+	setlocal foldcolumn=1
+endif
 
 " keymap
 nnoremap <buffer><silent><Leader>s :Notmuch mail-send<CR>

@@ -21,7 +21,7 @@ syntax case ignore
 syntax match mailHeaderKey      contained contains=mailHeaderEmail,mailEmail,@NoSpell /^[a-z-]\+:\s*/
 syntax region mailHeaderAddress contained contains=@mailHeaderFields2,mailHeaderEmail,mailEmail,@NoSpell start='^\(\(Resent-\)\?\(From\|To\|Cc\|Bcc\)\|Reply-To\):\s*'ms=s,me=e skip='^\s' end='$'
 syntax match mailHeaderFcc      contained contains=@mailHeaderFields2,@NoSpell /^Fcc:\s*.\+/
-syntax region mailHeader        keepend   contains=mailHideHeader, @mailHeaderFields,@mailQuoteExps,@NoSpell start='^\(Resent-\)\?From:' skip='^\s' end='^$'me=s-1 fold
+syntax region mailHeader        keepend   contains=mailHideHeader, @mailHeaderFields,@mailQuoteExps,@NoSpell start='^\(\(Resent-\)\?From\|Date\|From\|Received\|Return-Path\):' skip='^\s' end='^$'me=s-1 fold
 
 execute 'source ' . expand('<sfile>:p:h:h') . '/macros/syntax-common.vim'
 highlight def link mailHeaderAddress Statement
