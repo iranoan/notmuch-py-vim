@@ -4125,12 +4125,6 @@ def address2ls(adr):  # To, Cc ヘッダのアドレス群をリストに
     adr_ls = []
     # ヘッダの「名前+アドレス」は " に挟まれた部分と、コメントの () で挟まれた部分以外では、, が複数個の区切りとなる
     # また " で挟まれた部分も、() で挟まれた部分も \ がエスケープ・キャラクタ
-    # Resent-From: Yoshinaga Hiroyuki <yoshinaga.hiroyuki@nifty.com>
-    # Resent-To: 吉永 博之 <bxn02350@nifty.com>
-    # To: bxn02350@nifty.com,Nifty <yoshinaga.hiroyuki@nifty.com>, 吉永 博之 <bxn02350@nifty.com>
-    # to: Google <yoshinaga.hiroyuki@gmail.com>
-    # Resent-Cc: a, b
-    # Resent-Bcc: Google <yoshinaga.hiroyuki@gmail.com>
     for x in re.finditer(r'("(\\"|[^"])*"|\((\\\(|\\\)|[^()])*\)|[^,])+', adr):
         adr_ls.append(re.sub(r'\s*(.+)\s*', r'\1', x.group()))
     return adr_ls
