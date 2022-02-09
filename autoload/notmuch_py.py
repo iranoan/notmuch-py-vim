@@ -3579,7 +3579,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             if h_term in h_data:
                 h_data[h_term] = uniq_address(address2ls(h_data[h_term]))
         h_data_k = list(h_data.keys())
-        if 'From' in h_data_k:
+        if 'From' in h_data_k or 'Resent-From' in h_data_k:
             h_data_changed = {}
         else:
             h_data_changed = {'From': [get_user()]}
@@ -4314,12 +4314,11 @@ def forward_mail_resent():
     b_v = b.vars['notmuch']
     s = 'Resent-FWD:' + s
     b_v['subject'] = s
-    b.append('Subject: ' + s)
-    b.append('From: ')
     b.append('Resent-From: ')
     b.append('Resent-To: ')
     b.append('Resent-Cc: ')
     b.append('Resent-Bcc: ')
+    b.append('Subject: ' + s)
     b.append('Resent-Sender: ')
     for f in msg.get_filenames():
         if os.path.isfile(f):
