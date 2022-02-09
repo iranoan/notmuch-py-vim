@@ -368,7 +368,6 @@ function s:set_defaults() abort
 		py3 SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
 	endif
 	if exists('g:notmuch_send_param')
-		echomsg 1
 		py3 SEND_PARAM = vim.eval('g:notmuch_send_param')
 	endif
 	py3 import os
