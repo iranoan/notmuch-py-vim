@@ -3959,6 +3959,9 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         msg_data += '\nResent-Date: ' + msg_date
         msg_id = reset_msgid(msg_send, header_data['Resent-From'][0], 'Resent-')
         msg_data += '\nResent-Message-ID: ' + msg_id
+        if not send(msg_send):
+            return False
+        save_draft(msg_send, msg_data, msg_id, msg_date, True)
     else:
         check_sender(header_data, '')
         if not check_address(header_data, ''):
@@ -3983,11 +3986,11 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         msg_id = reset_msgid(msg_send, header_data['From'][0], '')
         if not make_send_message(msg_send, header_data, mail_context, flag):
             return False
-    if send(msg_send):
+        if not send(msg_send):
+            return False
         save_draft(msg_send, msg_data, msg_id, msg_date,
                    (vim.vars.get('notmuch_save_draft', 0) if VIM_MODULE else 0))
-        return True
-    return False
+    return True
 
 
 def send_search(search_term):
