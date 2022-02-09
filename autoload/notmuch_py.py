@@ -4620,15 +4620,17 @@ def set_from():  # 宛先に沿って From ヘッダを設定と b:subject の�
         h_From = h_from['resent-from'][1]
     else:
         h_From = h_from['from'][1]
-    if re.match(r'From:', b[h_from['from'][0]], flags=re.IGNORECASE) is None:
-        b.append('From: ' + h_From, h_from['from'][0])
+    if h_from['resent-from'][0]:  # Resent-From ヘッダがない
+        if re.match(r'From:', b[h_from['from'][0]], flags=re.IGNORECASE) is None:
+            b.append('From: ' + h_From, h_from['from'][0])
+        else:
+            b[h_from['from'][0]] = 'From: ' + h_From
     else:
-        b[h_from['from'][0]] = 'From: ' + h_From
-    if h_from['resent-from'][1] == '':
-        if re.match(r'Resent-From:', b[h_from['resent-from'][0]], flags=re.IGNORECASE) is not None:
-            b[h_from['resent-from'][0]] = 'Resent-From: ' + h_From
-        elif resent_flag:  # Resent-From がないだけでなく、Reset-??? 送信先があるときだけ追加
-            b.append('Resent-From: ' + h_From, h_from['resent-from'][0])
+        if h_from['resent-from'][1] == '':
+            if re.match(r'Resent-From:', b[h_from['resent-from'][0]], flags=re.IGNORECASE) is not None:
+                b[h_from['resent-from'][0]] = 'Resent-From: ' + h_From
+            elif resent_flag:  # Resent-From がないだけでなく、Reset-??? 送信先があるときだけ追加
+                b.append('Resent-From: ' + h_From, h_from['resent-from'][0])
     to = sorted(set(to), key=to.index)
     compress_addr()
     return to, h_From
