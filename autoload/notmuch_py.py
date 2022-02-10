@@ -4108,17 +4108,19 @@ def new_mail(s):  # 新規メールの作成 s: mailto プロトコルを想定
     b = vim.current.buffer
     b.vars['notmuch'] = {}
     b.vars['notmuch']['subject'] = headers['subject']
+    add_head = 0x01
     for header in vim.vars['notmuch_draft_header']:
         header = header.decode()
         header_l = header.lower()
         if header_l in headers:
             b.append(header + ': ' + headers.pop(header_l))
+        elif header_l == 'attach':  # これだけは必ず最後
+            add_head = 0x03
         else:
             b.append(header + ': ')
     for header in headers:
         b.append(header + ': ' + headers[header])
-    b.append('')
-    after_make_draft(b)
+    after_make_draft(b, None, add_head)
     vim.command('call s:au_new_mail()')
 
 
@@ -4190,6 +4192,7 @@ def reply_mail():  # 返信メールの作成
             addr_exist = addr_tmp
             send_from_name = send_tmp
         send_to_name = ', '.join((recive_to_name+[recive_from_name]))
+    add_head = 0x01
     for header in headers:
         header = header.decode()
         header_lower = header.lower()
@@ -4207,18 +4210,14 @@ def reply_mail():  # 返信メールの作成
         elif header_lower == 'cc':
             b.append('Cc: ' + ', '.join(cc_name))
         elif header_lower == 'attach':  # これだけは必ず最後
-            pass
+            add_head = 0x03
         else:
             b.append(header + ': ')
-    set_reference(b, msg, True)
-    if next((i for i in headers if i.decode().lower() == 'attach'), None) is not None:
-        b.append('Attach: ')
     b_v['org_mail_date'] = email.utils.parsedate_to_datetime(
         msg.get_header('Date')).strftime('%Y-%m-%d %H:%M %z')
     # date = email.utils.parsedate_to_datetime(msg.get_header('Date')).strftime(DATE_FORMAT)
     # ↑同じローカル時間同士でやり取りするとは限らない
-    DBASE.close()
-    after_make_draft(b)
+    after_make_draft(b, msg, add_head | 0x0E)
     vim.command('call s:au_reply_mail()')
 
 
@@ -4246,19 +4245,16 @@ def forward_mail():
         s_len = 9 + vim.bindeval('strdisplaywidth("' + s.replace('"', '\\"') + '")')
         cut_line = max(cut_line, s_len)
     headers = vim.vars['notmuch_draft_header']
+    add_head = 0x01
     for h in headers:
         h = h.decode()
         h_lower = h.lower()
         if h_lower == 'subject':
             b.append('Subject: ' + subject)
         elif h_lower == 'attach':  # これだけは必ず最後
-            pass
+            add_head = 0x03
         else:
             b.append(h + ': ')
-    set_reference(b, msg, False)
-    if next((i for i in headers if i.decode().lower() == 'attach'), None) is not None:
-        b.append('Attach: ')
-    DBASE.close()
     # 本文との境界線作成
     message = 'Forwarded message'
     mark = '-' * int((cut_line - vim.bindeval('strdisplaywidth("' +
@@ -4266,8 +4262,7 @@ def forward_mail():
     msg_data = mark + ' ' + message + ' ' + mark + '\n' + msg_data
     # 本文との境界線作成終了
     b_v['org_mail_body'] = msg_data
-    b.append('')
-    after_make_draft(b)
+    after_make_draft(b, msg, add_head | 0x04)
     vim.command('call s:au_forward_mail()')
 
 
@@ -4281,6 +4276,7 @@ def forward_mail_attach():
     b = vim.current.buffer
     b.vars['notmuch'] = {}
     b_v = b.vars['notmuch']
+    add_head = 0x01
     for h in vim.vars['notmuch_draft_header']:
         h = h.decode()
         h_lower = h.lower()
@@ -4289,16 +4285,10 @@ def forward_mail_attach():
             b_v['subject'] = s
             b.append('Subject: ' + s)
         elif h_lower == 'attach':  # 元メールを添付するので何もしない
-            pass
+            add_head = 0x03
         else:
             b.append(h + ': ')
-    for f in msg.get_filenames():
-        if os.path.isfile(f):
-            b.append('Attach: ' + f)
-            break
-    set_reference(b, msg, False)
-    DBASE.close()
-    after_make_draft(b)
+    after_make_draft(b, msg, add_head | 0x1C)
     vim.command('call s:au_new_mail()')
 
 
@@ -4320,13 +4310,7 @@ def forward_mail_resent():
     b.append('Resent-Bcc: ')
     b.append('Subject: ' + s)
     b.append('Resent-Sender: ')
-    for f in msg.get_filenames():
-        if os.path.isfile(f):
-            b.append('Attach: ' + f)
-            break
-    set_reference(b, msg, False)
-    DBASE.close()
-    after_make_draft(b)
+    after_make_draft(b, msg, 0x1D)
     b.append('This is resent mail template.')
     b.append('Other Resent-xxx headers and body contents are ignored.')
     b.append('If delete Resent-From, became a normal mail.')
@@ -4359,14 +4343,7 @@ def before_make_draft(active_win):  # 下書き作成の前処理
     vim.command('call s:augroup_notmuch_select(' + active_win + ', 0)')
 
 
-def after_make_draft(b):
-    b.append('')
-    del b[0]
-    i = 0
-    for s in b:
-        if s.find('Attach: ') == 0:
-            break
-        i += 1
+def after_make_draft(b, msg, add_head):
     now = email.utils.localtime()
     msg_id = email.utils.make_msgid()
     b_v = vim.current.buffer.vars
@@ -4374,9 +4351,22 @@ def after_make_draft(b):
     b_v['date'] = now.strftime(DATE_FORMAT)
     b_v['msg_id'] = msg_id[1:-1]
     b_v['tags'] = 'draft'
-    b.append('Date: ' + email.utils.format_datetime(now), i)
+    b.append('Date: ' + email.utils.format_datetime(now))
     # Message-ID はなくとも Notmuch は SHA1 を用いたファイルのチェックサムを使って管理できるが tag 追加などをするためには、チェックサムではファイル編集で変わるので不都合
-    b.append('Message-ID: ' + msg_id, i + 1)
+    b.append('Message-ID: ' + msg_id)
+    if add_head & 0x1C:
+        set_reference(b, msg, add_head & 0x0C)
+        if add_head & 0x10:
+            for f in msg.get_filenames():
+                if os.path.isfile(f):
+                    b.append('Attach: ' + f)
+                    break
+        DBASE.close()
+    if add_head & 0x02:
+        b.append('Attach: ')
+    if add_head & 0x01:
+        b.append('')
+    del b[0]
     b.options['modified'] = 0
     vim.command('call s:au_write_draft()')
 
@@ -4469,14 +4459,15 @@ def set_reply_after(n):  # 返信メールの From ヘッダの設定や引用�
     to, h_from = set_from()
     b = vim.current.buffer
     b_v = b.vars['notmuch']
+    lines = ['On ' + b_v['org_mail_date'].decode() + ', ' +
+             email2only_name(b_v['org_mail_from'].decode()) + ' wrote:']
+    for line in b_v['org_mail_body'].decode().split('\n'):
+        lines.append('> ' + line)
     if vim.vars.get('notmuch_signature_prev_quote', 0):
         insert_signature(to, h_from)
-    b.append('On ' + b_v['org_mail_date'].decode() + ', ' +
-             email2only_name(b_v['org_mail_from'].decode()) + ' wrote:')
-    for line in b_v['org_mail_body'].decode().split('\n'):
-        b.append('> ' + line)
-    b.append('')
-    if not vim.vars.get('notmuch_signature_prev_quote', 0):
+        b.append(lines)
+    else:
+        b.append(lines)
         insert_signature(to, h_from)
     del b_v['org_mail_date']
     del b_v['org_mail_body']
@@ -4489,14 +4480,17 @@ def set_forward_after(n):  # 返信メールの From ヘッダの設定や引用
     vim.command('autocmd! NotmuchForwardAfter' + str(n))
     to, h_from = set_from()
     b = vim.current.buffer
+    b_v = b.vars['notmuch']
+    lines = []
+    for line in b_v['org_mail_body'].decode().split('\n'):
+        lines.append(line)
     if vim.vars.get('notmuch_signature_prev_forward', 0):
         insert_signature(to, h_from)
-    for line in b.vars['notmuch']['org_mail_body'].decode().split('\n'):
-        b.append(line)
-    b.append('')
-    if not vim.vars.get('notmuch_signature_prev_forward', 0):
+        b.append(lines)
+    else:
+        b.append(lines)
         insert_signature(to, h_from)
-    del b.vars['notmuch']['org_mail_body']
+    del b_v['org_mail_body']
 
 
 def set_resent_after(n):  # そのまま転送メールの From ヘッダの設定や署名の挿入
