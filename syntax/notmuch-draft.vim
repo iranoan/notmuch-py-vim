@@ -2,9 +2,9 @@
 " Language: notmuch-draft window
 
 " Quit when a syntax file was already loaded
-" if exists('b:current_syntax')
-" 	finish
-" endif
+if exists('b:current_syntax')
+	finish
+endif
 
 let s:cpo_save = &cpoptions
 set cpoptions&vim

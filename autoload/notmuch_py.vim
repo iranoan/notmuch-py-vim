@@ -1571,7 +1571,7 @@ augroup END
 
 augroup NotmuchFileType
 	autocmd!
-	autocmd FileType notmuch-edit setlocal syntax=mail
+	autocmd FileType notmuch-edit setlocal syntax=notmuch-draft
 	" ↑syntax の反映が setlocal filetype=xxx に引きずられる
 augroup END
 

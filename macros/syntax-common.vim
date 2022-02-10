@@ -1,10 +1,10 @@
 " notmuch-draft/show common part
 
-execute 'syntax region mailHideHeader contains=@mailHeaderFields,@NoSpell '
+execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
 			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\):''me=s-1 '
-			\ . 'end=''\(\(Del-\)\?\(Attach\|HTML\)\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+			\ . 'end=''\(\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
 			\ . 'end=''^[^:]*\n''me=s-1  fold'
-" syntax region mailHideHeader contains=@mailHeaderFields,@NoSpell start='^\(Return-Path\|Reply-To\|Message-ID\|Resent-Message-ID\|In-Reply-To\|References\|Errors-To\):' end='\(\(Del-\)\?\(Attach\|HTML\)\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\)'me=s-1 end='^[^:]*\n'me=s-1 fold
+
 " Anything in the header between < and > is an email address
 syntax match  mailHeaderEmail contained contains=@NoSpell '<.\{-}>'
 
