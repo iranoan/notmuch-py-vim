@@ -12,9 +12,10 @@ License: GPL Ver.3.
 2022/02/08 Ver.1.17~
 * mail-resent-forward (|notmuch-python-vim-mail-resent|) で、ドキュメント異なり
   |g:notmuch_save_draft| に従って送信済みメールの保存をしていたバグ修正
-* mail-resent-forward (|notmuch-python-vim-mail-resent|) ヘッダの付け方改善
+* 送信メールのヘッダの付け方改善
 * 'notmuch-draft' 用のシンタックス追加
 	- foldmethod=syntax
+	- 'notmuch-edit' 用のシンタックスはそれを共有
 
 2022/02/08 Ver.1.16~
 * |{S-WIN}| のバッファがない時 view-previous (|notmuch-python-vim-view-previous|),
