@@ -13,3 +13,4 @@ let b:did_ftplugin_user = 1
 " endif
 
 execute 'source ' . expand('<sfile>:p:h:h') . '/macros/notmuch-edit.vim'
+setlocal signcolumn=auto foldmethod=syntax foldlevel=1

@@ -1159,45 +1159,6 @@ function s:au_write_draft() abort " draft mail の保存
 	augroup END
 endfunction
 
-function s:fold_mail_header() abort " g:notmuch_show_headers 以外の連続するヘッダを閉じる
-	let l:i = 1
-	let l:close_start = 1
-	let l:multi_flag = v:false
-	let l:show_headers = []
-	for l:str in g:notmuch_show_headers
-		call add(l:show_headers, tolower(l:str))
-	endfor
-	for l:str in getline(1, '$')
-		if l:str ==# ''
-			break
-		endif
-		if l:str[0] !=? ' ' && l:str[0] !=? "\t"
-			let l:head = tolower(matchstr(l:str, '[^:]\+'))
-			if index(l:show_headers, l:head) != -1
-				let l:head_flag = v:true
-				if l:i - l:close_start > 1
-					execute printf('%d', l:close_start) . ',' printf('%d', l:i - 1) . 'fold'
-				endif
-				let l:close_start = l:i + 1
-			else
-				let l:head_flag = v:false
-				if l:head ==# 'content-type' && match(l:str, '^Content-Type: \?multipart/\c') != -1
-					let l:multi_flag = v:true
-					let l:boundary_start = l:i
-				endif
-			endif
-		elseif l:head_flag
-			let l:close_start = l:i + 1
-		endif
-		let l:i += 1
-	endfor
-	if l:multi_flag
-		call s:close_boundary(l:i, l:close_start, l:boundary_start)
-	elseif l:i - l:close_start > 1
-		execute printf('%d', l:close_start) . ',' printf('%d', l:i - 1) . 'fold'
-	endif
-endfunction
-
 function s:close_boundary(header_end, close_start, boundary_start) abort " ヘッダの最後から multipart 部まで纏めて折りたたむ
 	let l:i = a:boundary_start
 	while v:true

@@ -1,9 +1,13 @@
 " notmuch-draft/show common part
 
 execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
-			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\):''me=s-1 '
-			\ . 'end=''\(\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
-			\ . 'end=''^[^:]*\n''me=s-1  fold'
+			\ . 'start=''\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\|\d\)\@<!:'' '
+			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+			\ . 'end=''^$''  fold'
+execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
+			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\|X-[a-z-]\+\):'' '
+			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|')[:-2] . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+			\ . 'end=''^$''  fold'
 
 " Anything in the header between < and > is an email address
 syntax match  mailHeaderEmail contained contains=@NoSpell '<.\{-}>'
