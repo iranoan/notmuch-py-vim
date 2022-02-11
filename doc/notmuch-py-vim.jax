@@ -1032,6 +1032,7 @@ mail-send
 			に一致するならそのメール
 		- |{F-WIN}|, |{T-WIN}|, |{S-WIN}| で実行した時は、メール・ファイルを他のバッファ
 			で開いていたり未保存メールは送信対象にならない
+		- 上記の「tag:sent」は初期設定で、実際には |g:notmuch_sent_tag| に依存
 
                                                        *notmuch-python-vim-mark*
 mark
