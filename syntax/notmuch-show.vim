@@ -9,24 +9,19 @@ endif
 let s:cpo_save = &cpoptions
 set cpoptions&vim
 
-" Syntax clusters
-syntax cluster mailHeaderFields contains=mailHeaderKey,mailHeaderEmail,@mailLinks
-syntax cluster mailLinks        contains=mailURL,mailEmail
-syntax cluster mailQuoteExps    contains=mailQuoteExp1,mailQuoteExp2,mailQuoteExp3,mailQuoteExp4,mailQuoteExp5,mailQuoteExp6
-
 syntax case match
 syntax case ignore
 
-syntax region  mailNewPart      contains=mailNewPartHead,mailHeader,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
+syntax match   mailNewPartHead  contained contains=@NoSpell '^[\x0C]\zs.\+ part$'
+syntax region  mailHeader      contained contains=mailHeaderKey,mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
+syntax region  mailNewPart      contains=mailHeader,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
 
 " Usenet headers
 syntax match   mailHeaderKey    contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
-syntax match   mailNewPartHead  contains=@NoSpell '^[\x0C]\zs.\+ part$'
-syntax region  mailHeader       contains=mailHideHeader,@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+[\u200B]' skip='^\s' end='^[^:]*\n' fold
+" syntax region  mailHeader       contains=@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+[\u200B]' skip='^\s' end='^[^:]*\n' fold
+syntax region mailHeader                 contains=mailHeaderKey,mailHideHeader,@mailHeaderFields,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
 
 execute 'source ' . expand('<sfile>:p:h:h') . '/macros/syntax-common.vim'
-
-highlight mailNewPartHead term=reverse,bold gui=reverse,bold
 
 let b:current_syntax = 'notmuch-show'
 

@@ -9,7 +9,7 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/02/10 Ver.1.17~
+2022/02/11 Ver.1.17~
 * mail-resent-forward (|notmuch-python-vim-mail-resent|) で、ドキュメント異なり
   |g:notmuch_save_draft| に従って送信済みメールの保存をしていたバグ修正
 * 送信メールのヘッダの付け方改善
@@ -17,6 +17,7 @@ License: GPL Ver.3.
 	- foldmethod=syntax
 * mail-send (|notmuch-python-vim-mail-send|) は |g:notmuch_sent_tag| を考慮するよう
   に変更
+* ヘッダの判定方法変更
 
 2022/02/08 Ver.1.16~
 * |{S-WIN}| のバッファがない時 view-previous (|notmuch-python-vim-view-previous|),

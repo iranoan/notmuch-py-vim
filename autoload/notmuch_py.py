@@ -1732,8 +1732,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                             verify(msg_file, output, pre, part_ls))
         else:
             mag_walk_org(msg_file, output, part_ls, flag, pgp_info)
-        if len(output.main['header']) >= 3 and output.main['header'][1][0] == '\f':
-            output.main['header'][2] += '\u200B'  # メールヘッダ開始
+        # if len(output.main['header']) >= 3 and output.main['header'][1][0] == '\f':
+        #     output.main['header'][2] += '\u200B'  # メールヘッダ開始
 
     def print_local_message(output):
         for a in output.main['attach']:
@@ -1773,8 +1773,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         get_virtual_header(msg_file, output, 'Attach')
         part_ls = [1]
         msg_walk(msg_file, output, part_ls, flag)
-        if not flag:
-            output.main['header'][0] += '\u200B'  # メールヘッダ開始
+        # if not flag:
+        #     output.main['header'][0] += '\u200B'  # メールヘッダ開始
         print_local_message(output)
 
     not_search = vim.current.buffer.number
@@ -3177,17 +3177,6 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
         print(message)
 
 
-# def set_atime_now():  # ファイルのアクセス時間を現在時刻に
-#     msg_id = get_msg_id()
-#     if msg_id == '':
-#         return
-#     DBASE.open(PATH)
-#     for filename in DBASE.find_message(msg_id).get_filenames():
-#         stat_info = os.stat(filename)
-#         m_time = int(stat_info.st_mtime)
-#         os.utime(filename, (time.time(), m_time))
-#
-#
 def send_mail(filename):  # ファイルをメールとして送信←元のファイルは削除
     # 添付ファイルのエンコードなどの変換済みデータを送信済み保存
     if VIM_MODULE:
@@ -5764,6 +5753,155 @@ def buf_kind():  # カレント・バッファの種類
         return for_filetype()
 
 
+def get_hide_header():  # メールファイルを開いた時に折り畳み対象となるヘッダの Vim の正規表現生成
+    # 一般的なヘッダから g:notmuch_show_headers は除く
+    # ただし X- で始まるヘッダは常に折り畳み対象
+    hide = [
+        'accept-language',
+        'alternate-recipient',
+        'approved',
+        'approved-by',
+        'archived-at',
+        'authentication-results',
+        'autoforwarded',
+        'autosubmitted',
+        'bcc',
+        'cc',
+        'comments',
+        'content-alternative',
+        'content-base',
+        'content-charset',
+        'content-convert',
+        'content-description',
+        'content-disposition',
+        'content-duration',
+        'content-encoding',
+        'content-features',
+        'content-id',
+        'content-identifier',
+        'content-language',
+        'content-length',
+        'content-location',
+        'content-md5',
+        'content-previous',
+        'content-range',
+        'content-return',
+        'content-script-type',
+        'content-style-type',
+        'content-transfer-encoding',
+        'content-type',
+        'content-version',
+        'content-x-properties',
+        'conversion',
+        'conversion-with-loss',
+        'date',
+        'dcc',
+        'deferred-delivery',
+        'delivered-to',
+        'delivery-date',
+        'discarded-x400-ipms-extensions',
+        'discarded-x400-mts-extensions',
+        'disclose-recipients',
+        'disposition-notification-options',
+        'disposition-notification-to',
+        'dkim-signature',
+        'dl-expansion-history',
+        'domainkey-signature',
+        'encoding',
+        'encrypted',
+        'envelope-to',
+        'errors-to',
+        'expires',
+        'expiry-date',
+        'face',
+        'fcc',
+        'feedback-id',
+        'from',
+        'generate-delivery-report',
+        'importance',
+        'in-reply-to',
+        'incomplete-copy',
+        'keywords',
+        'language',
+        'latest-delivery-time',
+        'lines',
+        'link',
+        'list-archive',
+        'list-help',
+        'list-id',
+        'list-owner',
+        'list-post',
+        'list-subscribe',
+        'list-unsubscribe',
+        'mail-followup-to',
+        'mail-from',
+        'mail-reply-to',
+        'mailing-list',
+        'message-context',
+        'message-id',
+        'message-type',
+        'mime-version',
+        'nntp-posting-date',
+        'nntp-posting-host',
+        'obsoletes',
+        'old-return-path',
+        'organization',
+        'original-encoded-information-types',
+        'original-message-id',
+        'original-receipient',
+        'original-received',
+        'original-sender',
+        'original-to',
+        'original-x-from',
+        'originator-return-address',
+        'pics-label',
+        'precedence',
+        'prevent-nondelivery-report',
+        'priority',
+        'received',
+        'references',
+        'reply-by',
+        'reply-to',
+        'resent-bcc',
+        'resent-cc',
+        'resent-date',
+        'resent-dcc',
+        'resent-fcc',
+        'resent-from',
+        'resent-message-id',
+        'resent-reply-to',
+        'resent-sender',
+        'resent-to',
+        'return-path',
+        'return-receipt-to',
+        'sender',
+        'sensitivity',
+        'snapshot-content-location',
+        'solicitation',
+        'status',
+        'subject',
+        'supersedes',
+        'to',
+        'transport-options',
+        'user-agent',
+        r'x-[a-z-]\+',
+        'x400-content-identifier',
+        'x400-content-return',
+        'x400-content-type',
+        'x400-mts-identifier',
+        'x400-originator',
+        'x400-received',
+        'x400-recipients',
+        'x400-trace',
+        'xref'
+        ]
+    for h in vim.vars['notmuch_show_headers']:
+        h = h.decode().lower()
+        if h in hide:
+            hide.remove(h)
+    return r'\|'.join(hide)
+
+
 GLOBALS = globals()
 
 initialize()
@@ -5772,15 +5910,3 @@ initialize()
 #     s = time.time()
 #     notmuch_duplication()
 #     print(time.time() - s)
-#     print(get_sys_command('Notmuch run mimetype t', 't'))
-#     # SEND_PARAM = ['msmtp', '-t', '-a', 'Nifty', '-X', '-']
-#     # send_search('(folder:draft or folder:.draft or tag:draft) ' +
-#     #             'not tag:sent not tag:Trash not tag:Spam')
-#     # import time
-#     # s = time.time()
-#     # # print_thread_view('tag:inbox not tag:Trash and not tag:Spam')
-#     # # print_thread_view('path:**')
-#     # DBASE.open(PATH)
-#     # make_thread_core('path:**')
-#     # DBASE.close()
-#     # print(time.time() - s)
