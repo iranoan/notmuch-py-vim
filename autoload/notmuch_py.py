@@ -4019,24 +4019,21 @@ def send_vim():
         if not send_vim_buffer():
             return
     else:
+        sent_tag = ' ((folder:draft or folder:.draft or tag:draft) not tag:' + \
+                SENT_TAG + ' not tag:Trash not tag:Spam)'
         buf_num = vim.bindeval('s:buf_num')
         if bufnr == buf_num['folders']:
-            send_search('(folder:draft or folder:.draft or tag:draft) ' +
-                        'not tag:sent not tag:Trash not tag:Spam')
+            send_search(sent_tag)
         elif 'search_term' in b_v:
             s = b_v['search_term'].decode()
             if bufnr == buf_num['thread'] \
                     or (s in buf_num['search'] and bufnr == buf_num['search'][s]):
-                send_search(s +
-                            ' ((folder:draft or folder:.draft or tag:draft) ' +
-                            'not tag:sent not tag:Trash not tag:Spam)')
+                send_search(s + sent_tag)
             else:  # buf_num['show'] または buf_num['view'][s]
                 msg_id = get_msg_id()
                 if msg_id == '':
                     return
-                send_search('id:' + msg_id +
-                            ' ((folder:draft or folder:.draft or tag:draft) ' +
-                            'not tag:sent not tag:Trash not tag:Spam)')
+                send_search('id:' + msg_id + sent_tag)
     if 'buf_num' in vim.bindeval('s:'):
         reprint_folder2()
 

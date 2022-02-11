@@ -15,6 +15,8 @@ License: GPL Ver.3.
 * 送信メールのヘッダの付け方改善
 * 'notmuch-draft/edit' 用のシンタックス追加
 	- foldmethod=syntax
+* mail-send (|notmuch-python-vim-mail-send|) は |g:notmuch_sent_tag| を考慮するよう
+  に変更
 
 2022/02/08 Ver.1.16~
 * |{S-WIN}| のバッファがない時 view-previous (|notmuch-python-vim-view-previous|),
