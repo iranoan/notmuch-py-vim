@@ -1766,9 +1766,13 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             with open(f, 'rb') as fp:
                 msg_file = email.message_from_binary_file(fp)
             # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
-        get_header(msg_file, output, vim.vars['notmuch_show_headers'])
-        get_header(msg_file, output, vim.vars['notmuch_show_hide_headers'])
-        get_header(msg_file, output, ['Encrypt', 'Signature'])
+        show_header = vim.vars['notmuch_show_headers']
+        hide_header = vim.vars['notmuch_show_hide_headers']
+        get_header(msg_file, output, show_header)
+        get_header(msg_file, output, hide_header)
+        for h in [b'Encrypt', b'Signature', b'Fcc']:
+            if not (h in show_header) and not (h in hide_header):
+                get_header(msg_file, output, [h])
         get_virtual_header(msg_file, output, 'X-Attach')
         get_virtual_header(msg_file, output, 'Attach')
         part_ls = [1]
@@ -5897,6 +5901,8 @@ def get_hide_header():  # メールファイルを開いた時に折り畳み対
         ]
     for h in vim.vars['notmuch_show_headers']:
         h = h.decode().lower()
+        if h in hide:
+            hide.remove(h)
         if h in hide:
             hide.remove(h)
     return r'\|'.join(hide)

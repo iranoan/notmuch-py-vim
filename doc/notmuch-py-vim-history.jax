@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/11 Ver.1.18~
+* |{S-WIN}| で Fcc ヘッダーを必ず表示
+
 2022/02/11 Ver.1.17~
 * mail-resent-forward (|notmuch-python-vim-mail-resent|) で、ドキュメント異なり
   |g:notmuch_save_draft| に従って送信済みメールの保存をしていたバグ修正
