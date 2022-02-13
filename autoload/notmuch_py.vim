@@ -329,6 +329,12 @@ function s:set_defaults() abort
 		" 何故か Content-Type, Content-Transfer-Encoding は取得できない
 				" \ 'Content-Type',
 				" \ 'Content-Transfer-Encoding',
+	for l:h in g:notmuch_show_headers + ['Attach', 'Decrypted', 'Encrypt', 'Fcc', 'HTML', 'Signature'] " g:notmuch_show_headers 登録済み、virtual ヘッダは除く
+		let l:i = match(g:notmuch_show_hide_headers, '\c^' . l:h . '$')
+		if l:i != -1
+			call remove(g:notmuch_show_hide_headers, l:i)
+		endif
+	endfor
 
 	let g:notmuch_draft_header = get(g:, 'notmuch_draft_header', [ 'From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach' ])
 	let g:notmuch_send_param = get(g:, 'notmuch_send_param', ['sendmail', '-t', '-oi'])
