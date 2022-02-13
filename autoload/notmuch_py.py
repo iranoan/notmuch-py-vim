@@ -3173,7 +3173,9 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
         else:
             draft_dir = PATH + os.sep + 'draft'
         if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
-            vim.command('setlocal filetype=notmuch-draft | call s:au_write_draft()')
+            vim.command('setlocal filetype=notmuch-draft | call s:au_write_draft() | cd ' +
+                        os.path.dirname(vim.bindeval('getbufinfo(' +
+                                        str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
         else:
             vim.command('setlocal filetype=notmuch-edit')
     if message != '':
@@ -4358,6 +4360,8 @@ def after_make_draft(b, msg, add_head):
         b.append('')
     del b[0]
     b.options['modified'] = 0
+    vim.command('cd ' + os.path.dirname(vim.bindeval('getbufinfo(' +
+                str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
     vim.command('call s:au_write_draft()')
 
 

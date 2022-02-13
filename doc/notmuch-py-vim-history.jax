@@ -12,6 +12,8 @@ License: GPL Ver.3.
 2022/02/11 Ver.1.18~
 * |{S-WIN}| で Fcc ヘッダーを必ず表示
 * g:notmuch_show_hide_headers から g:notmuch_show_headers と仮想ヘッダを削除
+* 下書きメールではカレントディレクトリを start (|notmuch-python-vim-start|) 時の
+ ディレクトリに変更
 
 2022/02/11 Ver.1.17~
 * mail-resent-forward (|notmuch-python-vim-mail-resent|) で、ドキュメント異なり
