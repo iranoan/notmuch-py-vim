@@ -13,13 +13,13 @@ syntax case match
 syntax case ignore
 
 syntax match   mailNewPartHead  contained contains=@NoSpell '^[\x0C]\zs.\+ part$'
-syntax region  mailHeader      contained contains=mailHeaderKey,mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
+syntax region  mailHeader      contained contains=mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
 syntax region  mailNewPart      contains=mailHeader,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
 
 " Usenet headers
 syntax match   mailHeaderKey    contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
 " syntax region  mailHeader       contains=@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+[\u200B]' skip='^\s' end='^[^:]*\n' fold
-syntax region mailHeader                 contains=mailHeaderKey,mailHideHeader,@mailHeaderFields,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
+syntax region mailHeader                 contains=mailHideHeader,@mailHeaderFields,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
 
 execute 'source ' . expand('<sfile>:p:h:h') . '/macros/syntax-common.vim'
 

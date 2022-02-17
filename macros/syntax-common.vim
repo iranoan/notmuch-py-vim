@@ -1,21 +1,23 @@
 " notmuch-draft/show common part
 
 " Syntax clusters
-syntax cluster mailHeaderFields  contains=mailHeaderEmail,@mailLinks
+syntax cluster mailHeaderFields  contains=mailHeaderKey,mailHeaderEmail,@mailLinks
 syntax cluster mailLinks         contains=mailURL,mailEmail
 syntax cluster mailQuoteExps     contains=mailQuoteExp1,mailQuoteExp2,mailQuoteExp3,mailQuoteExp4,mailQuoteExp5,mailQuoteExp6
 
-execute 'syntax region mailHideHeader contained contains=mailHeaderKey,@mailHeaderFields,@NoSpell '
+execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell,@mailHeaderComp '
 			\ . 'start=''^\(' . py3eval('get_hide_header()') . '\):'' skip=''^\s'' '
-			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
 			\ . 'end=''^$''  fold'
-" execute 'syntax region mailHideHeader contained contains=mailHeaderKey,@mailHeaderFields,@NoSpell '
-" 			\ . 'start=''\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\)\@<!:'' skip=''^\s'' '
-" 			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+execute 'syntax region mailHeaderShow contained contains=mailHeaderKey,mailHeaderEmail,mailEmail,@NoSpell,@mailHeaderComp '
+			\ . 'start=''^\(' . join(g:notmuch_show_headers, '\|') . '\):\s*'' skip=''^\s'' end=''$'''
+" execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
+" 			\ . 'start=''\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\)\@<!:'' skip=''^\s'' '
+" 			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
 " 			\ . 'end=''^$''  fold'
-" execute 'syntax region mailHideHeader contained contains=mailHeaderKey,@mailHeaderFields,@NoSpell '
+" execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
 " 			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\|X-[a-z-]\+\):'' skip=''^\s'' '
-" 			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|')[:-2] . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|PGP-Public-Key\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+" 			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|')[:-2] . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
 " 			\ . 'end=''^$''  fold'
 
 " Anything in the header between < and > is an email address
@@ -58,17 +60,19 @@ endif
 
 " Define the default highlighting.
 highlight def link mailVerbatim    Special
-highlight def link mailHideHeader  Statement
+highlight def link mailHeader      Statement
+highlight def link mailHeaderShow  Statement
+highlight def link mailHideHeader  mailHeader
 highlight def link mailHeaderKey   Type
 highlight def link mailSignature   PreProc
 highlight def link mailHeaderEmail mailEmail
 highlight def link mailEmail       Special
 highlight def link mailURL         String
 highlight def link mailQuoted1     Comment
-highlight def link mailQuoted3     mailQuoted1
-highlight def link mailQuoted5     mailQuoted1
 highlight def link mailQuoted2     Identifier
+highlight def link mailQuoted3     mailQuoted1
 highlight def link mailQuoted4     mailQuoted2
+highlight def link mailQuoted5     mailQuoted1
 highlight def link mailQuoted6     mailQuoted2
 highlight def link mailQuoteExp1   mailQuoted1
 highlight def link mailQuoteExp2   mailQuoted2
@@ -76,5 +80,4 @@ highlight def link mailQuoteExp3   mailQuoted3
 highlight def link mailQuoteExp4   mailQuoted4
 highlight def link mailQuoteExp5   mailQuoted5
 highlight def link mailQuoteExp6   mailQuoted6
-highlight def link mailHeader      Statement
 highlight mailNewPartHead term=reverse,bold gui=reverse,bold
