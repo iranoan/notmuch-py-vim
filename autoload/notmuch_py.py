@@ -5244,6 +5244,30 @@ def notmuch_thread():
     reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
 
 
+def notmuch_address():
+    msg_id = get_msg_id()
+    if msg_id == '':
+        return
+    DBASE.open(PATH)
+    msg = DBASE.find_message(msg_id)
+    if SENT_TAG in msg.get_tags():
+        adr = msg.get_header('To')
+        if adr == '':
+            adr = msg.get_header('From')
+    else:
+        adr = msg.get_header('From')
+    DBASE.close()
+    if adr == '':
+        return
+    adr = email2only_address(adr)
+    search_term = 'from:' + adr + ' or to:' + adr + ' or cc:' + adr + ' or bcc:' + adr
+    notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
+    vim.command('normal! zO')
+    index = [i for i, msg in enumerate(
+        THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
+    reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
+
+
 def notmuch_duplication(remake):
     if remake or not ('*' in THREAD_LISTS):
         DBASE.open(PATH)

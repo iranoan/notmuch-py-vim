@@ -668,6 +668,7 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 			thread			|{T-WIN}|
 			show				|{F-WIN}|
 			search			search (|notmuch-python-vim-search|),
+									search-address (|notmuch-python-vim-search-address|)
 									search-thread (|notmuch-python-vim-search-thread|)
 									search-duplication (|notmuch-python-vim-search-duplication|)
 			edit				mail-edit (|notmuch-python-vim-mail-edit|)
@@ -1097,6 +1098,13 @@ search [|search-term|]
 			|{T-WIN}|/|{S-WIN}| メールに対応した |search-term|
 	* 検索にヒットするメールがなければ、メッセージを表示のみおこない、|{T-WIN}| を
 	  開かない
+
+                                              *notmuch-python-vim-search-address*
+search-address
+	* `sent` もしくは |g:notmuch_sent_tag| で指定したタグがついているメールなら From
+	  ヘッダ、そうでなけれ To ヘッダのアドレスでメールを検索し、|{T-Win}| 枠に表示
+	  する
+	* From, To, Cc, Bcc の何れかに含まれていれば検索にヒットする
 
                                           *notmuch-python-vim-search-duplication*
 search-duplication

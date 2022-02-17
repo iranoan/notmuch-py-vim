@@ -643,6 +643,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['run']                 = ['s:run_shell_program', 0x07]
 				let g:notmuch_command['search']              = ['s:notmuch_search', 0x05]
 				let g:notmuch_command['search-thread']       = ['s:notmuch_thread', 0x04]
+				let g:notmuch_command['search-address']      = ['s:notmuch_address', 0x04]
 				let g:notmuch_command['search-duplication']  = ['s:notmuch_duplication', 0x04]
 				let g:notmuch_command['search-refine']       = ['s:notmuch_refine', 0x05]
 				let g:notmuch_command['search-up-refine']    = ['s:notmuch_up_refine', 0x04]
@@ -1389,6 +1390,10 @@ endfunction
 
 function s:notmuch_thread(args) abort
 	py3 notmuch_thread()
+endfunction
+
+function s:notmuch_address(args) abort
+	py3 notmuch_address()
 endfunction
 
 function s:notmuch_duplication(args) abort

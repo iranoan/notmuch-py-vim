@@ -9,11 +9,14 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/02/11 Ver.1.18~
+2022/02/17 Ver.1.18~
+* 表示しているメールのアドレスで検索するサブコマンド追加 search-address
+  (|notmuch-python-vim-search-address|) の追加
 * |{S-WIN}| で Fcc ヘッダーを必ず表示
-* g:notmuch_show_hide_headers から g:notmuch_show_headers と仮想ヘッダを削除
+* |g:notmuch_show_headers| と仮想ヘッダは |g:notmuch_show_hide_headers| で指定され
+  ていても無視する
 * 下書きメールではカレントディレクトリを start (|notmuch-python-vim-start|) 時の
- ディレクトリに変更
+  ディレクトリに変更
 
 2022/02/11 Ver.1.17~
 * mail-resent-forward (|notmuch-python-vim-mail-resent|) で、ドキュメント異なり
