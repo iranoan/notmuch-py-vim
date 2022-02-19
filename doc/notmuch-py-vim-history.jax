@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/02/19 Ver.1.19~
+* HTML パートはヘッダが含まれない扱いに仕様変更
+
 2022/02/17 Ver.1.18~
 * 表示しているメールのアドレスで検索するサブコマンド追加 search-address
   (|notmuch-python-vim-search-address|) の追加

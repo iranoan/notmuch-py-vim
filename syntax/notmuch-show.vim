@@ -13,8 +13,9 @@ syntax case match
 syntax case ignore
 
 syntax match   mailNewPartHead  contained contains=@NoSpell '^[\x0C]\zs.\+ part$'
-syntax region  mailHeader      contained contains=mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
+syntax region  mailHeader       contained contains=mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
 syntax region  mailNewPart      contains=mailHeader,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
+syntax region  mailNewPart      contains=mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C]HTML part$' end='^[\x0C]'me=e-1 fold
 
 " Usenet headers
 syntax match   mailHeaderKey    contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
