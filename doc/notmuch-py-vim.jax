@@ -629,6 +629,12 @@ g:notmuch_from_length                                *g:notmuch_from_length*
 
 	* |{T-WIN}| に表示する From (sent タグがついていれば To) ヘッダの内容を表示する幅
 
+g:notmuch_ignore_tables                              *g:notmuch_ignore_tables*
+	Type: |Number|
+	Default: `0`
+
+	* HTML メールの表タグを無視する
+
 g:notmuch_import_mailbox                             *g:notmuch_import_mailbox*
 	Type: |String|
 	Default: `''`

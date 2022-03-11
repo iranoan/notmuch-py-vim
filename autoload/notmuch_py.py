@@ -1444,7 +1444,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 # 最適な設定が定まっていない
                 html_converter = HTML2Text()
                 # html_converter.table_start = True
-                # html_converter.ignore_tables = True
+                if vim.vars.get('notmuch_ignore_tables', 0):
+                    html_converter.ignore_tables = True
                 html_converter.body_width = len(tmp_text)
                 add_content(output.html['content'],
                             re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text)))
