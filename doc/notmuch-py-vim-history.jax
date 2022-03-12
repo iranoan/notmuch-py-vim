@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/03/12 Ver.1.20~
+* HTML メールの変換で table 関連のタグを無視する |g:notmuch_ignore_tables| を追加
+* HTML メール変換後の章題、リンク、強調用のシンタックス追加
+
 2022/02/19 Ver.1.19~
 * HTML パートはヘッダが含まれない扱いに仕様変更
 
