@@ -25,9 +25,9 @@ endif
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 sign define notmuch text=* texthl=notmuchMark
 if has('patch-8.2.2518')
-	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() list foldlevel=0 listchars=tab:\|,
+	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() list foldlevel=0 concealcursor=nv conceallevel=3 listchars=tab:\|,
 else
-	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() nolist foldlevel=0
+	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() nolist foldlevel=0 concealcursor=nv conceallevel=3
 endif
 if exists('g:notmuch_display_item')
 	execute 'setlocal foldexpr=FoldThread(' . index(g:notmuch_display_item, 'Subject', 0, v:true) . ')'

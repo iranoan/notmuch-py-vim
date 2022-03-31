@@ -294,6 +294,8 @@ class MailData:  # メール毎の各種データ
         # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
         self.__subject = msg.get_header('Subject')
+        if self.__subject == '':
+            self.__subject = '\u200B'
         self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.get_header('From'))).lower()
         # self.__path = msg.get_filenames().__str__().split('\n')  # file name (full path)
         # ↑同一 Message-ID メールが複数でも取り敢えず全て

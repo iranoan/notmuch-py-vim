@@ -9,6 +9,11 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/03/31 Ver.1.22~
+* HTML メール変換後の章題のシンタックスを HTML2Text の出力に合わせる
+* |{T-WIN}| では Subject が空の時はゼロ幅スペース (\u200B) にする
+	- 空だと連続する空白のため上のメールの子スレッド扱いになってしまう
+
 2022/03/13 Ver.1.21~
 * HTML メール変換後の章題、リンク、強調用のシンタックス追加修正
 	- online オプション追加
@@ -116,9 +121,9 @@ License: GPL Ver.3.
 	が空の時は何も表示しない
 * mail-info (|notmuch-python-vim-mail-info|) の表示位置を変更
 * ヘッダ開始として用いたいた文字をタブ文字からゼロ幅スペースに変更
-* JIS 外漢字が含まれるなど Subject ヘッダのデコード内容と notmuch データベース
+* JIS 外漢字が含まれるなど Subject ヘッダのデコード内容と Notmuch データベース
   からの取得データと違う場合は、スレッドやバッファ変数を書き換える
-* 返信、転送時の Subject ヘッダの情報は notmuch データベースから取得せずバッ
+* 返信、転送時の Subject ヘッダの情報は Notmuch データベースから取得せずバッ
   ファ変数を使う
 * OpenPGP/MIME で Subject も復号化した時、ツリー構造が切れるバグ修正
 

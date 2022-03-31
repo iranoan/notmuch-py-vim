@@ -15,6 +15,7 @@ syntax region	tagMailUDT	start='^📩📝🗑' end='$'
 syntax region	tagMailDFT	start='^📝⭐🗑' end='$'
 syntax region	tagMailUFT	start='^📩⭐🗑' end='$'
 syntax region	tagMailUDFT	start='^📩📝⭐🗑' end='$'
+syntax match	Entity	"[\u200b]" conceal
 
 highlight tagMailU    cterm=bold           gui=bold
 highlight tagMailF    cterm=underline      gui=underline
