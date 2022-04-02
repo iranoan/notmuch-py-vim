@@ -996,6 +996,7 @@ def reload_thread():
     # else:  # 開いていれば notmuch-show を一旦空に←同一タブページの時は vim script 側メールを開くので不要
     # ただし、この関数内でその処理をすると既読にしてしまいかねないので、ここや print_thread() ではやらない
     if b[0] == '':  # リロードの結果からのスレッド空←スレッドなので最初の行が空か見れば十分
+        change_buffer_vars_core()
         if 'show' in vim.bindeval('s:buf_num'):
             empty_show()
         return
