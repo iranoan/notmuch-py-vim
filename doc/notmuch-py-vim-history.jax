@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/04/02 Ver.1.23~
+* バグ修正
+	- mailto の関連付けによる起動でエラーになる
+
 2022/03/31 Ver.1.22~
 * HTML メール変換後の章題のシンタックスを HTML2Text の出力に合わせる
 * |{T-WIN}| では Subject が空の時はゼロ幅スペース (\u200B) にする

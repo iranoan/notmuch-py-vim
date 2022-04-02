@@ -4363,8 +4363,9 @@ def after_make_draft(b, msg, add_head):
         b.append('')
     del b[0]
     b.options['modified'] = 0
-    vim.command('cd ' + os.path.dirname(vim.bindeval('getbufinfo(' +
-                str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
+    if 'buf_num' in vim.bindeval('s:') and 'folders' in vim.bindeval('s:buf_num'):
+        vim.command('cd ' + os.path.dirname(vim.bindeval('getbufinfo(' +
+                    str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
     vim.command('call s:au_write_draft()')
 
 
