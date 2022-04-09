@@ -3629,8 +3629,23 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         return msg_date
 
     def send(msg_send):
+        msg_from = msg_send['From']
+        if type(SEND_PARAM) is dict:
+            default_prg = SEND_PARAM.values()[0]
+            print(default_prg)
+            for key, prg in SEND_PARAM.items():
+                if key == '*':
+                    default_prg = prg
+                elif re.search(key, email2only_address(msg_from)) is not None:
+                    send_param = prg
+                    break
+            else:
+                send_param = default_prg
+        else:
+            send_param = SEND_PARAM
+        return False
         try:
-            pipe = Popen(SEND_PARAM, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
+            pipe = Popen(send_param, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
         except Exception as err:
             print_error(err)
             return False
@@ -3897,9 +3912,15 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
             return True
         return False
 
-    if shutil.which(SEND_PARAM[0]) is None:
-        print_error('\'' + SEND_PARAM[0] + '\' is not executable.')
-        return False
+    if type(SEND_PARAM) is dict:
+        for prg in SEND_PARAM.values():
+            if shutil.which(prg[0]) is None:
+                print_error('\'' + prg[0] + '\' is not executable.')
+                return False
+    else:
+        if shutil.which(SEND_PARAM[0]) is None:
+            print_error('\'' + SEND_PARAM[0] + '\' is not executable.')
+            return False
     # ヘッダ・本文の分離
     match = re.search(r'\n\n', msg_data)
     if match is None:

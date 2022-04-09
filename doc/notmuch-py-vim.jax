@@ -742,10 +742,20 @@ g:notmuch_send_encode                                *g:notmuch_send_encode*
 	* テキスト・ファイルの添付時の文字コード判定にも使う
 
 g:notmuch_send_param                                 *g:notmuch_send_param*
-	Type: |List|
+	Type: |List| or |Dictionary|
 	Default: `['sendmail', '-t', '-oi']`
 
 	* 送信時に使用するプログラムとそのパラメータ
+	* |Dictionary| の場合は
+		`{``
+		`\ 'hoge\.com$': ['msmtp', '-t', '-a', 'Hoge', '-X', '-'],``
+		`\ '*':          ['msmtp', '-t', '-a', 'Default', '-X', '-']``
+		`\ }``
+		の要領でキーによって送信方法分けられる
+		- キー: From ヘッダのアドレスに Python の正規表現でマッチする文字列
+			      * はデフォルト設定 (この指定がない時のデフォルト値は最初の設定)
+		- 値:   送信時に使用するプログラムとそのパラメータ
+
 
 g:notmuch_sent_tag                                   *g:notmuch_sent_tag*
 	Type: |String|

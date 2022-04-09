@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/04/09 Ver.1.24~
+* 送信方法を使い分けられるように |g:notmuch_send_param| で複数指定を可能にした
+
 2022/04/02 Ver.1.23~
 * バグ修正
 	- mailto の関連付けによる起動でエラーになる
