@@ -3631,8 +3631,6 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
     def send(msg_send):
         msg_from = msg_send['From']
         if type(SEND_PARAM) is dict:
-            default_prg = SEND_PARAM.values()[0]
-            print(default_prg)
             for key, prg in SEND_PARAM.items():
                 if key == '*':
                     default_prg = prg
@@ -3643,7 +3641,6 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                 send_param = default_prg
         else:
             send_param = SEND_PARAM
-        return False
         try:
             pipe = Popen(send_param, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
         except Exception as err:
