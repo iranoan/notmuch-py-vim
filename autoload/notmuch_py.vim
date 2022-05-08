@@ -1461,8 +1461,9 @@ function s:toggle_thread(args) abort
 				call cursor(foldclosedend(l:seletc_thread), 1)
 			endif
 		endif
+		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0]) # zO の後だとうまく動作しない (先頭になる)
 		normal! zO
-		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0])
+		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0]) # zO の前だけだと、カーソル上下移動で桁位置が先頭になる
 	endif
 endfunction
 
