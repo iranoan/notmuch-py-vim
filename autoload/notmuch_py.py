@@ -438,14 +438,13 @@ def make_dir(dirname):
 
 
 def notmuch_new(open_check):
-    # スワップファイルがあるとデータベース更新に失敗するかと思っていたが、警告が出るものの更新自体でできているもよう
-    # # メールを開いているとスワップファイルが有るので、データベースの再作成に失敗する
-    # # →open_check が True なら未保存バッファが有れば、そちらに移動し無ければバッファを完全に閉じる
-    # if VIM_MODULE and open_check:
-    #     if opened_mail(False):
-    #         print_warring('Can\'t remake database.\rBecase open the file.')
-    #         return False
-    #     # return True
+    # メールを開いているとスワップファイルが有るので、データベースの更新はできるが警告が出る
+    # →open_check が True なら未保存バッファが有れば、そちらに移動し無ければバッファを完全に閉じる
+    if VIM_MODULE and open_check:
+        if opened_mail(False):
+            print_warring('Can\'t remake database.\rBecase open the file.')
+            return False
+        # return True
     return shellcmd_popen(['notmuch', 'new'])
 
 
@@ -2225,7 +2224,7 @@ def reset_cursor_position(b, w, line):  # thread でタグ絵文字の後にカ�
     s = b[line-1]
     if s == '':
         return
-    w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()))
+    w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
 
 
 def next_unread(active_win):  # 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない)
