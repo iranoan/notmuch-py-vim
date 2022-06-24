@@ -38,18 +38,12 @@ syntax region markdownLinkText matchgroup=markdownLinkTextDelimiter start="!\=\[
 syntax region markdownLink matchgroup=markdownLinkDelimiter start="(" end=")" contains=mailURL keepend contained oneline
 syntax region markdownId matchgroup=markdownIdDelimiter start="\[" end="\]" keepend contained oneline
 
-" syntax region markdownH1 matchgroup=markdownH1Delimiter start='^##\@!'      end='#*\s*$' keepend oneline contains=@markdownInline,mailURL contained
-" syntax region markdownH2 matchgroup=markdownH2Delimiter start='^###\@!'     end='#*\s*$' keepend oneline contains=@markdownInline,mailURL contained
-" syntax region markdownH3 matchgroup=markdownH3Delimiter start='^####\@!'    end='#*\s*$' keepend oneline contains=@markdownInline,mailURL contained
-" syntax region markdownH4 matchgroup=markdownH4Delimiter start='^#####\@!'   end='#*\s*$' keepend oneline contains=@markdownInline,mailURL contained
-" syntax region markdownH5 matchgroup=markdownH5Delimiter start='^######\@!'  end='#*\s*$' keepend oneline contains=@markdownInline,mailURL contained
-" syntax region markdownH6 matchgroup=markdownH6Delimiter start='^#######\@!' end='#*\s*$' keepend oneline contains=@markdownInline,mailURL contained
-syntax region markdownH1 matchgroup=markdownH1Delimiter start='^## \@!'      end='#*\s*$' keepend oneline contains=@markdownInline,mailURL
-syntax region markdownH2 matchgroup=markdownH2Delimiter start='^### \@!'     end='#*\s*$' keepend oneline contains=@markdownInline,mailURL
-syntax region markdownH3 matchgroup=markdownH3Delimiter start='^#### \@!'    end='#*\s*$' keepend oneline contains=@markdownInline,mailURL
-syntax region markdownH4 matchgroup=markdownH4Delimiter start='^##### \@!'   end='#*\s*$' keepend oneline contains=@markdownInline,mailURL
-syntax region markdownH5 matchgroup=markdownH5Delimiter start='^###### \@!'  end='#*\s*$' keepend oneline contains=@markdownInline,mailURL
-syntax region markdownH6 matchgroup=markdownH6Delimiter start='^####### \@!' end='#*\s*$' keepend oneline contains=@markdownInline,mailURL
+syntax match  markdownH1 contains=@NoSpell,@markdownInline,mailURL '^## .\+$'
+syntax match  markdownH2 contains=@NoSpell,@markdownInline,mailURL '^### .\+$'
+syntax match  markdownH3 contains=@NoSpell,@markdownInline,mailURL '^#### .\+$'
+syntax match  markdownH4 contains=@NoSpell,@markdownInline,mailURL '^##### .\+$'
+syntax match  markdownH5 contains=@NoSpell,@markdownInline,mailURL '^###### .\+$'
+syntax match  markdownH6 contains=@NoSpell,@markdownInline,mailURL '^####### .\+$'
 
 highlight default link markdownH1                    Title
 highlight default link markdownH2                    Title
