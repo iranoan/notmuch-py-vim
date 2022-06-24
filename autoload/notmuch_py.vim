@@ -2,7 +2,6 @@
 " License: GPL Ver.3.
 
 scriptencoding utf-8
-
 scriptversion 4
 
 let s:save_cpo = &cpoptions
@@ -480,7 +479,7 @@ function s:previous_page(args) abort
 	call win_gotoid(bufwinid(l:buf_num))
 endfunction
 
-function  s:save_attachment(args) abort
+function s:save_attachment(args) abort
 	py3 save_attachment(vim.eval('a:args'))
 endfunction
 

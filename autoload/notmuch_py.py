@@ -488,7 +488,7 @@ def shellcmd_popen(param):
 
 
 def make_thread_core(search_term):
-    from concurrent import futures
+    from concurrent.futures import ProcessPoolExecutor
 
     query = notmuch.Query(DBASE, search_term)
     try:  # スレッド一覧
@@ -504,12 +504,10 @@ def make_thread_core(search_term):
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
     ls = []
-    with futures.ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor() as executor:
         f = [executor.submit(make_single_thread, i, search_term) for i in threads]
         for r in f:
             ls += r.result()
-    # for i in threads:
-    #     ls += make_single_thread(i, search_term)
     ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
     THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
     if VIM_MODULE:
@@ -755,7 +753,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     for msg in threadlist:
         ls.append(msg.get_list(flag))
     # 下の様はマルチプロセス化を試みたが反って遅くなる
-    # with futures.ProcessPoolExecutor() as executor:  # ProcessPoolExecutor
+    # with ProcessPoolExecutor() as executor:  # ProcessPoolExecutor
     #     f = [executor.submit(i.get_list, flag) for i in threadlist]
     #     for r in f:
     #         ls.append(r.result())
@@ -892,7 +890,8 @@ def thread_change_sort(sort_way):
     b.options['modifiable'] = 1
     flag = not ('list' in sort_way)
     # マルチスレッド 速くならない
-    # with futures.ThreadPoolExecutor() as executor:
+    # from concurrent.futures import ThreadPoolExecutor
+    # with ThreadPoolExecutor() as executor:
     #     for i, msg in enumerate(threadlist):
     #         executor.submit(print_thread_line, b, i, msg, flag)
     # マルチスレッドしていないバージョン
