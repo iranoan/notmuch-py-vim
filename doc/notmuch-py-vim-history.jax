@@ -9,7 +9,7 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/06/06 Ver.1.24~
+2022/06/24 Ver.1.25~
 * バグ修正
 	- |{S-WIN}| の斜体とする syntax を修正
 	- エラー・メッセージの文法エラー
