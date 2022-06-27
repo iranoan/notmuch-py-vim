@@ -15,7 +15,22 @@ syntax region	tagMailUDT	start='^📩📝🗑' end='$'
 syntax region	tagMailDFT	start='^📝⭐🗑' end='$'
 syntax region	tagMailUFT	start='^📩⭐🗑' end='$'
 syntax region	tagMailUDFT	start='^📩📝⭐🗑' end='$'
-syntax match	Entity	"[\u200b]" conceal cchar=  " Subject が空の時の代価文字
+syntax match	Entity	"[\u200b]" conceal cchar=  " Subject が空の時の代価文字 (タブ文字の位置がずれるのが欠点)
+
+" Subject が空の時の代価文字は Normal の背景色と同じにする (カーソル行の色 Cursor より優先されるのが欠点)
+" function s:ZeroWidthSpace() abort
+" 	let l:bg = matchstr(execute('highlight Normal'), '\<ctermbg=\zs[^ ]\+')
+" 	if l:bg !=# ''
+" 		let l:bg = 'ctermfg=' .. l:bg .. ' ctermbg=' .. l:bg
+" 	endif
+" 	let l:gbg = matchstr(execute('highlight Normal'), '\<guibg=\zs[^ ]\+')
+" 	if l:gbg !=# ''
+" 		let l:bg ..= ' guifg=' .. l:gbg .. ' guibg=' .. l:gbg
+" 	endif
+" 	execute 'highlight ZeroWidthSpace ' .. l:bg
+" endfunction
+" call s:ZeroWidthSpace()
+" call matchadd('ZeroWidthSpace', "[\u200B]")
 
 highlight tagMailU    cterm=bold           gui=bold
 highlight tagMailF    cterm=underline      gui=underline

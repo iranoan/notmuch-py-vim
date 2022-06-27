@@ -5749,7 +5749,7 @@ def get_folded_list(start, end):
     if search_term == '':
         return ''
     msg = THREAD_LISTS[search_term]['list'][start-1]
-    line = msg.get_folded_list().replace('\u200b', '      ')
+    line = msg.get_folded_list().replace('\u200B', '      ')
     tags = copy.copy(msg._tags)
     while start < end:
         tags += THREAD_LISTS[search_term]['list'][start]._tags

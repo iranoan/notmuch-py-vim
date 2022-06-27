@@ -2,6 +2,12 @@
 " License: GPL Ver.3.
 
 scriptencoding utf-8
+scriptversion 4
+
+if !exists('w:did_ftplugin_user') || !w:did_ftplugin_user
+	setlocal signcolumn=auto foldmethod=syntax foldlevel=1
+	let w:did_ftplugin_user = 1
+endif
 
 if exists('b:did_ftplugin_user')
 	finish
@@ -12,5 +18,4 @@ let b:did_ftplugin_user = 1
 " 	let g:ft_notmuch_edit = 1
 " endif
 
-execute 'source ' . expand('<sfile>:p:h:h') . '/macros/notmuch-edit.vim'
-setlocal signcolumn=auto foldmethod=syntax foldlevel=1
+execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/notmuch-edit.vim'

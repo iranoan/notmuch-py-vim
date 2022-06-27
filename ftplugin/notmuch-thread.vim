@@ -2,6 +2,7 @@
 " License: GPL Ver.3.
 
 scriptencoding utf-8
+scriptversion 4
 
 if exists('b:did_ftplugin_user')
 	finish
@@ -30,7 +31,7 @@ else
 	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() nolist foldlevel=0 concealcursor=nv conceallevel=3
 endif
 if exists('g:notmuch_display_item')
-	execute 'setlocal foldexpr=FoldThread(' . index(g:notmuch_display_item, 'Subject', 0, v:true) . ')'
+	execute 'setlocal foldexpr=FoldThread(' .. index(g:notmuch_display_item, 'Subject', 0, v:true) .. ')'
 else
 	setlocal foldexpr=FoldThread(0)
 endif
