@@ -2746,12 +2746,15 @@ def delete_attachment(args):
         msg_id = get_msg_id()
         if msg_id == '':
             return
+        # メール本文表示だと未読→既読扱いでタグを変更することが有るので書き込み権限も
         DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
-        for i in range(args[0], args[1]+1):
+        deleted_attach = []  # 実際に削除する添付ファイルが書かれた行番号
+        b_attachments = b_v['attachments']
+        b.options['modifiable'] = 1
+        # 実際の添付ファイル削除処理
+        for i in range(args[1], args[0]-1, -1):  # 削除すると part_num がずれるので後ろから削除
             line = str(i)
-            b = vim.current.buffer
-            b_attachments = b_v['attachments']
             if line in b_attachments:
                 tmp_name, part_num, tmpdir = b_attachments[line]
                 part_num = [i for i in part_num]
@@ -2761,24 +2764,30 @@ def delete_attachment(args):
                     print_warring('Can not delete:  Encrypted/Local.')
                 else:
                     del b_attachments[line]
-                    line = int(line)-1
+                    line = int(line)
+                    deleted_attach.append(line)
+                    line -= 1
                     if b[line].find('HTML:') == 0 and '\fHTML part' not in b[:]:
                         # HTML パートで text/plain が無ければ削除しない
                         print_warring('The mail is only HTML.')
                     else:
-                        b.options['modifiable'] = 1
                         if b[line].find('HTML:') == 0:
                             for i, b_i in enumerate(b):
                                 if b_i == '\fHTML part':
                                     break
                             b[i:] = None
                         b[line] = 'Del-' + b[line]
-                        b.options['modifiable'] = 0
-                        # メール本文表示だと未読→既読扱いでタグを変更することが有るので書き込み権限も
-                        # DBASE.open(PATH)
                         msg = DBASE.find_message(msg_id)
                         for f in msg.get_filenames():
                             delete_attachment_only_part(f, part_num[0])
+        b.options['modifiable'] = 0
+        # 削除した添付ファイルに合わせて他の行の添付ファイルの情報 (part_num) 更新
+        for k, v in b_attachments.items():
+            slide = len([j for j in deleted_attach if j < int(k)])
+            part_num = [i for i in v[1]]
+            if slide and part_num != [-1] and len(part_num) == 1:
+                v[1] = [part_num[0] + slide]
+                # 削除ファイルの情報を multipart で書き込むので、part_num としては増える
         DBASE.close()
 
     def delete_attachment_in_thread(args, search_term):
