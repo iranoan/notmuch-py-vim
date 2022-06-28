@@ -3611,7 +3611,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
         if resent + 'To' in data:
             return True
         if resent + 'Cc' in data or resent + 'Bcc' in data:
-            data[resent + 'To'] = 'undisclosed-recipients: ;'
+            data[resent + 'To'] = ['undisclosed-recipients: ;']
             return True
         print_warring('No address')
         return False
