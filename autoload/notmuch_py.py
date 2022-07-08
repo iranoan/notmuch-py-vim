@@ -17,7 +17,6 @@ from email.mime.base import MIMEBase
 from subprocess import Popen, PIPE, run, TimeoutExpired  # API で出来ないことは notmuch コマンド
 import os                           # ディレクトリの存在確認、作成
 import shutil                       # ファイル移動
-import sys                          # プロセス終了
 import datetime                     # 日付
 import re                           # 正規表現
 import glob                         # ワイルドカード展開
@@ -30,6 +29,7 @@ def print_warring(msg):
     if VIM_MODULE:
         vim.command('redraw | echohl WarningMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
     else:
+        import sys
         sys.stderr.write(msg)
 
 
@@ -37,6 +37,7 @@ def print_err(msg):  # エラー表示だけでなく終了
     if VIM_MODULE:
         vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
     else:
+        import sys
         sys.stderr.write(msg)
         sys.exit()
     delete_gloval_variable()
@@ -46,6 +47,7 @@ def print_error(msg):  # エラーとして表示させるだけ
     if VIM_MODULE:
         vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
     else:
+        import sys
         sys.stderr.write(msg)
 
 
@@ -500,6 +502,7 @@ def make_thread_core(search_term):
         reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
         print('Making cache data:'+search_term)
     else:  # vim 以外では途中経過の表示なので標準出力ではなくエラー出力に
+        import sys
         sys.stderr.write('Making cache data: '+search_term+'\n')
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
