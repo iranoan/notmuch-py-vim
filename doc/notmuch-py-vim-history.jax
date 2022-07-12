@@ -9,8 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/07/08 Ver.1.27~
-* 通常 sys ライブラリを使うことはないので、必要なときのみ import するようん変更
+2022/07/09 Ver.1.27~
+* 通常 Python の sys ライブラリを使うことはないので、必要なときのみ import するように変更
+* GVim tablineで端末ウィンドウは更新マークの対象にしない
+* ページアップのデフォルトキーマップは <S-Space> から <BS> に変更
 
 2022/06/28 Ver.1.26~
 * バグ修正

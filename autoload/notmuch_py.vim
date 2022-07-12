@@ -51,7 +51,7 @@ function s:new_buffer(type, search_term) abort
 	nnoremap <buffer><silent><Tab> <C-w>w
 	nnoremap <buffer><silent><S-Tab> <C-w>W
 	nnoremap <buffer><silent><space> :Notmuch view-unread-page<CR>
-	nnoremap <buffer><silent><S-space> :Notmuch view-previous<CR>
+	nnoremap <buffer><silent><BS> :Notmuch view-previous<CR>
 	nnoremap <buffer><silent>J :Notmuch view-unread-mail<CR>
 	nnoremap <buffer><silent><C-R> :Notmuch reload<CR>
 	nnoremap <buffer><silent>p :Notmuch mail-info<CR>
@@ -750,6 +750,8 @@ function! MakeGUITabline() abort
 	" このタブページに変更のあるバッファは '+' を追加する
 	for l:bufnr in l:bufnrlist
 		if getbufvar(l:bufnr, '&modified')
+					\ && !( match(getbufinfo(l:bufnr)[0]['name'], '!/') == 0 && swapname(l:bufnr) ==# '' )
+					" 名前が !/bin/bash 等で !/ ではじまり、スワップ・ファイルがなければ :terminal の可能性が高い
 			let l:label ..= '+'
 			break
 		endif

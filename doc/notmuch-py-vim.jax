@@ -224,8 +224,7 @@ Vim packadd~
 <F1>			ヘルプでこの項目を開く
 <leader>h
 <Space>		未読ページダウン                |notmuch-python-vim-view-unread-page|
-<S-Space>	GUI など <S-Space> が認識される環境なら、メールのページアップ
-					                                |notmuch-python-vim-view-previous|
+<BS>			メールのページアップ            |notmuch-python-vim-view-previous|
 o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
 					|{F-WIN}|	|{T-WIN}| を開く
 					|{T-WIN}|	* |notmuch-python-vim-open| ではなくスレッド・ツリーの開
