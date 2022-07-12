@@ -427,7 +427,8 @@ deoplete.nvim 使用時の注意~
 
 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) はデフォルトでは
 deoplete (https://github.com/Shougo/deoplete.nvim) による snippet を用いた補完
-の対象外補完の対象にする設定が必要
+の対象外
+補完の対象にする設定が必要
 
 	Example: >
 		call deoplete#custom#option({
