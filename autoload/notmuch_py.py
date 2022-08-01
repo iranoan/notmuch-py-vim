@@ -466,7 +466,7 @@ def opened_mail(draft):  # メールボックス内のファイルが開かれ�
         if filename.startswith(PATH):
             if info['changed'] == '1':
                 win_id = info['windows']
-                if len(win_id):
+                if win_id:
                     win_id = win_id[0]
                     vim.command('call win_gotoid('+win_id+')')
                 elif info['hidden']:
@@ -773,7 +773,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
         index = get_unread_in_THREAD_LISTS(search_term)
         unread = notmuch.Query(
             DBASE, '('+search_term+') and tag:unread').count_messages()
-        if len(index):
+        if index:
             reset_cursor_position(b, vim.current.window, index[0]+1)
             vim.command('call s:fold_open()')
         elif unread:  # フォルダリストに未読はないが新規メールを受信していた場合
@@ -907,7 +907,7 @@ def thread_change_sort(sort_way):
     b.options['modifiable'] = 0
     index = [i for i, msg in enumerate(threadlist) if msg._msg_id == msg_id]
     vim.command('normal! Gzb')
-    if len(index):  # 実行前のメールがリストに有れば選び直し
+    if index:  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, vim.current.window, index[0]+1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
@@ -1031,7 +1031,7 @@ def reopen(kind, search_term):  # スレッド・リスト、メール・ヴュ�
     else:
         buf_num = vim.eval('s:buf_num')[kind]
     win_id = vim.bindeval('win_findbuf(' + buf_num + ')')
-    if len(win_id):
+    if win_id:
         vim.command('call win_gotoid(' + str(win_id[0]) + ')')
         return
     else:  # 他のタプページにもなかった
@@ -1104,7 +1104,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b_v['search_term'] = search_term
         msg = list(notmuch.Query(
             DBASE, '('+search_term+') and id:"' + msg_id + '"').search_messages())
-        if len(msg):
+        if msg:
             msg = msg[0]
         else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
             print('Already Delete/Move/Change folder/tag')
@@ -1248,7 +1248,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             out = out.next
         # 折り畳みに関係する message/rfc822 などの開始位置の探索
         fold = [i for i, x in enumerate(ls) if (re.match(r'^\f', x) is not None)]
-        if len(fold):
+        if fold:
             b.vars['notmuch']['fold_line'] = fold[0] + 1
         else:
             b.vars['notmuch']['fold_line'] = 0
@@ -2206,7 +2206,7 @@ def change_tags_after_core(msg, change_b_tags):
                     continue
                 line = [i for i, msg in enumerate(
                     THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
-                if len(line) == 0:
+                if not line:
                     continue
                 line = line[0]
                 msg = THREAD_LISTS[search_term]['list'][line]
@@ -2256,12 +2256,10 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
         print_thread_core(b_num, search_term, False, False)
         # ここからはスレッド・リストの順番としてindex使用
         index = get_unread_in_THREAD_LISTS(search_term)
-        try:
-            index = index[0]
-        except IndexError:  # THREAD_LISTS[search_term] 作成後に受信メールがある
+        if not index:  # 作成済み THREAD_LISTS[search_term] には未読メールがない→作成後にメール受信
             print_thread_core(b_num, search_term, False, True)
             index = get_unread_in_THREAD_LISTS(search_term)
-            index = index[0]
+        index = index[0]
         reset_cursor_position(vim.current.buffer, vim.current.window, index+1)
         vim.command('call s:fold_open()')
         change_buffer_vars_core()
@@ -2327,7 +2325,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     indexes = get_unread_in_THREAD_LISTS(search_term)
     # ↑ len(indexes) > 0 なら未読有り
     index = [i for i, i in enumerate(indexes) if i > index]
-    if len(index):  # 未読メールが同一スレッド内の後ろに有る
+    if index:  # 未読メールが同一スレッド内の後ろに有る
         if search_view:
             open_mail_by_index('["search"][\'' + vim_escape(search_term) + '\']', index[0])
             # open_mail_by_index('["search"][\\\'' + search_term + '\\\']', index[0])
@@ -2340,7 +2338,7 @@ def next_unread(active_win):  # 次の未読メッセージが有れば移動(�
     #     pass
     # 同一スレッド内に未読がない、または同一スレッド内に未読メールが有っても後ろには無い
     if search_view:  # search, view では先頭の未読に移動
-        if len(indexes):
+        if indexes:
             open_mail_by_index('["search"][\'' + vim_escape(search_term) + '\']', index[0])
             # open_mail_by_index('["search"][\\\'' + search_term + '\\\']', indexes[0])
         return
@@ -2450,7 +2448,7 @@ def get_attach_info(line):
     DBASE.open(PATH)
     msg = list(notmuch.Query(
         DBASE, '('+search_term+') id:"' + msg_id + '"').search_messages())
-    if len(msg):
+    if msg:
         msg = list(msg)[0]
     else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
         print('Already Delete/Move/Change folder/tag')
@@ -2919,7 +2917,7 @@ def cut_thread(msg_id, dumy):
         print_thread(bufnr, search_term, False, True)
         index = [i for i, x in enumerate(
             THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id]
-        if len(index):
+        if index:
             reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
             vim.command('call s:fold_open()')
         else:
@@ -2974,7 +2972,7 @@ def connect_thread_tree():
     print_thread(bufnr, search_term, False, True)
     index = [i for i, x in enumerate(
         THREAD_LISTS[search_term]['list']) if x._msg_id == r_msg_id]
-    if len(index):
+    if index:
         reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
         vim.command('call s:fold_open()')
     else:
@@ -3119,7 +3117,7 @@ def open_original(msg_id, search_term, args):  # vim から呼び出しでメー
         for msg in msgs:
             for filename in msg.get_filenames():
                 files.append(filename)
-        if len(files) == 0:
+        if not files:
             return ''
         else:
             return files[0]
@@ -3221,7 +3219,7 @@ def send_vim_buffer():
     msg_data = '\n'.join(vim.current.buffer[:])
     msg_id = []
     if send_str(msg_data, msg_id):
-        if len(msg_id):  # タグの反映
+        if msg_id:  # タグの反映
             marge_tag(msg_id[0], True)
         if vim.bindeval('len(getbufinfo())') == 1:  # 送信用バッファのみ
             vim.command('cquit')
@@ -3772,7 +3770,7 @@ def send_str(msg_data, msgid):  # 文字列をメールとして保存し設定�
                         part.set_payload(ret)
                         msg.attach(part)
 
-                if len(attachments) == 0 \
+                if not attachments \
                         and (flag & PGPMIME_PUBLIC_ON) != PGPMIME_PUBLIC_ON:
                     msg.set_payload(context, charset)
                     msg.replace_header('Content-Transfer-Encoding', encoding)
@@ -4069,7 +4067,7 @@ def new_mail(s):  # 新規メールの作成 s: mailto プロトコルを想定
     def get_mailto(s, headers):  # mailto プロトコルからパラメータ取得
         from urllib.parse import unquote    # URL の %xx を変換
 
-        if len(s) == 0:
+        if not s:
             headers['to'] = ''
             return
         s = s[0]
@@ -4525,7 +4523,7 @@ def set_resent_after(n):  # そのまま転送メールの From ヘッダの設�
         return
     vim.command('autocmd! NotmuchResentAfter' + str(n))
     to, h_from = set_from()
-    if len(to):
+    if to:
         if vim.bindeval('s:is_gtk()'):
             s = 'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n(&C)Cancel", 1, "Question")'
         else:
@@ -5059,7 +5057,7 @@ def get_mail_folders():  # get mailbox lists
 
 def run_shell_program(msg_id, s, args):
     prg_param = args[2:]
-    if len(prg_param) == 0:
+    if not prg_param:
         prg_param = vim.eval(
                 'input("Program and args: ", "", "customlist,Complete_run")')
         if prg_param == '':
@@ -5319,7 +5317,7 @@ def notmuch_duplication(remake):
                 thread = list(thread.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
                 ls.append(MailData(msg, thread, 0, 0))
         DBASE.close()
-        if len(ls) == 0:
+        if not ls:
             print_warring('Don\'t duple mail.')
             return
         ls.sort(key=attrgetter('_date', '_from'))
@@ -5662,9 +5660,9 @@ def get_refine_index():
     DBASE.open(PATH)
     index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
              if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and (' +
-                              vim.bindeval('s:refined_search_term').decode() +
-                              ')').count_messages()]
-    if len(index) == 0:
+                              vim.bindeval('s:refined_search_term').decode() + ')'
+                              ).count_messages()]
+    if not index:
         return -1, '', []
     DBASE.close()
     return [i for i, msg in enumerate(
