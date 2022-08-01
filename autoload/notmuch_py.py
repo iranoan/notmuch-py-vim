@@ -5273,8 +5273,12 @@ def notmuch_thread():
     notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
     vim.command('normal! zO')
     index = [i for i, msg in enumerate(
-        THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
-    reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
+        THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id][0] + 1
+    w = vim.current.window
+    b = vim.current.buffer
+    if w.height < index:
+        print_thread_core(b.number, search_term, False, True)
+    reset_cursor_position(b, w, index)
 
 
 def notmuch_address():

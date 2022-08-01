@@ -9,6 +9,11 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/08/01 Ver.1.28~
+* バグ修正
+	- search-thread (|notmuch-python-vim-search-thread|) 実行後に受信した同じスレッド
+		のメールに対して search-thread を実行するとエラー
+
 2022/07/09 Ver.1.27~
 * 仕様変更
 	- GVim tabline で端末ウィンドウは更新マークの対象にしない
