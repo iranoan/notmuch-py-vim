@@ -13,13 +13,11 @@ if !exists('g:ft_notmuch_thread')
 	let g:ft_notmuch_thread = 1
 	augroup NotmuchThreadType
 		autocmd!
-		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' |
-					\ if has('patch-8.2.2518') |
-					\		setlocal list foldlevel=0 |
-					\ else |
-					\		setlocal nolist foldlevel=0 |
-					\ endif |
-					\ endif
+		if has('patch-8.2.2518')
+			autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' | setlocal list foldlevel=0 | endif
+		else
+			autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' | setlocal nolist foldlevel=0 | endif
+		endif
 	augroup END
 endif
 
