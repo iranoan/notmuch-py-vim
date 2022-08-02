@@ -13,8 +13,9 @@ License: GPL Ver.3.
 * バグ修正
 	- search-thread (|notmuch-python-vim-search-thread|) 実行後に受信した同じスレッド
 		のメールに対して search-thread を実行するとエラー
-* 仕様変更
+* 処理変更
 	- 空リストの判定方法変更
+	- 不要な関数削除
 
 2022/07/09 Ver.1.27~
 * 仕様変更

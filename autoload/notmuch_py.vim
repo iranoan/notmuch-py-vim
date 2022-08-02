@@ -941,10 +941,6 @@ function s:open_original(args) abort
 	py3 do_mail(open_original, vim.eval('a:args'))
 endfunction
 
-function s:set_atime_now() abort
-	py3 set_atime_now()
-endfunction
-
 function s:reload(args) abort
 	let l:type = py3eval('buf_kind()')
 	if l:type ==# 'show' || l:type ==# 'view'
