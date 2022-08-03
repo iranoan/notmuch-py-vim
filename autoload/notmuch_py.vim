@@ -351,48 +351,7 @@ function s:set_defaults() abort
 	else
 		let g:notmuch_view_attachment = ''
 	endif
-
-	" vim の変数で指定が有れば、Python スクリプト側のグローバル変数より優先
-	" g:notmuch_folder_format は notmuch_folders によって適した長さが違い、python スクリプトを読み込み後でないと指定できないので、あとから python スクリプト内で処理
-	" 必要になる SUBJECT_LENGTH の設定も python スクリプト読み込み後
-	" これに依存する g:notmuch_open_way も同様なので、これを設定時に s:set_open_way() を呼び出している
-	if exists('g:notmuch_delete_top_subject')
-		py3 DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
-	endif
-	if exists('g:notmuch_date_format')
-		py3 DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
-	endif
-	if exists('g:notmuch_display_item')
-		py3 DISPLAY_ITEM = tuple(vim.eval('g:notmuch_display_item'))
-	endif
-	if exists('g:notmuch_from_length')
-		py3 FROM_LENGTH = vim.vars['notmuch_from_length']
-	endif
-	if exists('g:notmuch_sent_tag')
-		py3 SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
-	endif
-	if exists('g:notmuch_send_encode')
-		py3 SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
-	endif
-	if exists('g:notmuch_send_param')
-		py3 SEND_PARAM = vim.eval('g:notmuch_send_param')
-	endif
-	py3 import os
-	if exists('g:notmuch_attachment_tmpdir')
-		py3 ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
-	else
-		execute "py3 ATTACH_DIR = '" .. s:script_root .. "' + os.sep + 'attach' + os.sep"
-	endif
-	if exists('g:notmuch_tmpdir')
-		py3 TEMP_DIR = vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
-	else
-		execute "py3 TEMP_DIR = '" .. s:script_root .. "' + os.sep + '.temp' + os.sep"
-	endif
-
-	if exists('g:notmuch_mailbox_type')
-		py3 MAILBOX_TYPE = vim.vars['notmuch_mailbox_type'].decode()
-	endif
-
+	" vim で指定できても定数扱いで処理するものは、Python スクリプト側で設定
 	return v:true
 endfunction
 
@@ -699,12 +658,6 @@ function s:start_notmuch() abort
 		return
 	endif
 	execute 'py3file ' .. s:script
-	if !py3eval('set_folder_format()')
-		messages
-		return
-	endif
-	py3 get_subject_length()
-	py3 set_display_format()
 	execute 'cd ' .. py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()

@@ -55,12 +55,14 @@ def print_error(msg):
         sys.stderr.write(msg)
 
 
-def get_subject_length():
+def set_subject_length():
     """ calculate Subject width in thread list."""
-    global SUBJECT_LENGTH, FROM_LENGTH
+    global SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
     if 'notmuch_subject_length' in vim.vars:
         SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
         return
+    else:
+        SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
     width = vim.vars['notmuch_open_way']['thread'].decode()
     m = re.search(r'([0-9]+)vnew', width)
     if m is not None:
@@ -83,7 +85,7 @@ def get_subject_length():
 
 def set_display_format():
     """ set display format and order in thread list."""
-    global DISPLAY_FORMAT, DISPLAY_FORMAT2
+    global DISPLAY_ITEM, DISPLAY_FORMAT, DISPLAY_FORMAT2
     DISPLAY_FORMAT = '{0}'
     DISPLAY_FORMAT2 = ''
     for item in DISPLAY_ITEM:
@@ -468,13 +470,24 @@ def make_single_thread(thread_id, search_term):
     return ls
 
 
+def set_display_item():
+    global DISPLAY_ITEM
+    if 'notmuch_display_item' in vim.vars:
+        item = []
+        for i in vim.vars['notmuch_display_item']:
+            item.append(i.decode().lower())
+        DISPLAY_ITEM = tuple(item)
+    else:
+        DISPLAY_ITEM = ('subject', 'from', 'date')
+
+
 def set_folder_format():
     global FOLDER_FORMAT
     try:
         DBASE.open(PATH)
     except NameError:
         DBASE.close()
-        return False
+        raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
     a = len(str(int(notmuch.Query(DBASE, 'path:**').count_messages() * 1.2)))  # メール総数
     u = len(str(int(notmuch.Query(DBASE, 'tag:unread').count_messages())))+1
     f = len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages())))+1
@@ -491,7 +504,6 @@ def set_folder_format():
     else:
         FOLDER_FORMAT = '{0:<' + str(max_len) + '} {1:>' + str(u) + '}/{2:>' + \
             str(a) + '}|{3:>' + str(f) + '} [{4}]'
-    return True
 
 
 def format_folder(folder, search_term):
@@ -5976,13 +5988,71 @@ class notmuchVimError(Exception):
 
 
 """ 以下初期化処理 """
-# グローバル変数の初期値 (vim からの設定も終わったら変化させない定数扱い)
-# Subject の先頭から削除する正規表現文字列
+# 定数扱いするグローバル変数の初期値
+PATH = get_config('database.path')
+if not os.path.isdir(PATH):
+    raise notmuchVimError('\'' + PATH + '\' don\'t exist.')
+if not notmuch_new(True):
+    raise notmuchVimError('Can\'t update database.')
+elif VIM_MODULE:  # notmuch new の結果をクリア←redraw しないとメッセージが表示されるので、続けるためにリターンが必要
+    vim.command('redraw')
+DBASE = notmuch.Database()
+DBASE.close()
+if VIM_MODULE:
+    if 'notmuch_delete_top_subject' in vim.vars:  # Subject の先頭から削除する正規表現文字列
+        DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
+    if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
+        FROM_LENGTH = vim.vars['notmuch_from_length']
+    else:
+        FROM_LENGTH = 21
+    if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
+        DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
+    else:
+        DATE_FORMAT = '%Y-%m-%d %H:%M'
+    if 'notmuch_sent_tag' in vim.vars:  # 送信済みを表すタグ
+        SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
+    if 'notmuch_send_encode' in vim.vars:  # 送信文字コード
+        SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
+    if 'notmuch_send_param' in vim.vars:   # 送信プログラムやそのパラメータ
+        SEND_PARAM = vim.eval('g:notmuch_send_param')
+    if 'notmuch_attachment_tmpdir' in vim.vars:
+        ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
+    else:
+        ATTACH_DIR = vim.bindeval('s:script_root').decode() + os.sep + 'attach' + os.sep
+    if 'notmuch_tmpdir' in vim.vars:
+        # 添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリに作成
+        TEMP_DIR = vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
+    else:
+        TEMP_DIR = vim.bindeval('s:script_root').decode() + os.sep + '.temp' + os.sep
+    if 'notmuch_mailbox_type' in vim.vars:   # Mailbox の種類
+        MAILBOX_TYPE = vim.vars['notmuch_mailbox_type'].decode()
+    set_display_item()
+    set_folder_format()
+    set_display_format()
+    set_subject_length()
+else:
+    TEMP_DIR = os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))).replace('/', os.sep)+os.sep
+    ATTACH_DIR = TEMP_DIR+'attach'+os.sep
+    TEMP_DIR += '.temp'+os.sep
+    if not ('DISPLAY_ITEM' in globals()):
+        DISPLAY_ITEM = ('subject', 'from', 'date')
+    if not ('FOLDER_FORMAT' in globals()):  # フォルダー・リストのフォーマット
+        FOLDER_FORMAT = '{0:<14} {1:>3}/{2:>5}|{3:>3} [{4}]'
+    if not ('DISPLAY_FORMAT' in globals()):  # スレッドに表示する順序
+        DISPLAY_FORMAT = '{0}\t{1}\t{2}\t{3}'
+        DISPLAY_FORMAT2 = '{0}\t{1}\t{2}'
+    if not ('FROM_LENGTH' in globals()):
+        FROM_LENGTH = 21
+    if not ('SUBJECT_LENGTH' in globals()):  # スレッドの各行に表示する Subject の長さ
+        SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
+    if not ('DATE_FORMAT' in globals()):
+        DATE_FORMAT = '%Y-%m-%d %H:%M'
 if not ('DELETE_TOP_SUBJECT' in globals()):
     DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' + \
         r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' + \
         r'|R[Ee][: ]+)*[　 ]*'
-try:  # Subject の先頭文字列
+try:
     RE_SUBJECT = re.compile(DELETE_TOP_SUBJECT)
 except re.error:
     print_warring('Error: Regurlar Expression.' +
@@ -5996,69 +6066,28 @@ except re.error:
     except re.error:
         print_err('Error: Regurlar Expression')
 RE_TOP_SPACE = re.compile(r'^\s+')
-# スレッドに表示する Date の書式
-if not ('DATE_FORMAT' in globals()):
-    DATE_FORMAT = '%Y-%m-%d %H:%M'
-# フォルダー・リストのフォーマット
-if not ('FOLDER_FORMAT' in globals()):
-    FOLDER_FORMAT = '{0:<14} {1:>3}/{2:>5}|{3:>3} [{4}]'
-# スレッドの各行に表示する順序
-if not ('DISPLAY_ITEM' in globals()):
-    DISPLAY_ITEM = ('Subject', 'From', 'Date')
-DISPLAY_ITEM = (DISPLAY_ITEM[0].lower(), DISPLAY_ITEM[1].lower(), DISPLAY_ITEM[2].lower())
 # ↑vim の設定が有っても小文字には変換する
-# スレッドの各行に表示する From の長さ
-if not ('FROM_LENGTH' in globals()):
-    FROM_LENGTH = 21
-# スレッドの各行に表示する Subject の長さ
-if not ('SUBJECT_LENGTH' in globals()):
-    SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
-# スレッドに表示する順序
-if not ('DISPLAY_FORMAT' in globals()):
-    DISPLAY_FORMAT = '{0}\t{1}\t{2}\t{3}'
-    DISPLAY_FORMAT2 = '{0}\t{1}\t{2}'
-# 送信済みを表すタグ
 if not ('SENT_TAG' in globals()):
     SENT_TAG = 'sent'
-# 送信プログラムやそのパラメータ
 if not ('SEND_PARAM' in globals()):
     SEND_PARAM = ['sendmail', '-t', '-oi']
-# 送信文字コード
-if not ('SENT_CHARCODE' in globals()):
+if not ('SENT_CHARSET' in globals()):
     SENT_CHARSET = ['us-ascii', 'iso-2022-jp', 'utf-8']
-# Mailbox の種類
 if not ('MAILBOX_TYPE' in globals()):
     MAILBOX_TYPE = 'Maildir'
-# 添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリに作成
-if not VIM_MODULE:
-    TEMP_DIR = os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))).replace('/', os.sep)+os.sep
-    # CACHE_DIR = TEMP_DIR+'.cache'+os.sep
-    ATTACH_DIR = TEMP_DIR+'attach'+os.sep
-    TEMP_DIR += '.temp'+os.sep
-# else:  # __file__は vim から無理↓もだめなので、vim スクリプト側で設定
-#     CACHE_DIR = vim.eval('expand("<sfile>:p:h:h")')+os.sep+'.cache'+os.sep
-# スレッド・リスト・データの辞書
-# search_term がキーで、アイテムが次の辞書になっている
-# list: メール・データ
-# sort: ソート方法
-# make_sort_key: デフォルト・ソート方法以外のソートに用いるキーを作成済みか?
-if not ('THREAD_LISTS' in globals()):
-    THREAD_LISTS = {}
-# 他には DBASE, PATH, GLOBALS
+THREAD_LISTS = {}
+""" スレッド・リスト・データの辞書
 
+    Example:
+    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
+        search_term:   辞書のキーで検索キーワード
+        list:          メール・データ
+        sort:          ソート方法
+        make_sort_key: デフォルト・ソート方法以外のソートに用いるキーを作成済みか?
+"""
 GLOBALS = globals()
-
-PATH = get_config('database.path')
-if not os.path.isdir(PATH):
-    raise notmuchVimError('\'' + PATH + '\' don\'t exist.')
-if not notmuch_new(True):
-    raise notmuchVimError('Can\'t update database.')
-elif VIM_MODULE:  # notmuch new の結果をクリア←redraw しないとメッセージが表示されるので、続けるためにリターンが必要
-    vim.command('redraw')
+# 一次処理に使うディレクトリの削除や異常終了して残っていたファイルを削除
 make_dir(ATTACH_DIR)
 make_dir(TEMP_DIR)
 rm_file(ATTACH_DIR)
 rm_file(TEMP_DIR)
-DBASE = notmuch.Database()
-DBASE.close()
