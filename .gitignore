@@ -1,6 +1,7 @@
 /attach/
 /temp/
 /.temp/
+__pycache__
 
 !/README.md
 !/autoload/
