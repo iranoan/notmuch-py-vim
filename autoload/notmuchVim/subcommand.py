@@ -5,23 +5,36 @@
 # Author:  Iranoan <iranoan+vim@gmail.com>
 # License: GPL Ver.3.
 
+import codecs
 import copy
-import datetime                  # 日付
+import datetime                   # 日付
 import email
-import glob                      # ワイルドカード展開
+import glob                       # ワイルドカード展開
+import locale
 import mailbox
-import os                        # ディレクトリの存在確認、作成
-import re                        # 正規表現
-import shutil                    # ファイル移動
+import mimetypes                  # ファイルの MIMETYPE を調べる
+import os                         # ディレクトリの存在確認、作成
+import re                         # 正規表現
+import shutil                     # ファイル移動
+import time                       # UNIX time の取得
+from base64 import b64decode
+from concurrent.futures import ProcessPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
+from email.message import Message
 from email.mime.base import MIMEBase
-from operator import attrgetter  # ソート
-from subprocess import PIPE, Popen, TimeoutExpired, run
+from hashlib import sha256        # ハッシュ
+from html.parser import HTMLParser
+from operator import attrgetter   # ソート
 # from operator import itemgetter, attrgetter  # ソート
+from quopri import decodestring
+from subprocess import PIPE, Popen, TimeoutExpired, run
+from urllib.parse import unquote  # URL の %xx を変換
 
-import notmuch                   # API で出来ないことは notmuch コマンド (subprocess)
+from html2text import HTML2Text   # HTML メールの整形
+import notmuch                    # API で出来ないことは notmuch コマンド (subprocess)
 try:
     import vim
-    VIM_MODULE = True            # vim から読み込まれたか?
+    VIM_MODULE = True             # vim から読み込まれたか?
 except ModuleNotFoundError:
     VIM_MODULE = False
 
@@ -413,8 +426,6 @@ def shellcmd_popen(param):
 
 
 def make_thread_core(search_term):
-    from concurrent.futures import ProcessPoolExecutor
-
     query = notmuch.Query(DBASE, search_term)
     try:  # スレッド一覧
         threads = query.search_threads()
@@ -833,7 +844,6 @@ def thread_change_sort(sort_way):
     b.options['modifiable'] = 1
     flag = not ('list' in sort_way)
     # マルチスレッド 速くならない
-    # from concurrent.futures import ThreadPoolExecutor
     # with ThreadPoolExecutor() as executor:
     #     for i, msg in enumerate(threadlist):
     #         executor.submit(print_thread_line, b, i, msg, flag)
@@ -1239,13 +1249,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 b_con = line.index('')
                 b_sig = line.index('-----BEGIN PGP SIGNATURE-----')
                 if encoding == 'base64':  # PGP 署名で本文のみが base64 の場合 (本当にあるかどうか不明)
-                    from base64 import b64decode
                     content = '\n'.join(line[0:b_con]) + \
                         b64decode('\n'.join(line[b_con:b_sig])).decode(charset) + \
                         '\n'.join(line[b_sig:])
                     return content, undecode_payload
                 elif encoding == 'quoted-printable':
-                    from quopri import decodestring
                     content = '\n'.join(line[0:b_con]) + \
                         decodestring('\n'.join(line[b_con:b_sig])).decode(charset) + \
                         '\n'.join(line[b_sig:])
@@ -1346,8 +1354,6 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         thread_b.options['modifiable'] = 0
 
     def get_output(part, part_ls, output):
-        from html2text import HTML2Text     # HTML メールの整形
-
         content_type = part.get_content_type()
         charset = part.get_content_charset('utf-8')
         # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
@@ -2383,8 +2389,6 @@ def get_part_deocde(part):
 
 
 def get_attach_info(line):
-    from hashlib import sha256          # ハッシュ
-
     b_v = vim.current.buffer.vars['notmuch']
     try:
         search_term = b_v['search_term'].decode()
@@ -2525,8 +2529,6 @@ def get_top(part, i):
 
 def write_file(part, decode, save_path):
     """ 添付ファイルを save_path に保存 """
-    import codecs
-
     def get_html_charset(part):  # text/html なら HTML の charset を取得する
         html = part.get_content_type()
         if html is None:
@@ -2534,8 +2536,6 @@ def write_file(part, decode, save_path):
         elif html.lower() != 'text/html':
             return ''
         else:
-            from html.parser import HTMLParser
-
             class GetCharset(HTMLParser):
                 def __init__(self):
                     super().__init__()
@@ -2653,9 +2653,6 @@ def save_attachment(args):
 
 def delete_attachment(args):
     def get_modified_date_form():  # 削除したときに書き込む日付情報
-        import time                         # UNIX time の取得
-        import locale
-
         t = time.time()
         lt = datetime.datetime.fromisoformat(  # ローカル時間 (UTC 扱い形式) の ISO 8601 形式
             datetime.datetime.fromtimestamp(t).strftime('%Y-%m-%dT%H:%M:%S.000000'))
@@ -3250,8 +3247,6 @@ def get_flag(s, search):
 
 def send_str(msg_data, msgid):
     """ 文字列をメールとして保存し設定従い送信済みに保存 """
-    from email.message import Message
-    import mimetypes            # ファイルの MIMETYPE を調べる
     PGP_ENCRYPT = 0x10
     PGP_SIGNATURE = 0x20
     PGPMIME_ENCRYPT = 0x100
@@ -4046,8 +4041,6 @@ def send_vim():
 def new_mail(s):
     """ 新規メールの作成 s: mailto プロトコルを想定 """
     def get_mailto(s, headers):  # mailto プロトコルからパラメータ取得
-        from urllib.parse import unquote    # URL の %xx を変換
-
         if not s:
             headers['to'] = ''
             return
