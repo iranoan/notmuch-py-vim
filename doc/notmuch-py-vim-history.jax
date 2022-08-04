@@ -9,18 +9,20 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/08/01 Ver.1.28~
+2022/08/04 Ver.1.28~
 * バグ修正
 	- search-thread (|notmuch-python-vim-search-thread|) 実行後に受信した同じスレッド
 		のメールに対して search-thread を実行するとエラー
+* 仕様変更
+	- mail-import (|notmuch-python-vim-mail-import|) で引数を持てるようにした
 * 処理変更
 	- 空リストの判定方法変更
 	- 不要な関数削除
 		|{T-WIN}| の処理
 	- Python スクリプトのモジュール化
 		+ 定数扱いで用いる Python グローバル変数の指定を一箇所で指定
+		+ グローバル変数削除処理を削除
 	- 'import' をファイル先頭に移動
-	- グローバル変数削除処理を削除
 	- エラー表示で改行実現
 	- g:notmuch_display_item チェック追加
 

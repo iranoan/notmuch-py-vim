@@ -584,7 +584,7 @@ function notmuch_py#notmuch_main(...) abort
 				let g:notmuch_command['mail-edit']           = ['s:open_original', 0x06]
 				let g:notmuch_command['mail-export']         = ['s:export_mail', 0x06]
 				let g:notmuch_command['mail-forward']        = ['s:forward_mail', 0x04]
-				let g:notmuch_command['mail-import']         = ['s:import_mail', 0x04]
+				let g:notmuch_command['mail-import']         = ['s:import_mail', 0x05]
 				let g:notmuch_command['mail-info']           = ['s:view_mail_info', 0x0c]
 				let g:notmuch_command['mail-move']           = ['s:move_mail', 0x06]
 				let g:notmuch_command['mail-reply']          = ['s:reply_mail', 0x04]
@@ -644,80 +644,82 @@ endfunction
 
 function s:import()
 	python3 << _EOF_
-import sys, vim
-if not vim.eval('s:script_root') + '/autoload/'in sys.path:
-    sys.path.append(vim.eval('s:script_root') + '/autoload/')
-import notmuchVim
-# vim から呼び出す関数は関数名だけで呼び出せるようにする
-from notmuchVim.subcommand import add_tags
-from notmuchVim.subcommand import buf_kind
-from notmuchVim.subcommand import change_buffer_vars
-from notmuchVim.subcommand import command_marked
-from notmuchVim.subcommand import connect_thread_tree
-from notmuchVim.subcommand import cut_thread
-from notmuchVim.subcommand import delete_attachment
-from notmuchVim.subcommand import delete_mail
-from notmuchVim.subcommand import delete_tags
-from notmuchVim.subcommand import do_mail
-from notmuchVim.subcommand import empty_show
-from notmuchVim.subcommand import export_mail
-from notmuchVim.subcommand import forward_mail
-from notmuchVim.subcommand import forward_mail_attach
-from notmuchVim.subcommand import forward_mail_resent
-from notmuchVim.subcommand import get_cmd_name_ftype
-from notmuchVim.subcommand import get_command
-from notmuchVim.subcommand import get_folded_list
-from notmuchVim.subcommand import get_hide_header
-from notmuchVim.subcommand import get_last_cmd
-from notmuchVim.subcommand import get_mail_folders
-from notmuchVim.subcommand import get_mark_cmd_name
-from notmuchVim.subcommand import get_msg_all_tags_list
-from notmuchVim.subcommand import get_msg_id
-from notmuchVim.subcommand import get_msg_tags_any_kind
-from notmuchVim.subcommand import get_msg_tags_diff
-from notmuchVim.subcommand import get_msg_tags_list
-from notmuchVim.subcommand import get_save_dir
-from notmuchVim.subcommand import get_save_filename
-from notmuchVim.subcommand import get_search_snippet
-from notmuchVim.subcommand import get_sys_command
-from notmuchVim.subcommand import import_mail
-from notmuchVim.subcommand import is_same_tabpage
-from notmuchVim.subcommand import make_dump
-from notmuchVim.subcommand import move_mail
-from notmuchVim.subcommand import new_mail
-from notmuchVim.subcommand import next_unread
-from notmuchVim.subcommand import notmuch_address
-from notmuchVim.subcommand import notmuch_down_refine
-from notmuchVim.subcommand import notmuch_duplication
-from notmuchVim.subcommand import notmuch_refine
-from notmuchVim.subcommand import notmuch_search
-from notmuchVim.subcommand import notmuch_thread
-from notmuchVim.subcommand import notmuch_up_refine
-from notmuchVim.subcommand import open_attachment
-from notmuchVim.subcommand import open_mail
-from notmuchVim.subcommand import open_original
-from notmuchVim.subcommand import open_thread
-from notmuchVim.subcommand import print_folder
-from notmuchVim.subcommand import reindex_mail
-from notmuchVim.subcommand import reload_show
-from notmuchVim.subcommand import reload_thread
-from notmuchVim.subcommand import reopen
-from notmuchVim.subcommand import reply_mail
-from notmuchVim.subcommand import reset_cursor_position
-from notmuchVim.subcommand import run_shell_program
-from notmuchVim.subcommand import save_attachment
-from notmuchVim.subcommand import send_vim
-from notmuchVim.subcommand import set_attach
-from notmuchVim.subcommand import set_encrypt
-from notmuchVim.subcommand import set_fcc
-from notmuchVim.subcommand import set_forward_after
-from notmuchVim.subcommand import set_new_after
-from notmuchVim.subcommand import set_reply_after
-from notmuchVim.subcommand import set_resent_after
-from notmuchVim.subcommand import set_tags
-from notmuchVim.subcommand import thread_change_sort
-from notmuchVim.subcommand import toggle_tags
-from notmuchVim.subcommand import view_mail_info
+import os, sys, vim
+if 'notmuchVim' not in sys.modules:
+    if not vim.eval('s:script_root') + '/autoload/' in sys.path:
+        sys.path.append(vim.eval('s:script_root') + '/autoload/')
+    import notmuchVim
+    # vim から呼び出す関数は関数名だけで呼び出せるようにする
+    from notmuchVim.subcommand import add_tags
+    from notmuchVim.subcommand import buf_kind
+    from notmuchVim.subcommand import change_buffer_vars
+    from notmuchVim.subcommand import command_marked
+    from notmuchVim.subcommand import connect_thread_tree
+    from notmuchVim.subcommand import cut_thread
+    from notmuchVim.subcommand import delete_attachment
+    from notmuchVim.subcommand import delete_mail
+    from notmuchVim.subcommand import delete_tags
+    from notmuchVim.subcommand import do_mail
+    from notmuchVim.subcommand import empty_show
+    from notmuchVim.subcommand import export_mail
+    from notmuchVim.subcommand import forward_mail
+    from notmuchVim.subcommand import forward_mail_attach
+    from notmuchVim.subcommand import forward_mail_resent
+    from notmuchVim.subcommand import get_cmd_name_ftype
+    from notmuchVim.subcommand import get_command
+    from notmuchVim.subcommand import get_folded_list
+    from notmuchVim.subcommand import get_hide_header
+    from notmuchVim.subcommand import get_last_cmd
+    from notmuchVim.subcommand import get_mail_folders
+    from notmuchVim.subcommand import get_mark_cmd_name
+    from notmuchVim.subcommand import get_msg_all_tags_list
+    from notmuchVim.subcommand import get_msg_id
+    from notmuchVim.subcommand import get_msg_tags_any_kind
+    from notmuchVim.subcommand import get_msg_tags_diff
+    from notmuchVim.subcommand import get_msg_tags_list
+    from notmuchVim.subcommand import get_cmd_name
+    from notmuchVim.subcommand import get_save_dir
+    from notmuchVim.subcommand import get_save_filename
+    from notmuchVim.subcommand import get_search_snippet
+    from notmuchVim.subcommand import get_sys_command
+    from notmuchVim.subcommand import import_mail
+    from notmuchVim.subcommand import is_same_tabpage
+    from notmuchVim.subcommand import make_dump
+    from notmuchVim.subcommand import move_mail
+    from notmuchVim.subcommand import new_mail
+    from notmuchVim.subcommand import next_unread
+    from notmuchVim.subcommand import notmuch_address
+    from notmuchVim.subcommand import notmuch_down_refine
+    from notmuchVim.subcommand import notmuch_duplication
+    from notmuchVim.subcommand import notmuch_refine
+    from notmuchVim.subcommand import notmuch_search
+    from notmuchVim.subcommand import notmuch_thread
+    from notmuchVim.subcommand import notmuch_up_refine
+    from notmuchVim.subcommand import open_attachment
+    from notmuchVim.subcommand import open_mail
+    from notmuchVim.subcommand import open_original
+    from notmuchVim.subcommand import open_thread
+    from notmuchVim.subcommand import print_folder
+    from notmuchVim.subcommand import reindex_mail
+    from notmuchVim.subcommand import reload_show
+    from notmuchVim.subcommand import reload_thread
+    from notmuchVim.subcommand import reopen
+    from notmuchVim.subcommand import reply_mail
+    from notmuchVim.subcommand import reset_cursor_position
+    from notmuchVim.subcommand import run_shell_program
+    from notmuchVim.subcommand import save_attachment
+    from notmuchVim.subcommand import send_vim
+    from notmuchVim.subcommand import set_attach
+    from notmuchVim.subcommand import set_encrypt
+    from notmuchVim.subcommand import set_fcc
+    from notmuchVim.subcommand import set_forward_after
+    from notmuchVim.subcommand import set_new_after
+    from notmuchVim.subcommand import set_reply_after
+    from notmuchVim.subcommand import set_resent_after
+    from notmuchVim.subcommand import set_tags
+    from notmuchVim.subcommand import thread_change_sort
+    from notmuchVim.subcommand import toggle_tags
+    from notmuchVim.subcommand import view_mail_info
 _EOF_
 endfunction
 
@@ -1107,7 +1109,7 @@ function s:reindex_mail(args) abort
 endfunction
 
 function s:import_mail(args) abort
-	py3 import_mail()
+	py3 import_mail(vim.eval('a:args'))
 endfunction
 
 function s:delete_mail(args) abort
@@ -1318,8 +1320,8 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 				return s:is_one_snippet(l:snippet)
 			elseif l:cmd ==# 'set-encrypt'
 				let l:snippet = ['Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP', 'Subject', 'Public-Key']
-			elseif l:cmd ==# 'set-attach'
-				let l:dir = substitute(a:CmdLine, '^Notmuch\s\+set-attach\s\+', '', '')
+			elseif l:cmd ==# 'set-attach' || l:cmd ==# 'mail-import'
+				let l:dir = substitute(a:CmdLine, '^Notmuch\s\+' .. l:cmd .. '\s\+', '', '')
 				if l:dir ==# ''
 					let l:snippet = glob(py3eval('os.path.expandvars(''$USERPROFILE\\'') if os.name == ''nt'' else os.path.expandvars(''$HOME/'')') .. '*', 1, 1)
 				else

@@ -947,8 +947,10 @@ mail-forward
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
                                                 *notmuch-python-vim-mail-import*
-mail-import
+mail-import [{path}]
 	* メール・ファイルをインポートする
+	* {path} が無ければファイル/ディレクトリ選択になる
+		- この指定でも空入力や <Esc> だとキャンセル
 	* ディレクトリが選ばれた時は、サブフォルダも含めて、そこに含まれるメール・
 		ファイルをインポート
 	* ファイル/ディレクトリの両選択に対応するため、ダイアログを使用可能な環境で

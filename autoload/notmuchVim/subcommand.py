@@ -4745,7 +4745,7 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
         vim.command('redraw')
 
 
-def import_mail():
+def import_mail(args):
     if opened_mail(False):
         print_warring('Please save and close mail.')
         return
@@ -4773,12 +4773,15 @@ def import_mail():
     elif MAILBOX_TYPE == 'MH':
         mbox = mailbox.MH(import_dir)
     mbox.lock()
-    if os.name == 'nt':
-        f = vim.eval(
-            'input("Import: ", "'+os.path.expandvars('$USERPROFILE\\')+'", "file")')
+    if len(args) == 3:
+        f = args[2]
     else:
-        f = vim.eval(
-            'input("Import: ", "'+os.path.expandvars('$HOME/')+'", "file")')
+        if os.name == 'nt':
+            f = vim.eval(
+                'input("Import: ", "'+os.path.expandvars('$USERPROFILE\\')+'", "file")')
+        else:
+            f = vim.eval(
+                'input("Import: ", "'+os.path.expandvars('$HOME/')+'", "file")')
     if f == '':
         return
     if os.path.isdir(f):  # ディレクトリならサブ・ディレクトリまで含めてすべてのファイルを対象とする
