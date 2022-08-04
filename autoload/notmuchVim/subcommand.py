@@ -42,7 +42,8 @@ except ModuleNotFoundError:
 def print_warring(msg):
     """ display Warning."""
     if VIM_MODULE:
-        vim.command('redraw | echohl WarningMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
+        msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
+        vim.command('redraw | echohl WarningMsg | echomsg "' + msg + '" | echohl None')
     else:
         import sys
         sys.stderr.write(msg)
@@ -51,7 +52,8 @@ def print_warring(msg):
 def print_err(msg):
     """ display Error and exit."""
     if VIM_MODULE:
-        vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
+        msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
+        vim.command('echohl ErrorMsg | echomsg "' + msg + '" | echohl None')
     else:
         import sys
         sys.stderr.write(msg)
@@ -344,7 +346,7 @@ def notmuch_new(open_check):
     # →open_check が True なら未保存バッファが有れば、そちらに移動し無ければバッファを完全に閉じる
     if VIM_MODULE and open_check:
         if opened_mail(False):
-            print_warring('Can\'t remake database.\rBecase open the file.')
+            print_warring('Can\'t remake database.\nBecase open the file.')
             return False
         # return True
     return shellcmd_popen(['notmuch', 'new'])
@@ -454,9 +456,24 @@ def make_single_thread(thread_id, search_term):
 def set_display_item():
     global DISPLAY_ITEM
     if 'notmuch_display_item' in vim.vars:
+        setting = vim.vars['notmuch_display_item']
+        if len(setting) != 3:
+            print_warring('Error: setting g:notmuch_display_item.\nset default.')
+            DISPLAY_ITEM = ('subject', 'from', 'date')
+            return
         item = []
-        for i in vim.vars['notmuch_display_item']:
-            item.append(i.decode().lower())
+        for i in setting:
+            i = i.decode().lower()
+            if i not in ['subject', 'from', 'date']:
+                DISPLAY_ITEM = ('subject', 'from', 'date')
+                print_warring('Error: setting g:notmuch_display_item.\nset default.')
+                DISPLAY_ITEM = ('subject', 'from', 'date')
+                return
+            item.append(i)
+        if len(set(item)) != 3:
+            print_warring('Error: setting g:notmuch_display_item.\nset default.')
+            DISPLAY_ITEM = ('subject', 'from', 'date')
+            return
         DISPLAY_ITEM = tuple(item)
     else:
         DISPLAY_ITEM = ('subject', 'from', 'date')
