@@ -56,7 +56,6 @@ def print_err(msg):
         import sys
         sys.stderr.write(msg)
         sys.exit()
-    delete_gloval_variable()
 
 
 def print_error(msg):
@@ -111,34 +110,6 @@ def set_display_format():
         elif item == 'date':
             DISPLAY_FORMAT += '\t{3}'
             DISPLAY_FORMAT2 += '\t{2}'
-
-
-def delete_gloval_variable():
-    global ATTACH_DIR, DATE_FORMAT, DELETE_TOP_SUBJECT, \
-        DISPLAY_ITEM, FOLDER_FORMAT, FROM_LENGTH, SENT_TAG, SUBJECT_LENGTH,\
-        THREAD_LISTS, SEND_PARAM, SENT_CHARSET, DISPLAY_FORMAT, DISPLAY_FORMAT2
-    del ATTACH_DIR, DATE_FORMAT, DELETE_TOP_SUBJECT,\
-        DISPLAY_ITEM, FOLDER_FORMAT, FROM_LENGTH, SENT_TAG, SUBJECT_LENGTH, \
-        THREAD_LISTS, SEND_PARAM, SENT_CHARSET, DISPLAY_FORMAT, DISPLAY_FORMAT2
-
-
-# 変数によっては正規表現チェック+正規表現検索方法をパックしておく←主にスレッド・リストで使用
-try:  # 先頭空白削除
-    RE_TOP_SPACE = re.compile(r'^\s+')
-except re.error:
-    print_err('Error: Regular Expression')
-try:  # 行末空白削除
-    RE_END_SPACE = re.compile(r'\s*$')
-except re.error:
-    print_err('Error: Regular Expression')
-try:  # タブと全角空白→スペース←スレッド・リストではできるだけ短く、タブはデリミタに使用予定
-    RE_TAB2SPACE = re.compile('[　\t]+')
-except re.error:
-    print_err('Error: Regular Expression')
-try:  # "に挟まれていれば挟まれている部分だけに
-    RE_DQUOTE = re.compile(r'\s*"([^"]+)"\s*')
-except re.error:
-    print_err('Error: Regular Expression')
 
 
 def email2only_name(mail_address):
@@ -360,7 +331,6 @@ def make_dump():
             shutil.move(TEMP_DIR + 'notmuch.gz', get_save_dir() + 'notmuch.gz')
     rm_file(ATTACH_DIR)
     rm_file(TEMP_DIR)
-    delete_gloval_variable()
 
 
 def make_dir(dirname):
@@ -519,8 +489,6 @@ def set_folder_format():
 
 def format_folder(folder, search_term):
     global FOLDER_FORMAT
-    if not ('FOLDER_FORMAT' in globals()):
-        FOLDER_FORMAT = '{0:<14}{1:>3}/{2:>5}|{3:>3} [{4}]'
     try:  # search_term チェック
         all_mail = notmuch.Query(DBASE, search_term).count_messages()  # メール総数
     except notmuch.errors.XapianError:
@@ -6045,6 +6013,10 @@ if not ('DELETE_TOP_SUBJECT' in globals()):
     DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' + \
         r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' + \
         r'|R[Ee][: ]+)*[　 ]*'
+RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
+RE_END_SPACE = re.compile(r'\s*$')  # 行末空白削除
+RE_TAB2SPACE = re.compile('[　\t]+')  # タブと全角空白→スペース←スレッド・リストではできるだけ短く、タブはデリミタに使用予定
+RE_DQUOTE = re.compile(r'\s*"([^"]+)"\s*')  # "に挟まれていれば挟まれている部分だけに
 try:
     RE_SUBJECT = re.compile(DELETE_TOP_SUBJECT)
 except re.error:
