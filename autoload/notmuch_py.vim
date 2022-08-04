@@ -235,125 +235,6 @@ function s:open_mail() abort
 	py3 open_mail(vim.eval('l:search_term'), vim.bindeval('l:mail_index'), vim.eval('l:buf_num'))
 endfunction
 
-function s:set_open_way(len) abort
-	let l:max_len = &columns - a:len
-	let l:height = (&lines - (&showtabline == 2) - (&laststatus !=0)) * 3 / 4 " スレッドは1/4
-	" ただし最低5件は表示する
-	let l:tab_status = 7 + (&showtabline != 0) + (&laststatus != 0)
-	if &lines - l:height < l:tab_status
-		let l:height = &lines - l:tab_status
-	endif
-	if !exists('g:notmuch_open_way')
-		let g:notmuch_open_way = {}
-	endif
-	" 設定が有れば new, vnew, tabedit, enew 限定
-	let l:settables = ['new', 'vnew', 'tabedit', 'enew', 'rightbelow', 'belowright', 'topleft', 'botright']
-	for [l:k, l:v] in items(g:notmuch_open_way)
-		if l:k !=# 'open'
-			if match(l:v, '\(enew\|tabedit\)') != -1 && l:v !=# 'enew' && l:v !=# 'tabedit'
-				echohl WarningMsg
-							\ | echomsg "For g:notmuch_open_way, if the setting is 'tabedit/enew', no other words/spaces can\'t be included."
-							\ | echohl Non | echo ''
-				return v:false
-			endif
-			let l:ways = split(substitute(l:v, '[0-9 ]\+', ' ','g'))
-			for l:settable in l:settables
-				let l:index = match(l:ways, l:settable)
-				if l:index != -1
-					call remove(l:ways, l:index)
-				endif
-			endfor
-			if len(l:ways)
-				echohl WarningMsg
-							\ | echomsg "For g:notmuch_open_way, setting is only 'new/vnew/tabedit/enew', 'rightbelow/belowright/topleft/botright' and {count}."
-							\ | echohl Non | echo ''
-				return v:false
-			endif
-		endif
-	endfor
-	call s:set_default_open_way('folders', 'tabedit',)
-	call s:set_default_open_way('thread' , 'rightbelow ' .. l:max_len .. 'vnew')
-	call s:set_default_open_way('show'   , 'belowright ' .. l:height .. 'new')
-	call s:set_default_open_way('edit'   , 'tabedit')
-	call s:set_default_open_way('draft'  , 'tabedit')
-	call s:set_default_open_way('search' , 'tabedit')
-	call s:set_default_open_way('view'   , 'belowright ' .. l:height .. 'new')
-endfunction
-
-function s:set_default_open_way(key, value) abort
-	if !has_key(g:notmuch_open_way,a:key)
-		let g:notmuch_open_way[a:key] = a:value
-	endif
-endfunction
-
-function s:set_defaults() abort
-	let g:notmuch_folders = get(g:, 'notmuch_folders', [
-				\ [ 'new',       '(tag:inbox and tag:unread)' ],
-				\ [ 'inbox',     '(tag:inbox)' ],
-				\ [ 'unread',    '(tag:unread)' ],
-				\ [ 'draft',     '((folder:draft or folder:.draft or tag:draft) not tag:sent not tag:Trash not tag:Spam)'],
-				\ [ 'attach',    '(tag:attachment)' ],
-				\ [ '6 month',   '(date:183days..now'],
-				\ [ '',          '' ],
-				\ [ 'All',       '(folder:/./)' ],
-				\ [ 'Trash',     '(folder:.Trash or folder:Trash or tag:Trash)' ],
-				\ [ 'New Search','' ],
-				\ ]
-				\ )
-
-	let g:notmuch_show_headers = get(g:, 'notmuch_show_headers', [
-				\ 'From',
-				\ 'Resent-From',
-				\ 'Subject',
-				\ 'Date',
-				\ 'Resent-Date',
-				\ 'To',
-				\ 'Resent-To',
-				\ 'Cc',
-				\ 'Resent-Cc',
-				\ 'Bcc',
-				\ 'Resent-Bcc',
-				\ ]
-				\ )
-
-	let g:notmuch_show_hide_headers = get(g:, 'notmuch_show_hide_headers', [
-				\ 'Return-Path',
-				\ 'Reply-To',
-				\ 'Message-ID',
-				\ 'Resent-Message-ID',
-				\ 'In-Reply-To',
-				\ 'References',
-				\ 'Errors-To',
-				\ ]
-				\ )
-		" 何故か Content-Type, Content-Transfer-Encoding は取得できない
-				" \ 'Content-Type',
-				" \ 'Content-Transfer-Encoding',
-	for l:h in g:notmuch_show_headers + ['Attach', 'Decrypted', 'Encrypt', 'Fcc', 'HTML', 'Signature'] " g:notmuch_show_headers 登録済み、virtual ヘッダは除く
-		let l:i = match(g:notmuch_show_hide_headers, '\c^' .. l:h .. '$')
-		if l:i != -1
-			call remove(g:notmuch_show_hide_headers, l:i)
-		endif
-	endfor
-
-	let g:notmuch_draft_header = get(g:, 'notmuch_draft_header', [ 'From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach' ])
-	let g:notmuch_send_param = get(g:, 'notmuch_send_param', ['sendmail', '-t', '-oi'])
-
-	" OS 依存
-	if has('unix')
-		let g:notmuch_view_attachment = get(g:, 'notmuch_view_attachment', 'xdg-open')
-		" let g:notmuch_view_attachment = get(g:, 'notmuch_view_attachment', 'xdg-open')
-	elseif has('win32') || has('win32unix')
-		let g:notmuch_view_attachment = get(g:, 'notmuch_view_attachment', 'start')
-	elseif has('mac')
-		let g:notmuch_view_attachment = get(g:, 'notmuch_view_attachment', 'open')
-	else
-		let g:notmuch_view_attachment = ''
-	endif
-	" vim で指定できても定数扱いで処理するものは、Python スクリプト側で設定
-	return v:true
-endfunction
-
 function s:next_unread_page(args) abort " メール最後の行が表示されていればスクロールしない+既読にする
 	let l:buf_num = bufnr('')
 	if !has_key(s:buf_num, 'thread')
@@ -574,66 +455,9 @@ function notmuch_py#notmuch_main(...) abort
 			echohl WarningMsg | echomsg 'Not exist ' .. l:sub_cmd .. ' subcommand.' | echomsg 'open help.' | echohl None
 		else
 			if l:sub_cmd ==# 'start'
-				" start して初めて許可するコマンド {{{
-				let g:notmuch_command['start']               = ['s:start_notmuch', 0x0c]
-				let g:notmuch_command['attach-delete']       = ['s:delete_attachment', 0x06]
-				let g:notmuch_command['attach-save']         = ['s:save_attachment', 0x06]
-				let g:notmuch_command['close']               = ['s:close', 0x04]
-				let g:notmuch_command['mail-attach-forward'] = ['s:forward_mail_attach', 0x04]
-				let g:notmuch_command['mail-delete']         = ['s:delete_mail', 0x06]
-				let g:notmuch_command['mail-edit']           = ['s:open_original', 0x06]
-				let g:notmuch_command['mail-export']         = ['s:export_mail', 0x06]
-				let g:notmuch_command['mail-forward']        = ['s:forward_mail', 0x04]
-				let g:notmuch_command['mail-import']         = ['s:import_mail', 0x05]
-				let g:notmuch_command['mail-info']           = ['s:view_mail_info', 0x0c]
-				let g:notmuch_command['mail-move']           = ['s:move_mail', 0x06]
-				let g:notmuch_command['mail-reply']          = ['s:reply_mail', 0x04]
-				let g:notmuch_command['mail-reindex']        = ['s:reindex_mail', 0x06]
-				let g:notmuch_command['mail-resent-forward'] = ['s:forward_mail_resent', 0x04]
-				let g:notmuch_command['mail-save']           = ['s:save_mail', 0x04]
-				let g:notmuch_command['mail-send']           = ['s:send_vim', 0x0c]
-				let g:notmuch_command['mark']                = ['s:mark_in_thread', 0x04]
-				let g:notmuch_command['mark-command']        = ['s:command_marked', 0x04]
-				let g:notmuch_command['open']                = ['s:open_something', 0x04]
-				let g:notmuch_command['view-previous']       = ['s:previous_page', 0x04]
-				let g:notmuch_command['view-unread-page']    = ['s:next_unread_page', 0x04]
-				let g:notmuch_command['view-unread-mail']    = ['s:next_unread', 0x04]
-				let g:notmuch_command['reload']              = ['s:reload', 0x04]
-				let g:notmuch_command['run']                 = ['s:run_shell_program', 0x07]
-				let g:notmuch_command['search']              = ['s:notmuch_search', 0x05]
-				let g:notmuch_command['search-thread']       = ['s:notmuch_thread', 0x04]
-				let g:notmuch_command['search-address']      = ['s:notmuch_address', 0x04]
-				let g:notmuch_command['search-duplication']  = ['s:notmuch_duplication', 0x04]
-				let g:notmuch_command['search-refine']       = ['s:notmuch_refine', 0x05]
-				let g:notmuch_command['search-up-refine']    = ['s:notmuch_up_refine', 0x04]
-				let g:notmuch_command['search-down-refine']  = ['s:notmuch_down_refine', 0x04]
-				let g:notmuch_command['tag-add']             = ['s:add_tags', 0x1f]
-				let g:notmuch_command['tag-delete']          = ['s:delete_tags', 0x1f]
-				let g:notmuch_command['tag-toggle']          = ['s:toggle_tags', 0x1f]
-				let g:notmuch_command['tag-set']             = ['s:set_tags', 0x1f]
-				let g:notmuch_command['thread-connect']      = ['s:connect_thread', 0x06]
-				let g:notmuch_command['thread-cut']          = ['s:cut_thread', 0x06]
-				let g:notmuch_command['thread-toggle']       = ['s:toggle_thread', 0x04]
-				let g:notmuch_command['thread-sort']         = ['s:thread_change_sort', 0x05]
-				let g:notmuch_command['set-fcc']             = ['s:set_fcc', 0x09]
-				let g:notmuch_command['set-attach']          = ['s:set_attach', 0x09]
-				let g:notmuch_command['set-encrypt']         = ['s:set_encrypt', 0x09]
-				"}}}
 				call s:start_notmuch()
 			elseif l:sub_cmd ==# 'mail-new'
 				call remove(l:cmd, 0, 1)
-				if !has_key(g:notmuch_command, 'mail-send')
-					let g:notmuch_command['start']       = ['s:start_notmuch', 0x0c]
-					let g:notmuch_command['mail-send']   = ['s:send_vim', 0x0c] " mail-new はいきなり呼び出し可能なので、mail-send 登録
-					let g:notmuch_command['mail-info']   = ['s:view_mail_info', 0x0c]
-					let g:notmuch_command['tag-add']     = ['s:add_tags', 0x1f]
-					let g:notmuch_command['tag-delete']  = ['s:delete_tags', 0x1f]
-					let g:notmuch_command['tag-toggle']  = ['s:toggle_tags', 0x1f]
-					let g:notmuch_command['tag-set']     = ['s:set_tags', 0x1f]
-					let g:notmuch_command['set-fcc']     = ['s:set_fcc', 0x09]
-					let g:notmuch_command['set-attach']  = ['s:set_attach', 0x09]
-					let g:notmuch_command['set-encrypt'] = ['s:set_encrypt', 0x09]
-				endif
 				call s:new_mail(join(l:cmd, ' '))
 			else
 				execute 'call ' .. g:notmuch_command[l:sub_cmd][0] .. '(l:cmd)'
@@ -720,6 +544,8 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import thread_change_sort
     from notmuchVim.subcommand import toggle_tags
     from notmuchVim.subcommand import view_mail_info
+    from notmuchVim.subcommand import set_subcmd_start
+    from notmuchVim.subcommand import set_subcmd_newmail
 _EOF_
 endfunction
 
@@ -734,10 +560,8 @@ function s:start_notmuch() abort
 	if !has_key(s:buf_num, 'view')
 		let s:buf_num['view'] = {}
 	endif
-	if !s:set_defaults()
-		return
-	endif
 	call s:import()
+	py3 set_subcmd_start()
 	execute 'cd ' .. py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
@@ -1030,10 +854,8 @@ endfunction
 
 function s:new_mail(...) abort
 	if !py3eval('"DBASE" in globals()')  " フォルダ一覧も非表示状態で呼ばれた場合
-		if !s:set_defaults()
-			return
-		endif
 		call s:import()
+		py3 set_subcmd_newmail()
 		execute 'cd ' .. py3eval('get_save_dir()')
 		if &title && &titlestring ==# ''
 			let &titlestring=s:make_title()

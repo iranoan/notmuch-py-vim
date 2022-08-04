@@ -22,7 +22,7 @@ if has('nvim')
 	finish
 endif
 
-let g:notmuch_command = { 'start': ['s:start_notmuch', 0x08], 'mail-new': ['s:new_mail', 0x11] }
+let g:notmuch_command = { 'start': ['s:start_notmuch', 0x0c], 'mail-new': ['s:new_mail', 0x11] }
 
 if !exists(':Notmuch')
 	command -range -nargs=* -complete=customlist,Notmuch_complete Notmuch call notmuch_py#notmuch_main(<line1>, <line2>, <f-args>)

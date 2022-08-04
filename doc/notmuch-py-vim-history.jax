@@ -25,6 +25,7 @@ License: GPL Ver.3.
 	- 'import' をファイル先頭に移動
 	- エラー表示で改行実現
 	- g:notmuch_display_item チェック追加
+	- g:notmuch_* デフォルト値の設定を Python スクリプトに移動
 
 2022/07/09 Ver.1.27~
 * 仕様変更

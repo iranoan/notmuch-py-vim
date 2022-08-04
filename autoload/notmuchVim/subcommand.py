@@ -479,7 +479,115 @@ def set_display_item():
         DISPLAY_ITEM = ('subject', 'from', 'date')
 
 
+def set_subcmd_start():
+    """ start して初めて許可するコマンドの追加 """
+    cmd = vim.vars['notmuch_command']
+    if 'open' not in cmd:  # start はいきなり呼び出し可能なので、open で判定
+        cmd['attach-delete'] = ['s:delete_attachment', 0x06]
+        cmd['attach-save'] = ['s:save_attachment', 0x06]
+        cmd['close'] = ['s:close', 0x04]
+        cmd['mail-attach-forward'] = ['s:forward_mail_attach', 0x04]
+        cmd['mail-delete'] = ['s:delete_mail', 0x06]
+        cmd['mail-edit'] = ['s:open_original', 0x06]
+        cmd['mail-export'] = ['s:export_mail', 0x06]
+        cmd['mail-forward'] = ['s:forward_mail', 0x04]
+        cmd['mail-import'] = ['s:import_mail', 0x05]
+        cmd['mail-info'] = ['s:view_mail_info', 0x0c]
+        cmd['mail-move'] = ['s:move_mail', 0x06]
+        cmd['mail-reply'] = ['s:reply_mail', 0x04]
+        cmd['mail-reindex'] = ['s:reindex_mail', 0x06]
+        cmd['mail-resent-forward'] = ['s:forward_mail_resent', 0x04]
+        cmd['mail-save'] = ['s:save_mail', 0x04]
+        cmd['mail-send'] = ['s:send_vim', 0x0c]
+        cmd['mark'] = ['s:mark_in_thread', 0x04]
+        cmd['mark-command'] = ['s:command_marked', 0x04]
+        cmd['open'] = ['s:open_something', 0x04]
+        cmd['view-previous'] = ['s:previous_page', 0x04]
+        cmd['view-unread-page'] = ['s:next_unread_page', 0x04]
+        cmd['view-unread-mail'] = ['s:next_unread', 0x04]
+        cmd['reload'] = ['s:reload', 0x04]
+        cmd['run'] = ['s:run_shell_program', 0x07]
+        cmd['search'] = ['s:notmuch_search', 0x05]
+        cmd['search-thread'] = ['s:notmuch_thread', 0x04]
+        cmd['search-address'] = ['s:notmuch_address', 0x04]
+        cmd['search-duplication'] = ['s:notmuch_duplication', 0x04]
+        cmd['search-refine'] = ['s:notmuch_refine', 0x05]
+        cmd['search-up-refine'] = ['s:notmuch_up_refine', 0x04]
+        cmd['search-down-refine'] = ['s:notmuch_down_refine', 0x04]
+        cmd['tag-add'] = ['s:add_tags', 0x1f]
+        cmd['tag-delete'] = ['s:delete_tags', 0x1f]
+        cmd['tag-toggle'] = ['s:toggle_tags', 0x1f]
+        cmd['tag-set'] = ['s:set_tags', 0x1f]
+        cmd['thread-connect'] = ['s:connect_thread', 0x06]
+        cmd['thread-cut'] = ['s:cut_thread', 0x06]
+        cmd['thread-toggle'] = ['s:toggle_thread', 0x04]
+        cmd['thread-sort'] = ['s:thread_change_sort', 0x05]
+        cmd['set-fcc'] = ['s:set_fcc', 0x09]
+        cmd['set-attach'] = ['s:set_attach', 0x09]
+        cmd['set-encrypt'] = ['s:set_encrypt', 0x09]
+
+
+def set_subcmd_newmail():
+    cmd = vim.vars['notmuch_command']
+    if 'mail-send' not in cmd:  # mail-new はいきなり呼び出し可能なので、mail-send で判定
+        cmd['start'] = ['s:start_notmuch', 0x0c]
+        cmd['mail-send'] = ['s:send_vim', 0x0c]
+        cmd['mail-info'] = ['s:view_mail_info', 0x0c]
+        cmd['tag-add'] = ['s:add_tags', 0x1f]
+        cmd['tag-delete'] = ['s:delete_tags', 0x1f]
+        cmd['tag-toggle'] = ['s:toggle_tags', 0x1f]
+        cmd['tag-set'] = ['s:set_tags', 0x1f]
+        cmd['set-fcc'] = ['s:set_fcc', 0x09]
+        cmd['set-attach'] = ['s:set_attach', 0x09]
+        cmd['set-encrypt'] = ['s:set_encrypt', 0x09]
+
+
 def set_folder_format():
+    def set_open_way(len):
+        v_o = vim.options
+        max_len = v_o['columns'] - len
+        lines = v_o['lines']
+        showtabline = v_o['showtabline']
+        laststatus = v_o['laststatus'] if 1 else 0
+        height = (lines - (showtabline == 2) - laststatus) * 3 / 4  # スレッドは1/4
+        # ただし最低5件は表示する
+        tab_status = 7 + (showtabline != 0) + laststatus
+        if lines - height < tab_status:
+            height = lines - tab_status
+        height = int(height)
+        if 'notmuch_open_way' not in vim.vars:
+            vim.vars['notmuch_open_way'] = {}
+        open_way = vim.vars['notmuch_open_way']
+        # 設定が有れば new, vnew, tabedit, enew 限定
+        settables = ['new', 'vnew', 'tabedit', 'enew', 'rightbelow', 'belowright', 'topleft', 'botright']
+        for k, v in open_way.items():
+            if k != b'open':
+                v = v.decode()
+                if re.match(r'(enew|tabedit)', v) is not None and v != 'enew' and v != 'tabedit':
+                    print_warring("For g:notmuch_open_way, if the setting is 'tabedit/enew', " +
+                                  "no other words/spaces can\'t be included.")
+                ways = re.sub(r'[0-9 ]+', ' ', v).split()
+                for settable in settables:
+                    if settable in ways:
+                        ways.remove(settable)
+                if ways:
+                    print_warring("For g:notmuch_open_way, setting is only 'new/vnew/tabedit/enew', " +
+                                  "'rightbelow/belowright/topleft/botright' and {count}.")
+        if 'folders' not in open_way:
+            open_way['folders'] = 'tabedit'
+        if 'thread' not in open_way:
+            open_way['thread'] = 'rightbelow ' + str(max_len) + 'vnew'
+        if 'show' not in open_way:
+            open_way['show'] = 'belowright ' + str(height) + 'new'
+        if 'edit' not in open_way:
+            open_way['edit'] = 'tabedit'
+        if 'draft' not in open_way:
+            open_way['draft'] = 'tabedit'
+        if 'search' not in open_way:
+            open_way['search'] = 'tabedit'
+        if 'view' not in open_way:
+            open_way['view'] = 'belowright ' + str(height) + 'new'
+
     global FOLDER_FORMAT
     try:
         DBASE.open(PATH)
@@ -496,7 +604,7 @@ def set_folder_format():
         s_len = len(s[0].decode())
         if s_len > max_len:
             max_len = s_len
-    vim.command('call s:set_open_way(' + str(max_len + a + u + f + 5) + ')')
+    set_open_way(max_len + a + u + f + 5)
     if 'notmuch_folder_format' in vim.vars:
         FOLDER_FORMAT = vim.vars['notmuch_folder_format'].decode()
     else:
@@ -5968,7 +6076,73 @@ class notmuchVimError(Exception):
     pass
 
 
+def set_defaults():
+    if 'notmuch_folders' not in vim.vars:
+        vim.vars['notmuch_folders'] = [
+                ['new',       '(tag:inbox and tag:unread)'],
+                ['inbox',     '(tag:inbox)'],
+                ['unread',    '(tag:unread)'],
+                ['draft',
+                    '((folder:draft or folder:.draft or tag:draft) not tag:sent not tag:Trash not tag:Spam)'],
+                ['attach',    '(tag:attachment)'],
+                ['6 month',   '(date:183days..now'],
+                ['',          ''],
+                ['All',       '(folder:/./)'],
+                ['Trash',     '(folder:.Trash or folder:Trash or tag:Trash)'],
+                ['New Search', ''],
+                ]
+    if 'notmuch_show_headers' not in vim.vars:
+        vim.vars['notmuch_show_headers'] = [
+                 'From',
+                 'Resent-From',
+                 'Subject',
+                 'Date',
+                 'Resent-Date',
+                 'To',
+                 'Resent-To',
+                 'Cc',
+                 'Resent-Cc',
+                 'Bcc',
+                 'Resent-Bcc',
+                ]
+    if 'notmuch_show_hide_headers' not in vim.vars:
+        vim.vars['notmuch_show_hide_headers'] = [
+                'Return-Path',
+                'Reply-To',
+                'Message-ID',
+                'Resent-Message-ID',
+                'In-Reply-To',
+                'References',
+                'Errors-To',
+                ]
+        # 何故か Content-Type, Content-Transfer-Encoding は取得できない
+    # g:notmuch_show_headers 登録済み、virtual ヘッダは除く
+    for h in list(vim.vars['notmuch_show_headers']) + \
+            [b'Attach', b'Decrypted', b'Encrypt', b'Fcc', b'HTML', b'Signature']:
+        h = h.decode().lower()
+        for i, j in enumerate(vim.vars['notmuch_show_hide_headers']):
+            if h == j.decode().lower():
+                vim.vars['notmuch_show_hide_headers'].popup(i)
+    if 'notmuch_draft_header' not in vim.vars:
+        vim.vars['notmuch_draft_header'] = ['From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach']
+    if 'notmuch_send_param' not in vim.vars:
+        vim.vars['notmuch_send_param'] = ['sendmail', '-t', '-oi']
+    # OS 依存
+    if vim.bindeval("has('unix')"):
+        if 'notmuch_view_attachment' not in vim.vars:
+            vim.vars['notmuch_view_attachment'] = 'xdg-open'
+    elif vim.bindeval("has('win32')") or vim.bindeval("has('win32unix')"):
+        if 'notmuch_view_attachment' not in vim.vars:
+            vim.vars['notmuch_view_attachment'] = 'start'
+    elif vim.bindeval("has('mac')"):
+        if 'notmuch_view_attachment' not in vim.vars:
+            vim.vars['notmuch_view_attachment'] = 'open'
+    else:
+        vim.vars['notmuch_view_attachment'] = ''
+
+
 """ 以下初期化処理 """
+set_defaults()
 # 定数扱いするグローバル変数の初期値
 PATH = get_config('database.path')
 if not os.path.isdir(PATH):
