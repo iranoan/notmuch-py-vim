@@ -1093,7 +1093,7 @@ function s:mark_in_thread(args) range abort
 endfunction
 
 function s:cut_thread(args) abort
-	py3 cut_thread(vim.eval('a:args'))
+	py3 cut_thread(get_msg_id(), [])
 endfunction
 
 function s:connect_thread(args) abort

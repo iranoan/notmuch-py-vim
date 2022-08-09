@@ -16,6 +16,7 @@ import mimetypes                  # ファイルの MIMETYPE を調べる
 import os                         # ディレクトリの存在確認、作成
 import re                         # 正規表現
 import shutil                     # ファイル移動
+import sys
 import time                       # UNIX time の取得
 from base64 import b64decode
 from concurrent.futures import ProcessPoolExecutor
@@ -45,7 +46,6 @@ def print_warring(msg):
         msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
         vim.command('redraw | echohl WarningMsg | echomsg "' + msg + '" | echohl None')
     else:
-        import sys
         sys.stderr.write(msg)
 
 
@@ -55,7 +55,6 @@ def print_err(msg):
         msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
         vim.command('echohl ErrorMsg | echomsg "' + msg + '" | echohl None')
     else:
-        import sys
         sys.stderr.write(msg)
         sys.exit()
 
@@ -65,7 +64,6 @@ def print_error(msg):
     if VIM_MODULE:
         vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
     else:
-        import sys
         sys.stderr.write(msg)
 
 
@@ -75,18 +73,15 @@ def set_subject_length():
     if 'notmuch_subject_length' in vim.vars:
         SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
         return
-    else:
-        SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
+    SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
     width = vim.vars['notmuch_open_way']['thread'].decode()
     m = re.search(r'([0-9]+)vnew', width)
     if m is not None:
         width = int(m.group(1)) - 1
+    elif re.search('vnew', width) is None:
+        width = vim.options['columns']
     else:
-        m = re.search('vnew', width)
-        if m is None:
-            width = vim.options['columns']
-        else:
-            width = vim.options['columns'] / 2 - 1
+        width = vim.options['columns'] / 2 - 1
     time_length = len(datetime.datetime.now().strftime(DATE_FORMAT))
     width -= time_length + 6 + 3 + 2
     # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
@@ -236,12 +231,7 @@ class MailData:  # メール毎の各種データ
         try:
             m_to = msg.get_header('To')
         except notmuch.errors.NullPointerError:  # どの様な条件で起きるのか不明なので、取り敢えず From ヘッダを使う
-            if VIM_MODULE:
-                print_warring('Message-ID:' + self._msg_id +
-                              'notmuch.errors.NullPointerError')
-            else:
-                print('Message-ID:' + self._msg_id +
-                      'notmuch.errors.NullPointerError')
+            print_warring('Message-ID:' + self._msg_id + 'notmuch.errors.NullPointerError')
             m_to = m_from
         # ↓From, To が同一なら From←名前が入っている可能性がより高い
         m_to_adr = email2only_address(m_to)
@@ -408,7 +398,6 @@ def make_thread_core(search_term):
         reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
         print('Making cache data:'+search_term)
     else:  # vim 以外では途中経過の表示なので標準出力ではなくエラー出力に
-        import sys
         sys.stderr.write('Making cache data: '+search_term+'\n')
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
@@ -455,28 +444,28 @@ def make_single_thread(thread_id, search_term):
 
 def set_display_item():
     global DISPLAY_ITEM
-    if 'notmuch_display_item' in vim.vars:
-        setting = vim.vars['notmuch_display_item']
-        if len(setting) != 3:
-            print_warring('Error: setting g:notmuch_display_item.\nset default.')
-            DISPLAY_ITEM = ('subject', 'from', 'date')
-            return
-        item = []
-        for i in setting:
-            i = i.decode().lower()
-            if i not in ['subject', 'from', 'date']:
-                DISPLAY_ITEM = ('subject', 'from', 'date')
-                print_warring('Error: setting g:notmuch_display_item.\nset default.')
-                DISPLAY_ITEM = ('subject', 'from', 'date')
-                return
-            item.append(i)
-        if len(set(item)) != 3:
-            print_warring('Error: setting g:notmuch_display_item.\nset default.')
-            DISPLAY_ITEM = ('subject', 'from', 'date')
-            return
-        DISPLAY_ITEM = tuple(item)
-    else:
+    if 'notmuch_display_item' not in vim.vars:
         DISPLAY_ITEM = ('subject', 'from', 'date')
+        return
+    setting = vim.vars['notmuch_display_item']
+    if len(setting) != 3:
+        print_warring('Error: setting g:notmuch_display_item.\nset default.')
+        DISPLAY_ITEM = ('subject', 'from', 'date')
+        return
+    item = []
+    for i in setting:
+        i = i.decode().lower()
+        if i not in ['subject', 'from', 'date']:
+            DISPLAY_ITEM = ('subject', 'from', 'date')
+            print_warring('Error: setting g:notmuch_display_item.\nset default.')
+            DISPLAY_ITEM = ('subject', 'from', 'date')
+            return
+        item.append(i)
+    if len(set(item)) != 3:
+        print_warring('Error: setting g:notmuch_display_item.\nset default.')
+        DISPLAY_ITEM = ('subject', 'from', 'date')
+        return
+    DISPLAY_ITEM = tuple(item)
 
 
 def set_subcmd_start():
@@ -528,6 +517,7 @@ def set_subcmd_start():
 
 
 def set_subcmd_newmail():
+    """ mail-new して初めて許可するコマンドの追加 """
     cmd = vim.vars['notmuch_command']
     if 'mail-send' not in cmd:  # mail-new はいきなり呼び出し可能なので、mail-send で判定
         cmd['start'] = ['s:start_notmuch', 0x0c]
@@ -559,20 +549,16 @@ def set_folder_format():
             vim.vars['notmuch_open_way'] = {}
         open_way = vim.vars['notmuch_open_way']
         # 設定が有れば new, vnew, tabedit, enew 限定
-        settables = ['new', 'vnew', 'tabedit', 'enew', 'rightbelow', 'belowright', 'topleft', 'botright']
         for k, v in open_way.items():
-            if k != b'open':
-                v = v.decode()
-                if re.match(r'(enew|tabedit)', v) is not None and v != 'enew' and v != 'tabedit':
-                    print_warring("For g:notmuch_open_way, if the setting is 'tabedit/enew', " +
-                                  "no other words/spaces can\'t be included.")
-                ways = re.sub(r'[0-9 ]+', ' ', v).split()
-                for settable in settables:
-                    if settable in ways:
-                        ways.remove(settable)
-                if ways:
-                    print_warring("For g:notmuch_open_way, setting is only 'new/vnew/tabedit/enew', " +
-                                  "'rightbelow/belowright/topleft/botright' and {count}.")
+            if k == b'open':
+                continue
+            v = v.decode()
+            if re.match(r'(((rightbelow|belowright|topleft|botright)\s+)?\d*(new|vnew)|tabedit|enew)',
+                        v) is None:
+                del open_way[k]  # 条件に一致しない設定削除
+                print_warring("For g:notmuch_open_way[" + k.decode() +
+                              "], if the setting is 'tabedit/enew', " +
+                              "no other words/spaces can\'t be included.")
         if 'folders' not in open_way:
             open_way['folders'] = 'tabedit'
         if 'thread' not in open_way:
@@ -815,8 +801,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     reopen(kind, search_term)
     if select_unread:
         index = get_unread_in_THREAD_LISTS(search_term)
-        unread = notmuch.Query(
-            DBASE, '('+search_term+') and tag:unread').count_messages()
+        unread = notmuch.Query(DBASE, '('+search_term+') and tag:unread').count_messages()
         if index:
             reset_cursor_position(b, vim.current.window, index[0]+1)
             vim.command('call s:fold_open()')
@@ -4619,44 +4604,44 @@ def set_from():
     def get_user_From(to):  # get From setting
         default_addr = get_config('user.primary_email')
         mail_address = vim.vars.get('notmuch_from', [])
-        if len(mail_address) == 1:
+        if len(mail_address) == 0:
+            return default_addr
+        elif len(mail_address) == 1:
             return mail_address[0]['address'].decode()
-        elif len(mail_address) > 1:
-            addr = ''
-            for j in mail_address:
-                l_to = j.get('To', b'').decode()
-                if l_to == '':
-                    continue
-                elif l_to == '*':
-                    addr = j['address'].decode()
-                else:
-                    for t in to:
-                        if re.search(l_to, t) is not None:
-                            return j['address'].decode()
-            if addr != '':
-                return addr
-            lst = ''
-            for i, j in enumerate(mail_address):
-                lst += str(i+1) + '. ' + \
-                    j['id'].decode() + ': ' + \
-                    j['address'].decode() + '\n'
-            while True:
-                s = vim.eval('input("Select using From:.  When only [Enter], use default (' +
-                             default_addr + ').\n' + lst + '")')
-                if s == '':
-                    return default_addr
-                try:
-                    s = int(s)
-                except ValueError:
-                    vim.command('echo "\n" | redraw')
-                    continue
-                if s >= 1 and s <= i:
-                    break
-                else:
-                    vim.command('echo "\n" | redraw')
-                    continue
-            return mail_address[s-1]['address'].decode()
-        return default_addr
+        addr = ''
+        for j in mail_address:
+            l_to = j.get('To', b'').decode()
+            if l_to == '':
+                continue
+            elif l_to == '*':
+                addr = j['address'].decode()
+            else:
+                for t in to:
+                    if re.search(l_to, t) is not None:
+                        return j['address'].decode()
+        if addr != '':
+            return addr
+        lst = ''
+        for i, j in enumerate(mail_address):
+            lst += str(i+1) + '. ' + \
+                j['id'].decode() + ': ' + \
+                j['address'].decode() + '\n'
+        while True:
+            s = vim.eval('input("Select using From:.  When only [Enter], use default (' +
+                         default_addr + ').\n' + lst + '")')
+            if s == '':
+                return default_addr
+            try:
+                s = int(s)
+            except ValueError:
+                vim.command('echo "\n" | redraw')
+                continue
+            if s >= 1 and s <= i:
+                break
+            else:
+                vim.command('echo "\n" | redraw')
+                continue
+        return mail_address[s-1]['address'].decode()
 
     def compress_addr():  # 名前+メール・アドレスで両者が同じならメール・アドレスだけに
         def compress_addr_core(s):
@@ -4746,9 +4731,7 @@ def insert_signature(to_name, from_name):
             else:
                 sig = sigs.get(from_to, sigs.get('*', b'$HOME/.signature'))
             sig = os.path.expandvars(os.path.expanduser(sig.decode()))
-            if os.path.isfile(sig):
-                return sig
-        if os.name == 'nt':
+        elif os.name == 'nt':
             sig = os.path.expandvars('$USERPROFILE\\.signature')
         else:
             sig = os.path.expandvars('$HOME/.signature')
@@ -4830,7 +4813,7 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
         mbox = mailbox.MH(save_path)
     else:
         print_err('Not support Mailbox type: ' + MAILBOX_TYPE)
-        return False
+        return
     mbox.lock()
     msg_data = MIMEBase('text', 'plain')
     save_path += os.sep + str(mbox.add(msg_data))  # MH では返り値が int
@@ -5407,8 +5390,7 @@ def notmuch_duplication(remake):
         # THREAD_LISTS の作成はマルチプロセスも試したが、大抵は数が少ないために反って遅くなる
         ls = []
         for msg in msgs:
-            fs = list(msg.get_filenames())
-            if len(fs) >= 2:
+            if len(list(msg.get_filenames())) >= 2:
                 thread = notmuch.Query(DBASE, 'thread:'+msg.get_thread_id())
                 thread = list(thread.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
                 ls.append(MailData(msg, thread, 0, 0))
@@ -6128,17 +6110,15 @@ def set_defaults():
     if 'notmuch_send_param' not in vim.vars:
         vim.vars['notmuch_send_param'] = ['sendmail', '-t', '-oi']
     # OS 依存
-    if vim.bindeval("has('unix')"):
-        if 'notmuch_view_attachment' not in vim.vars:
-            vim.vars['notmuch_view_attachment'] = 'xdg-open'
-    elif vim.bindeval("has('win32')") or vim.bindeval("has('win32unix')"):
-        if 'notmuch_view_attachment' not in vim.vars:
-            vim.vars['notmuch_view_attachment'] = 'start'
-    elif vim.bindeval("has('mac')"):
-        if 'notmuch_view_attachment' not in vim.vars:
+    if 'notmuch_view_attachment' not in vim.vars:
+        if sys.platform == 'darwin':  # macOS (os.name は posix)
             vim.vars['notmuch_view_attachment'] = 'open'
-    else:
-        vim.vars['notmuch_view_attachment'] = ''
+        elif os.name == 'posix':
+            vim.vars['notmuch_view_attachment'] = 'xdg-open'
+        elif os.name == 'nt':
+            vim.vars['notmuch_view_attachment'] = 'start'
+        else:
+            vim.vars['notmuch_view_attachment'] = ''
 
 
 """ 以下初期化処理 """
@@ -6225,7 +6205,6 @@ except re.error:
     except re.error:
         print_err('Error: Regurlar Expression')
 RE_TOP_SPACE = re.compile(r'^\s+')
-# ↑vim の設定が有っても小文字には変換する
 if not ('SENT_TAG' in globals()):
     SENT_TAG = 'sent'
 if not ('SEND_PARAM' in globals()):

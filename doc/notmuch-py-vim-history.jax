@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/08/09 Ver.1.29~
+* バグ修正
+	thread-cut (|notmuch-python-vim-thread-cut|) が使えなくなっていた
+
 2022/08/04 Ver.1.28~
 * バグ修正
 	- search-thread (|notmuch-python-vim-search-thread|) 実行後に受信した同じスレッド
