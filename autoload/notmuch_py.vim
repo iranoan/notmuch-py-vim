@@ -532,6 +532,7 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import reset_cursor_position
     from notmuchVim.subcommand import run_shell_program
     from notmuchVim.subcommand import save_attachment
+    from notmuchVim.subcommand import save_draft
     from notmuchVim.subcommand import send_vim
     from notmuchVim.subcommand import set_attach
     from notmuchVim.subcommand import set_encrypt
