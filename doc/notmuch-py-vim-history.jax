@@ -9,7 +9,7 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/08/27 Ver.1.30~
+2022/08/31 Ver.1.30~
 * バグ修正
 	- 下書き保存でエラーになる
 * 仕様変更
