@@ -216,7 +216,7 @@ class MailData:  # メール毎の各種データ
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
         self.__subject = msg.get_header('Subject')
         if self.__subject == '':
-            self.__subject = '\u200B'
+            self.__subject = ' '
         self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.get_header('From'))).lower()
         # self.__path = msg.get_filenames().__str__().split('\n')  # file name (full path)
         # ↑同一 Message-ID メールが複数でも取り敢えず全て
@@ -4219,9 +4219,12 @@ def address2ls(adr):
 
 def reply_mail():
     """ 返信メールの作成 """
-    def delete_duplicate_addr(x_ls, y_ls):  # x_ls から y_ls と重複するアドレス削除
-        # 重複が合ったか? 最初に見つかった重複アドレスを返す
-        # y_ls は実名の削除されたアドレスだけが前提
+    def delete_duplicate_addr(x_ls, y_ls):
+        """
+        x_ls から y_ls と重複するアドレス削除
+        重複が合ったか? 最初に見つかった重複アドレスを返す
+        y_ls は実名の削除されたアドレスだけが前提
+        """
         exist = False
         dup = ''
         for x in x_ls:
@@ -4275,7 +4278,8 @@ def reply_mail():
         if header_lower == 'from':
             b.append('From: ' + send_from_name)
         elif header_lower == 'subject':
-            subject = 'Re: ' + subject
+            subject = re.sub(r'(re([*^][0-9]+)?: *)+', 'Re: ',
+                    'Re: ' + subject, flags=re.IGNORECASE)
             b.append('Subject: ' + subject)
             b_v['subject'] = subject
         elif header_lower == 'to':
