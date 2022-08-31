@@ -44,12 +44,12 @@ syntax match mailQuoteExp5 contained '\v^(\> ?){5}'
 syntax match mailQuoteExp6 contained '\v^(\> ?){6}'
 
 " Even and odd quoted lines. Order is important here!
-syntax region  mailQuoted6  keepend contains=mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{5}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted5  keepend contains=mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{4}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted4  keepend contains=mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{3}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted3  keepend contains=mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{2}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted2  keepend contains=mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]}>]\)[ \t]*\)\{1}\([a-z]\+>\|[]}>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted1  keepend contains=mailQuoted2,mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([a-z]\+>\|[]}>]\)' end='^\z1\@!' fold
+syntax region  mailQuoted6  keepend contains=mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{5}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
+syntax region  mailQuoted5  keepend contains=mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{4}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
+syntax region  mailQuoted4  keepend contains=mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{3}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
+syntax region  mailQuoted3  keepend contains=mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{2}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
+syntax region  mailQuoted2  keepend contains=mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{1}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
+syntax region  mailQuoted1  keepend contains=mailQuoted2,mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([a-z]\+>\|[]>]\)' end='^\z1\@!' fold
 
 " Need to sync on the header. Assume we can do that within 100 lines
 if exists('mail_minlines')
