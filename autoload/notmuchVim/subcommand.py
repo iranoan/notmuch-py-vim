@@ -4249,6 +4249,10 @@ def reply_mail():
     b_v['org_mail_body'] = msg_data
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
+    if msg is None:
+        DBASE.close()
+        print_error('Reply source email has been deleted.')
+        return
     headers = vim.vars['notmuch_draft_header']
     recive_from_name = msg.get_header('From')
     b_v['org_mail_from'] = email2only_name(recive_from_name)
@@ -4308,6 +4312,10 @@ def forward_mail():
     msg_data = get_mail_body(windo)  # 実際には後からヘッダ情報なども追加
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
+    if msg is None:
+        DBASE.close()
+        print_error('Forward source email has been deleted.')
+        return
     msg_data = '\n' + msg_data
     before_make_draft(windo)
     b = vim.current.buffer
@@ -4352,6 +4360,10 @@ def forward_mail_attach():
         return
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
+    if msg is None:
+        DBASE.close()
+        print_error('Forward source email has been deleted.')
+        return
     before_make_draft(windo)
     b = vim.current.buffer
     b.vars['notmuch'] = {}
@@ -4378,6 +4390,10 @@ def forward_mail_resent():
         return
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
+    if msg is None:
+        DBASE.close()
+        print_error('Forward source email has been deleted.')
+        return
     before_make_draft(windo)
     b = vim.current.buffer
     b.vars['notmuch'] = {}
