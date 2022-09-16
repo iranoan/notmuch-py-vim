@@ -332,8 +332,15 @@ def make_dir(dirname):
 
 
 def notmuch_new(open_check):
-    # メールを開いているとスワップファイルが有るので、データベースの更新はできるが警告が出る
-    # →open_check が True なら未保存バッファが有れば、そちらに移動し無ければバッファを完全に閉じる
+    """ メールを開いているとスワップファイルが有るので、データベースの更新はできるが警告が出る
+
+    Args:
+        open_check が True なら未保存バッファが有れば、そちらに移動し無ければバッファを完全に閉じる
+    Return:
+        bool:
+            True: success
+            False: fail
+    """
     if VIM_MODULE and open_check:
         if opened_mail(False):
             print_warring('Can\'t remake database.\nBecase open the file.')
@@ -5364,17 +5371,29 @@ def notmuch_thread():
     if msg_id == '':
         return
     DBASE.open(PATH)
-    thread_id = DBASE.find_message(msg_id).get_thread_id()
+    thread_id = 'thread:' + DBASE.find_message(msg_id).get_thread_id()
     DBASE.close()
-    search_term = 'thread:' + thread_id
-    notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
+    notmuch_search([0, 0, thread_id])  # 先頭2つの0はダミーデータ
     vim.command('normal! zO')
     index = [i for i, msg in enumerate(
-        THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id][0] + 1
+        THREAD_LISTS[thread_id]['list']) if msg._msg_id == msg_id]
     w = vim.current.window
     b = vim.current.buffer
-    if w.height < index:
-        print_thread_core(b.number, search_term, False, True)
+    if not index:  # 一度スレッド検索後、同じスレッドで受信したメールに対してスレッド検索
+        notmuch_new(False)
+        DBASE.open(PATH)
+        make_thread_core(thread_id)
+        print_thread_core(b.number, thread_id, False, True)
+        DBASE.close()
+        vim.command('normal! zO')
+        index = [i for i, msg in enumerate(
+            THREAD_LISTS[thread_id]['list']) if msg._msg_id == msg_id]
+    index = index[0] + 1
+    if len(b) != len(THREAD_LISTS[thread_id]['list']):
+        DBASE.open(PATH)
+        print_thread_core(b.number, thread_id, False, True)
+        DBASE.close()
+        vim.command('normal! zO')
     reset_cursor_position(b, w, index)
 
 

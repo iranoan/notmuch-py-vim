@@ -9,6 +9,11 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/09/17 Ver.1.32~
+* バグ修正
+	- search-thread (|notmuch-python-vim-search-thread|) 実行後に受信した同じスレッド
+		のメールに対して search-thread を実行するとエラー (以前の修正が不完全)
+
 2022/09/14 Ver.1.31~
 * バグ修正
 	- 返信/引用元が削除されていた時にエラー
