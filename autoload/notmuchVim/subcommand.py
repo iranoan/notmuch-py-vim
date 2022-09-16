@@ -5382,7 +5382,6 @@ def notmuch_thread():
     if not index:  # 一度スレッド検索後、同じスレッドで受信したメールに対してスレッド検索
         notmuch_new(False)
         DBASE.open(PATH)
-        make_thread_core(thread_id)
         print_thread_core(b.number, thread_id, False, True)
         DBASE.close()
         vim.command('normal! zO')
