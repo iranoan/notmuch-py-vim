@@ -11,14 +11,6 @@ execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSp
 			\ . 'end=''^$''  fold'
 execute 'syntax region mailHeaderShow contained contains=mailHeaderKey,mailHeaderEmail,mailEmail,@NoSpell,@mailHeaderComp '
 			\ . 'start=''^\(' . join(g:notmuch_show_headers, '\|') . '\):\s*'' skip=''^\s'' end=''$'''
-" execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
-" 			\ . 'start=''\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\)\@<!:'' skip=''^\s'' '
-" 			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
-" 			\ . 'end=''^$''  fold'
-" execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell '
-" 			\ . 'start=''' . '^\(' . join(g:notmuch_show_hide_headers, '\|')[:-2] . '\|X-[a-z-]\+\):'' skip=''^\s'' '
-" 			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|')[:-2] . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
-" 			\ . 'end=''^$''  fold'
 
 " Anything in the header between < and > is an email address
 syntax match  mailHeaderEmail contained contains=@NoSpell '<.\{-}>'
