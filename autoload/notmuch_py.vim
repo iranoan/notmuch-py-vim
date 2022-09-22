@@ -1371,7 +1371,7 @@ function s:notmuch_up_refine(dummy) abort
 	py3 notmuch_up_refine()
 endfunction
 
-let s:fold_highlight = substitute(execute('highlight Folded'), '^\nFolded\s\+xxx\s\+', '', '')
+let s:fold_highlight = substitute(substitute(execute('highlight Folded'), '[\n\r \t]\+', ' ', 'g'), ' *Folded\s\+xxx *', '', '')
 function s:change_fold_highlight() abort " Folded の色変更↑highlight の保存
 	if s:is_sametab_thread()
 		highlight Folded NONE

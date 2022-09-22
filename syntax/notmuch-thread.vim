@@ -15,7 +15,7 @@ syntax region	tagMailUDT	start='^📩📝🗑' end='$'
 syntax region	tagMailDFT	start='^📝⭐🗑' end='$'
 syntax region	tagMailUFT	start='^📩⭐🗑' end='$'
 syntax region	tagMailUDFT	start='^📩📝⭐🗑' end='$'
-syntax match	Entity	"[\u200b]" conceal cchar=  " Subject が空の時の代価文字 (タブ文字の位置がずれるのが欠点)
+" syntax match	Entity	"[\u200b]" conceal cchar=  " Subject が空の時の代価文字 (タブ文字の位置がずれるのが欠点)
 
 highlight tagMailU    cterm=bold           gui=bold
 highlight tagMailF    cterm=underline      gui=underline
