@@ -9,6 +9,11 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/09/22 Ver.1.33~
+* バグ修正
+	- ウィンドウ幅が狭い時同時にエラー
+* オプション |g:notmuch_visible_line| 追加
+
 2022/09/17 Ver.1.32~
 * バグ修正
 	- search-thread (|notmuch-python-vim-search-thread|) 実行後に受信した同じスレッド

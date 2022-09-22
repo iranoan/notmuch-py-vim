@@ -870,6 +870,14 @@ g:notmuch_view_attachment                            *g:notmuch_view_attachment*
 			macOS				`'open'`
 			他					`''`
 
+g:notmuch_visible_line                                 *g:notmuch_visible_line*
+	Type: |String|
+	Default: `''`
+
+	* |{T-WIN}| の列区切り線の代わりの | を他の |highlight-groups| に変更する
+	* 実際にはタブ文字なので SpecialKey |hl-SpecialKey| を変更する
+	* Default の様に空文字なら変更しない
+
 
 ==============================================================================
                                                     *notmuch-python-vim-command*

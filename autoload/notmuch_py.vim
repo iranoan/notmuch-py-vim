@@ -1372,11 +1372,34 @@ function s:notmuch_up_refine(dummy) abort
 endfunction
 
 let s:fold_highlight = substitute(substitute(execute('highlight Folded'), '[\n\r \t]\+', ' ', 'g'), ' *Folded\s\+xxx *', '', '')
+let s:specialkey_highlight = substitute(substitute(execute('highlight SpecialKey'), '[\n\r \t]\+', ' ', 'g'), ' *SpecialKey\s\+xxx *', '', '')
+if exists('g:notmuch_visible_line') && g:notmuch_visible_line !=# ''
+	try
+		let s:normal_highlight = execute('highlight ' .. g:notmuch_visible_line)
+		let s:normal_highlight = substitute(substitute(s:normal_highlight, '[\n\r \t]\+', ' ', 'g'), '\( *' .. g:notmuch_visible_line .. '\s\+xxx *\|\(c\?term\|gui\)=\w\+\|font=[A-Za-z 0-9]\+\)', '', 'g')
+	catch /^Vim\%((\a\+)\)\=:E411:/
+		echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None
+		augroup notmuch_visible_line
+			autocmd!
+			autocmd BufEnter * message | autocmd! notmuch_visible_line
+		augroup END
+		let s:normal_highlight = ''
+	endtry
+else
+	let s:normal_highlight = ''
+endif
 function s:change_fold_highlight() abort " Folded の色変更↑highlight の保存
 	if s:is_sametab_thread()
 		highlight Folded NONE
+		if s:normal_highlight !=# ''
+			highlight SpecialKey NONE
+			execute 'silent! highlight SpecialKey ' .. s:normal_highlight
+		endif
 	else
 		execute 'silent! highlight Folded ' .. s:fold_highlight
+		if s:normal_highlight !=# ''
+			execute 'silent! highlight SpecialKey ' .. s:specialkey_highlight
+		endif
 	endif
 endfunction
 
