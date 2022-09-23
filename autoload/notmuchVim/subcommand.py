@@ -126,8 +126,23 @@ def email2only_address(mail_address):
 def str_just_length(string, length):
     # 全角/半角どちらも桁数ではなくで幅に揃える (足りなければ空白を埋める)
     # →http://nemupm.hatenablog.com/entry/2015/11/25/202936 参考
+    # count_widht = strdisplaywidth(string)
+    # if count_widht == length:
+    #     return string
+    # elif count_widht < length:
+    #     return string + ' ' * (length - count_widht)
+    # sml_length = SUBJECT_LENGTH // 2
+    # big_length = len(stringl)
+    # if SUBJECT_LENGTH < big_length:
+    #     big_length = SUBJECT_LENGTH
+    # while True:
+    #     mid_length = ( sml_length + big_length + 0.5 ) // 2
+    #     subject = string[:mid_length]
+    #     subject_len = len(subject)
+    #     if subject_len == SUBJECT_LENGTH:
+    #         return subject
+    #     elif subject_len < SUBJECT_LENGTH:
     if VIM_MODULE:
-        strdisplaywidth = vim.Function('strdisplaywidth')
         count_widht = strdisplaywidth(string)
         if count_widht == length:
             return string
@@ -279,7 +294,7 @@ class MailData:  # メール毎の各種データ
                 ls += emoji
         ls = ls[:3]
         # ↑基本的には unread, draft の両方が付くことはないので最大3つの絵文字
-        emoji_length = 6 - vim.bindeval('strdisplaywidth(\'' + ls + '\')')
+        emoji_length = 6 - strdisplaywidth(ls)
         if emoji_length:
             emoji_length = '{:' + str(emoji_length) + 's}'
             ls += emoji_length.format('')
@@ -4351,7 +4366,7 @@ def forward_mail():
             b_v['subject'] = subject
         elif s != '':
             msg_data = h + ': ' + ' ' * (7-len(h)) + s + '\n' + msg_data
-        s_len = 9 + vim.bindeval('strdisplaywidth("' + s.replace('"', '\\"') + '")')
+        s_len = 9 + strdisplaywidth(s)
         cut_line = max(cut_line, s_len)
     headers = vim.vars['notmuch_draft_header']
     add_head = 0x01
@@ -4366,8 +4381,7 @@ def forward_mail():
             b.append(h + ': ')
     # 本文との境界線作成
     message = 'Forwarded message'
-    mark = '-' * int((cut_line - vim.bindeval('strdisplaywidth("' +
-                      message.replace('"', '\\"') + '")') - 2) / 2)
+    mark = '-' * int((cut_line - strdisplaywidth(message) - 2) / 2)
     msg_data = mark + ' ' + message + ' ' + mark + '\n' + msg_data
     # 本文との境界線作成終了
     b_v['org_mail_body'] = msg_data
@@ -5906,7 +5920,7 @@ def get_folded_list(start, end):
         if t in tags:
             emoji_tags += emoji
     emoji_tags = emoji_tags[:3]
-    emoji_length = 6 - vim.bindeval('strdisplaywidth(\'' + emoji_tags + '\')')
+    emoji_length = 6 - strdisplaywidth(emoji_tags)
     # ↑基本的には unread, draft の両方が付くことはないので最大3つの絵文字
     if emoji_length:
         emoji_length = '{:' + str(emoji_length) + 's}'
@@ -6222,6 +6236,8 @@ if VIM_MODULE:
     set_folder_format()
     set_display_format()
     set_subject_length()
+    # Vim の関数
+    strdisplaywidth = vim.Function('strdisplaywidth')
 else:
     TEMP_DIR = os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))).replace('/', os.sep)+os.sep
