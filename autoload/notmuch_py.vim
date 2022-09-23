@@ -1371,17 +1371,23 @@ function s:notmuch_up_refine(dummy) abort
 	py3 notmuch_up_refine()
 endfunction
 
-let s:fold_highlight = substitute(substitute(execute('highlight Folded'), '[\n\r \t]\+', ' ', 'g'), ' *Folded\s\+xxx *', '', '')
-let s:specialkey_highlight = substitute(substitute(execute('highlight SpecialKey'), '[\n\r \t]\+', ' ', 'g'), ' *SpecialKey\s\+xxx *', '', '')
-if exists('g:notmuch_visible_line') && g:notmuch_visible_line !=# ''
+function notmuch_py#get_highlight(hi) abort
+	return substitute(substitute(substitute(execute('highlight ' .. a:hi),
+				\ '[\n\r \t]\+', ' ', 'g'),
+				\ ' *' .. a:hi .. '\s\+xxx *', '', ''),
+				\ '\(font=\(\w\+ \)\+\ze\w\+=\|font=\(\w\+ \?\)\+$\)', '', '')
+endfunction
+
+let s:fold_highlight = notmuch_py#get_highlight('Folded')
+let s:specialkey_highlight = notmuch_py#get_highlight('SpecialKey')
+if exists('g:notmuch_visible_line') && g:notmuch_visible_line !=# '' && g:notmuch_visible_line != 1 && g:notmuch_visible_line != 2
 	try
 		let s:normal_highlight = execute('highlight ' .. g:notmuch_visible_line)
-		let s:normal_highlight = substitute(substitute(s:normal_highlight, '[\n\r \t]\+', ' ', 'g'), '\( *' .. g:notmuch_visible_line .. '\s\+xxx *\|\(c\?term\|gui\)=\w\+\|font=[A-Za-z 0-9]\+\)', '', 'g')
+		let s:normal_highlight = notmuch_py#get_highlight(g:notmuch_visible_line)
 	catch /^Vim\%((\a\+)\)\=:E411:/
-		echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None
 		augroup notmuch_visible_line
 			autocmd!
-			autocmd BufEnter * message | autocmd! notmuch_visible_line
+			autocmd BufEnter * echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None | autocmd! notmuch_visible_line
 		augroup END
 		let s:normal_highlight = ''
 	endtry

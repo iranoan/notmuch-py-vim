@@ -69,7 +69,7 @@ def print_error(msg):
 
 def set_subject_length():
     """ calculate Subject width in thread list."""
-    global SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
+    global SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT, TIME_LENGTH
     if 'notmuch_subject_length' in vim.vars:
         SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
         return
@@ -82,8 +82,8 @@ def set_subject_length():
         width = vim.options['columns']
     else:
         width = vim.options['columns'] / 2 - 1
-    time_length = len(datetime.datetime.now().strftime(DATE_FORMAT))
-    width -= time_length + 6 + 3 + 2
+    TIME_LENGTH = len(datetime.datetime.now().strftime(DATE_FORMAT))
+    width -= TIME_LENGTH + 6 + 3 + 2
     # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
     if SUBJECT_LENGTH < FROM_LENGTH * 2:
         SUBJECT_LENGTH = int(width * 2 / 3)
@@ -127,7 +127,8 @@ def str_just_length(string, length):
     # 全角/半角どちらも桁数ではなくで幅に揃える (足りなければ空白を埋める)
     # →http://nemupm.hatenablog.com/entry/2015/11/25/202936 参考
     if VIM_MODULE:
-        count_widht = vim.bindeval('strdisplaywidth(\'' + string.replace('\'', '\'\'') + '\')')
+        strdisplaywidth = vim.Function('strdisplaywidth')
+        count_widht = strdisplaywidth(string)
         if count_widht == length:
             return string
         elif count_widht < length:
@@ -157,8 +158,21 @@ def str_just_length(string, length):
             count_widht += ambiwidth
         elif char_code >= 0x3B1 and char_code <= 0x3C9:      # ギリシャ小文字
             count_widht += ambiwidth
-        elif char_code >= 0x2000 and char_code <= 0x206F:    # 一般句読点
-            count_widht += 2
+        # 一般句読点はバラバラ
+        elif char_code == 0x2010:
+            count_widht += ambiwidth
+        elif (char_code >= 0x2013 and char_code <= 0x2016) \
+                or char_code == 0x2018 or char_code == 0x2019 \
+                or char_code == 0x201C or char_code == 0x201D \
+                or ( char_code >= 0x2020 and char_code <= 0x2022 ) \
+                or ( char_code >= 0x2024 and char_code <= 0x2027 ) \
+                or char_code == 0x2030 \
+                or char_code == 0x2032 or char_code == 0x2033 \
+                or char_code == 0x2035 \
+                or char_code == 0x203B or char_code == 0x203E:
+            count_widht += ambiwidth
+        elif char_code >= 0x2000 and char_code <= 0x206F:    # 一般句読点の上記以外
+            count_widht += 1
         elif (char_code >= 0x215B and char_code <= 0x215E) \
                 or (char_code >= 0x2160 and char_code <= 0x216B) \
                 or (char_code >= 0x2170 and char_code <= 0x2179):  # ローマ数字など数字に準じるもの
@@ -5897,7 +5911,12 @@ def get_folded_list(start, end):
     if emoji_length:
         emoji_length = '{:' + str(emoji_length) + 's}'
         emoji_tags += emoji_length.format('')
-    if vim.bindeval('has(\'patch-8.2.2518\')'):
+    if ('notmuch_visible_line' in vim.vars
+            and (vim.vars['notmuch_visible_line'] == 1
+                 or vim.vars['notmuch_visible_line'] == 2)) \
+            or not vim.bindeval('has(\'patch-8.2.2518\')'):
+        return emoji_tags + line
+    elif vim.bindeval('has(\'patch-8.2.2518\')'):
         return (emoji_tags + line).replace('\t', '|')
     else:
         return emoji_tags + line

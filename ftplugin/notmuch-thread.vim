@@ -21,12 +21,36 @@ if !exists('g:ft_notmuch_thread')
 	augroup END
 endif
 
+function s:set_colorcolmun() abort
+	let l:colorcolumn = 7
+	let l:n_colorcolumn = 7
+	for l:i in split(py3eval('notmuchVim.subcommand.DISPLAY_FORMAT2'), '[{}\t]\+')[0 : 1]
+		if l:i == '0'
+			let l:n_colorcolumn += py3eval('notmuchVim.subcommand.SUBJECT_LENGTH') + 1
+			let l:colorcolumn ..= ',' .. l:n_colorcolumn
+		elseif l:i == '1'
+			let l:n_colorcolumn += py3eval('notmuchVim.subcommand.FROM_LENGTH') + 1
+			let l:colorcolumn ..= ',' .. l:n_colorcolumn
+		elseif l:i == '2'
+			let l:n_colorcolumn += py3eval('notmuchVim.subcommand.TIME_LENGTH') + 1
+			let l:colorcolumn ..= ',' .. l:n_colorcolumn
+		endif
+	endfor
+	execute 'setlocal colorcolumn=' .. l:colorcolumn
+	if g:notmuch_visible_line == 2
+		execute 'highlight ColorColumn ' .. substitute(notmuch_py#get_highlight('Normal'), '\(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
+	endif
+endfunction
+
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 sign define notmuch text=* texthl=notmuchMark
-if has('patch-8.2.2518')
-	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() list foldlevel=0 concealcursor=nv conceallevel=3 listchars=tab:\|,
+if exists('g:notmuch_visible_line') && ( g:notmuch_visible_line == 1 || g:notmuch_visible_line == 2 )
+	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 nolist
+	call s:set_colorcolmun()
+elseif has('patch-8.2.2518')
+	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 list listchars=tab:\|,
 else
-	setlocal nomodifiable tabstop=1 cursorline nowrap nolist nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() nolist foldlevel=0 concealcursor=nv conceallevel=3
+	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 nolist
 endif
 if exists('g:notmuch_display_item')
 	execute 'setlocal foldexpr=FoldThread(' .. index(g:notmuch_display_item, 'Subject', 0, v:true) .. ')'
