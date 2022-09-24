@@ -82,7 +82,8 @@ def set_subject_length():
         width = vim.options['columns']
     else:
         width = vim.options['columns'] / 2 - 1
-    TIME_LENGTH = len(datetime.datetime.now().strftime(DATE_FORMAT))
+    TIME_LENGTH = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(DATE_FORMAT))
+    # DATE_FORMAT によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
     width -= TIME_LENGTH + 6 + 3 + 2
     # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
     if SUBJECT_LENGTH < FROM_LENGTH * 2:
@@ -126,22 +127,6 @@ def email2only_address(mail_address):
 def str_just_length(string, length):
     # 全角/半角どちらも桁数ではなくで幅に揃える (足りなければ空白を埋める)
     # →http://nemupm.hatenablog.com/entry/2015/11/25/202936 参考
-    # count_widht = strdisplaywidth(string)
-    # if count_widht == length:
-    #     return string
-    # elif count_widht < length:
-    #     return string + ' ' * (length - count_widht)
-    # sml_length = SUBJECT_LENGTH // 2
-    # big_length = len(stringl)
-    # if SUBJECT_LENGTH < big_length:
-    #     big_length = SUBJECT_LENGTH
-    # while True:
-    #     mid_length = ( sml_length + big_length + 0.5 ) // 2
-    #     subject = string[:mid_length]
-    #     subject_len = len(subject)
-    #     if subject_len == SUBJECT_LENGTH:
-    #         return subject
-    #     elif subject_len < SUBJECT_LENGTH:
     if VIM_MODULE:
         count_widht = strdisplaywidth(string)
         if count_widht == length:
@@ -152,18 +137,18 @@ def str_just_length(string, length):
     else:
         ambiwidth = 1
     if ambiwidth:
-        symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' + \
-            '±µ¶×ø■□▲△▶▷▼▽◀◁◆◇◈○◎●◢◣◤◥◯◽◾' + \
-            '★☆☉☎☏☔☕☜☞♀♂♈♉♊♋♌♍♎♏♐♑♒♓♠♡♣♤♥♧♨♩♪♬♭♯⚓⚞⚟⚡' + \
-            '⚪⚫⚽⚾⚿⛄⛅⛇⛈⛉⛊⛋⛌⛎⛏⛐⛑⛒⛓⛔⛕⛖⛗⛘⛙⛚⛛⛜⛝⛞⛟⛠⛡' + \
-            '⛨⛩⛪⛫⛬⛭⛮⛯⛰⛱⛲⛳⛴⛵⛶⛷⛸⛹⛺⛻⛼⛽⛾⛿' + \
-            '∀∀∂∃∇∈∋∏∑∕√∝∞∟∠∣∥∧∨∩∩∪∫∬∮∵∵∶∼∽≈≒≠≡≤≥≦≧≪≫≮≯⊃⊆⊇⊕⊙⊥⊿'
+        symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' \
+            + '±µ¶×ø■□▲△▶▷▼▽◀◁◆◇◈○◎●◢◣◤◥◯◽◾' \
+            + '★☆☉☎☏☔☕☜☞♀♂♈♉♊♋♌♍♎♏♐♑♒♓♠♡♣♤♥♧♨♩♪♬♭♯⚓⚞⚟⚡' \
+            + '⚪⚫⚽⚾⚿⛄⛅⛇⛈⛉⛊⛋⛌⛎⛏⛐⛑⛒⛓⛔⛕⛖⛗⛘⛙⛚⛛⛜⛝⛞⛟⛠⛡' \
+            + '⛨⛩⛪⛫⛬⛭⛮⛯⛰⛱⛲⛳⛴⛵⛶⛷⛸⛹⛺⛻⛼⛽⛾⛿' \
+            + '∀∀∂∃∇∈∋∏∑∕√∝∞∟∠∣∥∧∨∩∩∪∫∬∮∵∵∶∼∽≈≒≠≡≤≥≦≧≪≫≮≯⊃⊆⊇⊕⊙⊥⊿'
     else:
-        symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' + \
-            '◽◾' + \
-            '☕♉♊♋♌♍♎♏♐♑♒♓⚓⚡' + \
-            '⚪⚫⚽⚾⛄⛅⛎⛔' + \
-            '⛪⛲⛳⛵⛺⛽'
+        symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' \
+            + '◽◾' \
+            + '☕♉♊♋♌♍♎♏♐♑♒♓⚓⚡' \
+            + '⚪⚫⚽⚾⛄⛅⛎⛔' \
+            + '⛪⛲⛳⛵⛺⛽'
     count_widht = 0
     count_char = 0
     ambiwidth += 1  # ambiwidth が double かどうかのフラグから、その文字幅の数値に変換
@@ -179,8 +164,8 @@ def str_just_length(string, length):
         elif (char_code >= 0x2013 and char_code <= 0x2016) \
                 or char_code == 0x2018 or char_code == 0x2019 \
                 or char_code == 0x201C or char_code == 0x201D \
-                or ( char_code >= 0x2020 and char_code <= 0x2022 ) \
-                or ( char_code >= 0x2024 and char_code <= 0x2027 ) \
+                or (char_code >= 0x2020 and char_code <= 0x2022) \
+                or (char_code >= 0x2024 and char_code <= 0x2027) \
                 or char_code == 0x2030 \
                 or char_code == 0x2032 or char_code == 0x2033 \
                 or char_code == 0x2035 \
@@ -228,8 +213,8 @@ def str_just_length(string, length):
         if count_widht == length:
             return string[0:count_char]
         elif count_widht > length:
-            return string[0:count_char-1]+' '
-    return string+(length-count_widht) * ' '
+            return string[0:count_char - 1] + ' '
+    return string + (length - count_widht) * ' '
 
 
 class MailData:  # メール毎の各種データ
@@ -273,7 +258,7 @@ class MailData:  # メール毎の各種データ
             if (SENT_TAG in self._tags or 'draft' in self._tags) \
                     and m_to_adr != email2only_address(msg.get_header('Reply-To')) \
                     and m_to != '':
-                name = 'To:'+email2only_name(m_to)
+                name = 'To:' + email2only_name(m_to)
             else:
                 name = RE_TAB2SPACE.sub(' ', m_from_name)
         self.__reformed_name = name
@@ -298,8 +283,8 @@ class MailData:  # メール毎の各種データ
         if emoji_length:
             emoji_length = '{:' + str(emoji_length) + 's}'
             ls += emoji_length.format('')
-        subject = str_just_length(self.__thread_depth * flag_thread * ('  ') +
-                                  '  ' + RE_TAB2SPACE.sub(' ', self._reformed_subject),
+        subject = str_just_length(self.__thread_depth * flag_thread * ('  ')
+                                  + '  ' + RE_TAB2SPACE.sub(' ', self._reformed_subject),
                                   SUBJECT_LENGTH)
         adr = str_just_length(RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)
         date = RE_TAB2SPACE.sub(' ', self.__reformed_date)
@@ -331,13 +316,14 @@ class MailData:  # メール毎の各種データ
             self._thread_subject = RE_TAB2SPACE.sub(
                 ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
 
-    def get_date(self): return self.__reformed_date
+    def get_date(self):
+        return self.__reformed_date
 
-    def get_subject(self): return self.__subject
+    def get_subject(self):
+        return self.__subject
 
     def set_subject(self, s):  # 復号化した時、JIS 外漢字が使われデコード結果と異なる時に呼び出され、Subject 情報を書き換える
-        self._reformed_subject = RE_TAB2SPACE.sub(
-                            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s)))
+        self._reformed_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s)))
         self.__subject = s
 
 
@@ -402,12 +388,11 @@ def opened_mail(draft):
                 win_id = info['windows']
                 if win_id:
                     win_id = win_id[0]
-                    vim.command('call win_gotoid('+win_id+')')
+                    vim.command('call win_gotoid(' + win_id + ')')
                 elif info['hidden']:
-                    vim.command(vim.vars['notmuch_open_way']['edit'].decode()
-                                + ' ' + filename)
+                    vim.command(vim.vars['notmuch_open_way']['edit'].decode() + ' ' + filename)
                 return True
-            vim.command('bwipeout '+info['bufnr'])
+            vim.command('bwipeout ' + info['bufnr'])
     return False
 
 
@@ -432,9 +417,9 @@ def make_thread_core(search_term):
         return False
     if VIM_MODULE:
         reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
-        print('Making cache data:'+search_term)
+        print('Making cache data:' + search_term)
     else:  # vim 以外では途中経過の表示なので標準出力ではなくエラー出力に
-        sys.stderr.write('Making cache data: '+search_term+'\n')
+        sys.stderr.write('Making cache data: ' + search_term + '\n')
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
     ls = []
@@ -453,9 +438,9 @@ def make_single_thread(thread_id, search_term):
     def make_reply_ls(ls, message, depth):  # スレッド・ツリーの深さ情報取得
         ls.append((message.get_message_id(), message, depth))
         for msg in message.get_replies():
-            make_reply_ls(ls, msg, depth+1)
+            make_reply_ls(ls, msg, depth + 1)
 
-    query = notmuch.Query(DBASE, '('+search_term+') and thread:'+thread_id)
+    query = notmuch.Query(DBASE, '(' + search_term + ') and thread:' + thread_id)
     thread = list(query.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
         msgs = thread.get_toplevel_messages()
@@ -468,13 +453,12 @@ def make_single_thread(thread_id, search_term):
     ls = []
     # search_term にヒットするメールに絞り込み
     for reply in replies:
-        if notmuch.Query(DBASE, '(' + search_term +
-                         ') and id:"' + reply[0] + '"').count_messages():
+        if notmuch.Query(DBASE, '(' + search_term + ') and id:"' + reply[0] + '"').count_messages():
             depth = reply[2]
             if depth > order:
                 depth = order
             ls.append(MailData(reply[1], thread, order, depth))
-            order = order+1
+            order = order + 1
     return ls
 
 
@@ -592,9 +576,9 @@ def set_folder_format():
             if re.match(r'(((rightbelow|belowright|topleft|botright)\s+)?\d*(new|vnew)|tabedit|enew)',
                         v) is None:
                 del open_way[k]  # 条件に一致しない設定削除
-                print_warring("For g:notmuch_open_way[" + k.decode() +
-                              "], if the setting is 'tabedit/enew', " +
-                              "no other words/spaces can\'t be included.")
+                print_warring("For g:notmuch_open_way[" + k.decode()
+                              + "], if the setting is 'tabedit/enew', "
+                              + "no other words/spaces can\'t be included.")
         if 'folders' not in open_way:
             open_way['folders'] = 'tabedit'
         if 'thread' not in open_way:
@@ -617,8 +601,8 @@ def set_folder_format():
         DBASE.close()
         raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
     a = len(str(int(notmuch.Query(DBASE, 'path:**').count_messages() * 1.2)))  # メール総数
-    u = len(str(int(notmuch.Query(DBASE, 'tag:unread').count_messages())))+1
-    f = len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages())))+1
+    u = len(str(int(notmuch.Query(DBASE, 'tag:unread').count_messages()))) + 1
+    f = len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages()))) + 1
     # 末尾付近の↑ * 1.2 や + 1 は増加したときのために余裕を見ておく為
     DBASE.close()
     max_len = 0
@@ -630,8 +614,8 @@ def set_folder_format():
     if 'notmuch_folder_format' in vim.vars:
         FOLDER_FORMAT = vim.vars['notmuch_folder_format'].decode()
     else:
-        FOLDER_FORMAT = '{0:<' + str(max_len) + '} {1:>' + str(u) + '}/{2:>' + \
-            str(a) + '}|{3:>' + str(f) + '} [{4}]'
+        FOLDER_FORMAT = '{0:<' + str(max_len) + '} {1:>' + str(u) + '}/{2:>' \
+            + str(a) + '}|{3:>' + str(f) + '} [{4}]'
 
 
 def format_folder(folder, search_term):
@@ -645,10 +629,10 @@ def format_folder(folder, search_term):
     return FOLDER_FORMAT.format(
         folder,         # 擬似的なフォルダー・ツリー
         notmuch.Query(  # 未読メール数
-            DBASE, '('+search_term+') and tag:unread').count_messages(),
+            DBASE, '(' + search_term + ') and tag:unread').count_messages(),
         all_mail,
         notmuch.Query(  # 重要メール数
-            DBASE, '('+search_term+') and tag:flagged').count_messages(),
+            DBASE, '(' + search_term + ') and tag:flagged').count_messages(),
         search_term     # 検索方法
     )
 
@@ -711,12 +695,12 @@ def set_folder_b_vars(v):
 
 def rm_file(dirname):
     """ ファイルやディレクトリをワイルドカードで展開して削除 """
-    rm_file_core(dirname+'*'+os.sep+'*'+os.sep+'.*')
-    rm_file_core(dirname+'*'+os.sep+'*'+os.sep+'*')
-    rm_file_core(dirname+'*'+os.sep+'.*')
-    rm_file_core(dirname+'*'+os.sep+'*')
-    rm_file_core(dirname+'.*')
-    rm_file_core(dirname+'*')
+    rm_file_core(dirname + '*' + os.sep + '*' + os.sep + '.*')
+    rm_file_core(dirname + '*' + os.sep + '*' + os.sep + '*')
+    rm_file_core(dirname + '*' + os.sep + '.*')
+    rm_file_core(dirname + '*' + os.sep + '*')
+    rm_file_core(dirname + '.*')
+    rm_file_core(dirname + '*')
 
 
 def rm_file_core(files):
@@ -829,7 +813,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     b.append(ls)
     b[0] = None
     b.options['modifiable'] = 0
-    print('Read data: ['+search_term+']')
+    print('Read data: [' + search_term + ']')
     if b_num == vim.bindeval('s:buf_num')['thread']:
         kind = 'thread'
     else:
@@ -837,9 +821,9 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     reopen(kind, search_term)
     if select_unread:
         index = get_unread_in_THREAD_LISTS(search_term)
-        unread = notmuch.Query(DBASE, '('+search_term+') and tag:unread').count_messages()
+        unread = notmuch.Query(DBASE, '(' + search_term + ') and tag:unread').count_messages()
         if index:
-            reset_cursor_position(b, vim.current.window, index[0]+1)
+            reset_cursor_position(b, vim.current.window, index[0] + 1)
             vim.command('call s:fold_open()')
         elif unread:  # フォルダリストに未読はないが新規メールを受信していた場合
             print_thread_core(b_num, search_term, True, True)
@@ -878,15 +862,12 @@ def thread_change_sort(sort_way):
                 or (('tree' in sort_way) and ('list' in sort_way))):
             sort_way = ' '.join(sort_way)
             print_warring('Too many arguments: ' + sort_way)
-            sort_way = vim.eval(
-                'input("sorting_way: ", "' + sort_way + '", "customlist,Complete_sort")'
-                ).split()
+            sort_way = vim.eval('input("sorting_way: ", "' + sort_way
+                                + '", "customlist,Complete_sort")').split()
             if sort_way == []:
                 return
         elif sort_way == []:
-            sort_way = vim.eval(
-                'input("sorting_way: ", "", "customlist,Complete_sort")'
-                ).split()
+            sort_way = vim.eval('input("sorting_way: ", "", "customlist,Complete_sort")').split()
             if sort_way == []:
                 return
         else:
@@ -972,7 +953,7 @@ def thread_change_sort(sort_way):
     index = [i for i, msg in enumerate(threadlist) if msg._msg_id == msg_id]
     vim.command('normal! Gzb')
     if index:  # 実行前のメールがリストに有れば選び直し
-        reset_cursor_position(b, vim.current.window, index[0]+1)
+        reset_cursor_position(b, vim.current.window, index[0] + 1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
         vim.command('normal! G')
@@ -996,7 +977,7 @@ def change_buffer_vars_core():
         b_v['date'] = ''
         b_v['tags'] = ''
     else:
-        msg = THREAD_LISTS[b_v['search_term'].decode()]['list'][vim.current.window.cursor[0]-1]
+        msg = THREAD_LISTS[b_v['search_term'].decode()]['list'][vim.current.window.cursor[0] - 1]
         msg_id = get_msg_id()
         b_v['msg_id'] = msg_id
         b_v['subject'] = msg.get_subject()
@@ -1017,17 +998,17 @@ def is_same_tabpage(kind, search_term):
     if not (kind in vim.bindeval('s:buf_num')):
         return False
     if kind == 'folders' or kind == 'thread' or kind == 'show':
-        return vim.bindeval('win_id2tabwin(bufwinid(s:buf_num["' +
-                            kind + '"]))')[0] == vim.current.tabpage.number
+        return vim.bindeval('win_id2tabwin(bufwinid(s:buf_num["'
+                            + kind + '"]))')[0] == vim.current.tabpage.number
     # kind == search or view
     elif search_term == '':
         return False
     else:
         if not (search_term in vim.bindeval('s:buf_num')[kind]):
             return False
-        return vim.bindeval('win_id2tabwin(bufwinid(' +
-                            str(vim.bindeval('s:buf_num')[kind][search_term]) +
-                            '))')[0] == vim.current.tabpage.number
+        return vim.bindeval('win_id2tabwin(bufwinid('
+                            + str(vim.bindeval('s:buf_num')[kind][search_term])
+                            + '))')[0] == vim.current.tabpage.number
 
 
 def reload_show():
@@ -1070,7 +1051,7 @@ def reload_thread():
     # ウィンドウ下部にできるだけ空間表示がない様にする為一度最後のメールに移動後にウィンドウ最下部にして表示
     vim.command('normal! Gzb')
     if msg_id != '' and len(index):  # 実行前のメールがリストに有れば選び直し
-        reset_cursor_position(b, w, index[0]+1)
+        reset_cursor_position(b, w, index[0] + 1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
     change_buffer_vars_core()
@@ -1081,9 +1062,9 @@ def reload_thread():
             # タグを変更することが有るので書き込み権限も
             DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
             open_mail_by_msgid(
-                    search_term,
-                    THREAD_LISTS[search_term]['list'][w.cursor[0] - 1]._msg_id,
-                    str(b.number), False)
+                search_term,
+                THREAD_LISTS[search_term]['list'][w.cursor[0] - 1]._msg_id,
+                str(b.number), False)
             DBASE.close()
 
 
@@ -1106,16 +1087,16 @@ def reopen(kind, search_term):
         #     vim.command('call win_gotoid(bufwinid(s:buf_num["folders"])) | silent only')
         open_way = vim.vars['notmuch_open_way'][kind].decode()
         if open_way == 'enew':
-            vim.command('silent buffer '+buf_num)
+            vim.command('silent buffer ' + buf_num)
         elif open_way == 'tabedit':
-            vim.command('silent tab sbuffer '+buf_num)
+            vim.command('silent tab sbuffer ' + buf_num)
         else:
-            open_way = re.sub(r'\bnew\b',       'split',     open_way)
-            open_way = re.sub(r'([0-9])new\b',  '\\1split',  open_way)
-            open_way = re.sub(r'\bvnew\b',      'vsplit',    open_way)
+            open_way = re.sub(r'\bnew\b', 'split', open_way)
+            open_way = re.sub(r'([0-9])new\b', '\\1split', open_way)
+            open_way = re.sub(r'\bvnew\b', 'vsplit', open_way)
             open_way = re.sub(r'([0-9])vnew\b', '\\1vsplit', open_way)
             vim.command(open_way)
-            vim.command('silent buffer '+buf_num)
+            vim.command('silent buffer ' + buf_num)
         if kind == 'thread':
             open_way = vim.vars['notmuch_open_way']['show'].decode()
             if open_way != 'enew' and open_way != 'tabedit':
@@ -1173,7 +1154,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         # ファイルが全て消されている場合は、None, None を返す
         b_v['search_term'] = search_term
         msg = list(notmuch.Query(
-            DBASE, '('+search_term+') and id:"' + msg_id + '"').search_messages())
+            DBASE, '(' + search_term + ') and id:"' + msg_id + '"').search_messages())
         if msg:
             msg = msg[0]
         else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
@@ -1224,7 +1205,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 data += decode_header(d)
             if data != '':
                 data = data.replace('\t', ' ')
-                data = header+': '+data
+                data = header + ': ' + data
                 output.main['header'].append(data)
 
     def get_virtual_header(msg_file, output, header):
@@ -1303,7 +1284,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             ls += out.main['header']
             for t in out.main['attach']:
                 if t[1] is not None:
-                    b_v['attachments'][str(len(ls)+1)] = t[1]
+                    b_v['attachments'][str(len(ls) + 1)] = t[1]
                 ls.append(t[0])
             ls.append('')
             if not out.main['content']:
@@ -1363,14 +1344,14 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 b_con = line.index('')
                 b_sig = line.index('-----BEGIN PGP SIGNATURE-----')
                 if encoding == 'base64':  # PGP 署名で本文のみが base64 の場合 (本当にあるかどうか不明)
-                    content = '\n'.join(line[0:b_con]) + \
-                        b64decode('\n'.join(line[b_con:b_sig])).decode(charset) + \
-                        '\n'.join(line[b_sig:])
+                    content = '\n'.join(line[0:b_con]) \
+                        + b64decode('\n'.join(line[b_con:b_sig])).decode(charset) \
+                        + '\n'.join(line[b_sig:])
                     return content, undecode_payload
                 elif encoding == 'quoted-printable':
-                    content = '\n'.join(line[0:b_con]) + \
-                        decodestring('\n'.join(line[b_con:b_sig])).decode(charset) + \
-                        '\n'.join(line[b_sig:])
+                    content = '\n'.join(line[0:b_con]) \
+                        + decodestring('\n'.join(line[b_con:b_sig])).decode(charset) \
+                        + '\n'.join(line[b_sig:])
                     return content, undecode_payload
             if encoding == 'base64':
                 decode_payload = payload.decode(charset, 'replace')
@@ -1392,15 +1373,15 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     def get_attach(part, part_ls, out, header, name):
         if part.is_multipart():  # is_multipart() == True で呼び出されている (message/rfc822 の場合)
             if is_delete_rfc(part):
-                out.main['attach'].append(('Del-' + header+name, None))
+                out.main['attach'].append(('Del-' + header + name, None))
                 return
         elif part.get_payload() == '':
-            out.main['attach'].append(('Del-' + header+name, None))
+            out.main['attach'].append(('Del-' + header + name, None))
             return
         if len(part_ls) >= 2:
-            out.main['attach'].append((header+name, [name, vim.List(part_ls), part.as_string()]))
+            out.main['attach'].append((header + name, [name, vim.List(part_ls), part.as_string()]))
         else:
-            out.main['attach'].append((header+name, [name, vim.List(part_ls), '']))
+            out.main['attach'].append((header + name, [name, vim.List(part_ls), '']))
 
     def select_header(part, part_ls, pgp, out):
         attachment = decode_header(part.get_filename())
@@ -1451,7 +1432,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if header.decode().lower() == 'subject':
                     for i, s in enumerate(output.main['header']):
                         if s.lower().find('subject:'):
-                            output.main['header'][i+1] = 'Subject: ' + sub
+                            output.main['header'][i + 1] = 'Subject: ' + sub
                             break
                     break
         return True
@@ -1462,7 +1443,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id][0]
         THREAD_LISTS[search_term]['list'][index].set_subject(sub)
         s = THREAD_LISTS[search_term]['list'][index].get_list(
-                not ('list' in THREAD_LISTS[search_term]['sort']))
+            not ('list' in THREAD_LISTS[search_term]['sort']))
         thread_b.options['modifiable'] = 1
         thread_b[index] = s
         thread_b.options['modifiable'] = 0
@@ -1506,7 +1487,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             tmp_text, tmp_tmp = get_mail_context(part, charset, encoding)
             if tmp_text == '':
                 if output.html['part_num']:  # 2 個目以降があれば連番
-                    s = 'Del-HTML: index'+str(output.html['part_num'])+'.html'
+                    s = 'Del-HTML: index' + str(output.html['part_num']) + '.html'
                 else:
                     s = 'Del-HTML: index.html'
                 output.main['attach'].append((s, None))
@@ -1520,7 +1501,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 add_content(output.html['content'],
                             re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text)))
                 if output.html['part_num']:  # 2 個目以降があれば連番
-                    s = 'index'+str(output.html['part_num'])+'.html'
+                    s = 'index' + str(output.html['part_num']) + '.html'
                 else:
                     s = 'index.html'
                 get_attach(part, part_ls, output, 'HTML: ', s)
@@ -1535,14 +1516,14 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def poup_pgp_signature():  # 書名検証に時間がかかるので、その間ポップ・アップを表示したいがうまく行かない←ウィンドウが切り替わった時点で消えるため
         if vim.bindeval('has("popupwin")'):
-            vim.command('call popup_atcursor(["Checking signature"]' +
-                        ',{' +
-                        '"border": [1,1,1,1],' +
-                        '"drag": 1,' +
-                        '"close": "click",' +
-                        '"id": 1024,' +
-                        '})')
-            # '"minwidth": 400,' +
+            vim.command('call popup_atcursor(["Checking signature"]'
+                        + ',{'
+                        + '"border": [1,1,1,1],'
+                        + '"drag": 1,'
+                        + '"close": "click",'
+                        + '"id": 1024,'
+                        + '})')
+            # '"minwidth": 400,'+
         else:
             print('Checking signature')
 
@@ -1874,7 +1855,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     b_w = vim.current.window
     if msg_id == '' or (mail_reload is False and msg_id == b_v['msg_id'].decode()):
         b_v['search_term'] = search_term  # 別の検索条件で同じメールを開いていることはあり得るので、search-term の情報だけは必ず更新
-        vim.command('call win_gotoid(bufwinid('+active_win+'))')
+        vim.command('call win_gotoid(bufwinid(' + active_win + '))')
         return
     # 以下実際の描画
     msg, f = get_msg()
@@ -1883,7 +1864,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b.append('Already all mail file delete.')
         b.options['modifiable'] = 0
     else:
-        vim.options['guitabtooltip'] = 'tags['+get_msg_tags(msg)+']'
+        vim.options['guitabtooltip'] = 'tags[' + get_msg_tags(msg) + ']'
         # * 添付ファイル名
         # * part番号
         # * 下書きをそのまま送信メールとした時のファイルの保存ディレクトリ
@@ -1897,7 +1878,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             msg = change_tags_before_core(msg.get_message_id())
             delete_msg_tags(msg, ['unread'])
             change_tags_after_core(msg, True)
-    vim.command('call win_gotoid(bufwinid('+active_win+'))')
+    vim.command('call win_gotoid(bufwinid(' + active_win + '))')
     vim.command('redrawstatus!')
 
 
@@ -1943,19 +1924,16 @@ def get_msg_id():
     if f_type != 'notmuch-edit' and f_type != 'notmuch-draft' and search_term == '':
         # search_term が空ならスレッドやメール本文を開いていない
         return ''
-    if ('show' in s_bufnum
-        and bufnr == s_bufnum['show']) \
-        or (search_term in s_bufnum['view']
-            and bufnr == s_bufnum['view'][search_term]):
+    if ('show' in s_bufnum and bufnr == s_bufnum['show']) \
+            or (search_term in s_bufnum['view'] and bufnr == s_bufnum['view'][search_term]):
         return b_v['msg_id'].decode()
     elif bufnr == s_bufnum['thread'] \
-        or (search_term in s_bufnum['search']
-            and bufnr == s_bufnum['search'][search_term]):
-        if len(THREAD_LISTS[search_term]['list']) < vim.current.window.cursor[0]-1:
+            or (search_term in s_bufnum['search'] and bufnr == s_bufnum['search'][search_term]):
+        if len(THREAD_LISTS[search_term]['list']) < vim.current.window.cursor[0] - 1:
             # メールが削除/移動され、ずれている場合がある
             # メール送信による draft→sent の以降など
             make_thread_core(search_term)
-        return THREAD_LISTS[search_term]['list'][vim.current.window.cursor[0]-1]._msg_id
+        return THREAD_LISTS[search_term]['list'][vim.current.window.cursor[0] - 1]._msg_id
     return ''
 
 
@@ -2304,13 +2282,13 @@ def change_tags_after_core(msg, change_b_tags):
                     for i in [i for i, x in enumerate(list(
                             vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
                             if x == b_num]:
-                        reset_cursor_position(b, t.windows[i], line+1)
+                        reset_cursor_position(b, t.windows[i], line + 1)
     reprint_folder()
 
 
 def reset_cursor_position(b, w, line):
     """ thread でタグ絵文字の後にカーソルを置く """
-    s = b[line-1]
+    s = b[line - 1]
     if s == '':
         return
     w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
@@ -2320,7 +2298,7 @@ def next_unread(active_win):
     """ 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない) """
     def open_mail_by_index(buf_num, index):
         vim.command('call win_gotoid(bufwinid(s:buf_num' + buf_num + '))')
-        reset_cursor_position(vim.current.buffer, vim.current.window, index+1)
+        reset_cursor_position(vim.current.buffer, vim.current.window, index + 1)
         vim.command('call s:fold_open()')
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
@@ -2331,15 +2309,16 @@ def next_unread(active_win):
     def seach_and_open_unread(index, search_term):
         # search_term の検索方法で未読が有れば、そのスレッド/メールを開く
         search_term = search_term.decode()
-        if search_term == '' or not notmuch.Query(DBASE, '('+search_term+') and tag:unread').count_messages():
-            vim.command('call win_gotoid(bufwinid('+active_win+'))')
+        if search_term == '' \
+                or not notmuch.Query(DBASE, '(' + search_term + ') and tag:unread').count_messages():
+            vim.command('call win_gotoid(bufwinid(' + active_win + '))')
             return False
         b_num = vim.bindeval('s:buf_num')['folders']
         for t in vim.tabpages:
             for i in [i for i, x in enumerate(list(
                     vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
                     if x == b_num]:
-                t.windows[i].cursor = (index+1, 0)  # ここまではフォルダ・リストの順番としてindex使用
+                t.windows[i].cursor = (index + 1, 0)  # ここまではフォルダ・リストの順番としてindex使用
         b_num = vim.bindeval('s:buf_num')['thread']
         print_thread_core(b_num, search_term, False, False)
         # ここからはスレッド・リストの順番としてindex使用
@@ -2348,7 +2327,7 @@ def next_unread(active_win):
             print_thread_core(b_num, search_term, False, True)
             index = get_unread_in_THREAD_LISTS(search_term)
         index = index[0]
-        reset_cursor_position(vim.current.buffer, vim.current.window, index+1)
+        reset_cursor_position(vim.current.buffer, vim.current.window, index + 1)
         vim.command('call s:fold_open()')
         change_buffer_vars_core()
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
@@ -2356,10 +2335,9 @@ def next_unread(active_win):
                                THREAD_LISTS[search_term]['list'][index]._msg_id,
                                active_win, False)
         if str(vim.bindeval('s:buf_num')['folders']) == active_win:
-            vim.command('call win_gotoid(bufwinid(' +
-                        str(vim.bindeval('s:buf_num')['thread'])+'))')
+            vim.command('call win_gotoid(bufwinid(' + str(vim.bindeval('s:buf_num')['thread']) + '))')
         else:
-            vim.command('call win_gotoid(bufwinid('+active_win+'))')
+            vim.command('call win_gotoid(bufwinid(' + active_win + '))')
         DBASE.close()
         return True
 
@@ -2369,7 +2347,7 @@ def next_unread(active_win):
             if not ('thread' in vim.bindeval('s:buf_num')):
                 vim.command('call s:make_thread_list()')
             active_win = str(vim.bindeval('s:buf_num')['thread'])
-            search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1]
+            search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0] - 1][1]
         else:
             msg_id = get_msg_id()
             search_term = vim.vars['notmuch_folders'][0][1]
@@ -2395,17 +2373,17 @@ def next_unread(active_win):
         for index, folder_way in enumerate(folders):  # まず search_term が何番目か
             if search_term == folder_way[1].decode():
                 if search_term == '':
-                    index = index+1
+                    index = index + 1
                     search_term = folders[index][1].decode()
                 break
         for folder_way in folders[index:]:  # search_term 以降で未読が有るか?
             if seach_and_open_unread(index, folder_way[1]):
                 return
-            index = index+1
+            index = index + 1
         for index, folder_way in enumerate(folders):  # 見つからなかったので最初から
             if seach_and_open_unread(index, folder_way[1]):
                 return
-        vim.command('call win_gotoid(bufwinid('+active_win+'))')
+        vim.command('call win_gotoid(bufwinid(' + active_win + '))')
         DBASE.close()
         return
     index = [i for i, x in enumerate(
@@ -2435,13 +2413,13 @@ def next_unread(active_win):
         if search_term == folder_way[1].decode():
             break
     if index < len(folders):
-        next_index = index+1  # 現在開いている検索条件の次から未読が有るか? を調べるのでカウント・アップ
+        next_index = index + 1  # 現在開いている検索条件の次から未読が有るか? を調べるのでカウント・アップ
         for folder_way in folders[next_index:]:
             if seach_and_open_unread(next_index, folder_way[1]):
                 return
             next_index += 1
     # フォルダ・リストの最初から未読が有るか? を探し直す
-    for index_refirst, folder_way in enumerate(folders[:index+1]):
+    for index_refirst, folder_way in enumerate(folders[:index + 1]):
         if seach_and_open_unread(index_refirst, folder_way[1]):
             return
     DBASE.close()
@@ -2533,7 +2511,7 @@ def get_attach_info(line):
     msg_id = b_v['msg_id'].decode()
     DBASE.open(PATH)
     msg = list(notmuch.Query(
-        DBASE, '('+search_term+') id:"' + msg_id + '"').search_messages())
+        DBASE, '(' + search_term + ') id:"' + msg_id + '"').search_messages())
     if msg:
         msg = list(msg)[0]
     else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
@@ -2569,7 +2547,7 @@ def open_attachment(args):
         return None, None, None, None
 
     args = [int(s) for s in args]
-    for i in range(args[0], args[1]+1):
+    for i in range(args[0], args[1] + 1):
         # if vim.bindeval('foldclosed(".")'):
         #     vim.command('normal! zo')
         #     return
@@ -2608,7 +2586,7 @@ def open_attachment(args):
         full_path += filename
         if not os.path.isfile(full_path):
             write_file(attachment, decode, full_path)
-        print('open '+filename)
+        print('open ' + filename)
         try:
             ret = run([vim.vars['notmuch_view_attachment'].decode(),
                       full_path], stdout=PIPE, stderr=PIPE, timeout=0.5)
@@ -2631,7 +2609,7 @@ def get_top(part, i):
         s = re.sub(r'\r\n', r'\n', re.sub(r'\r', r'\n', part))
         match = re.search(r'\n\n', s)
         if match is not None:
-            s = s[match.start()+2:]
+            s = s[match.start() + 2:]
         print(s.split('\n')[0])
         if len(s) >= i:
             s = s[:i]
@@ -2744,7 +2722,7 @@ def save_attachment(args):
     """ vim で Attach/HTML: ヘッダのカーソル位置の添付ファイルを保存 """
     print('')  # もし print_warning を出していればそれを消す
     args = [int(s) for s in args[0:2]]
-    for i in range(args[0], args[1]+1):
+    for i in range(args[0], args[1] + 1):
         filename, attachment, decode, full_path = get_attach_info(i)
         if filename is None:
             return
@@ -2762,7 +2740,7 @@ def save_attachment(args):
         else:
             write_file(attachment, decode, save_path)
         vim.command('redraw')
-        print('save '+save_path)
+        print('save ' + save_path)
 
 
 def delete_attachment(args):
@@ -2797,9 +2775,9 @@ def delete_attachment(args):
                 key_head = key_head + h
             part.__delitem__(key)
             header += key + ': ' + key_head + '\n'
-        c_header = 'message/external-body; access-type=x-mutt-deleted;\n' + \
-            '\texpiration="' + m_time + '"; length=' + \
-            str(len(s))
+        c_header = 'message/external-body; access-type=x-mutt-deleted;\n' \
+            + '\texpiration="' + m_time + '"; length=' \
+            + str(len(s))
         part.__setitem__('Content-Type', c_header)
         part.set_payload(header)
         return True
@@ -2837,7 +2815,7 @@ def delete_attachment(args):
         b_attachments = b_v['attachments']
         b.options['modifiable'] = 1
         # 実際の添付ファイル削除処理
-        for i in range(args[1], args[0]-1, -1):  # 削除すると part_num がずれるので後ろから削除
+        for i in range(args[1], args[0] - 1, -1):  # 削除すると part_num がずれるので後ろから削除
             line = str(i)
             if line in b_attachments:
                 tmp_name, part_num, tmpdir = b_attachments[line]
@@ -2913,8 +2891,8 @@ def delete_attachment(args):
 
         DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
-        for i in range(args[0], args[1]+1):
-            msg_id = THREAD_LISTS[search_term]['list'][i-1]._msg_id
+        for i in range(args[0], args[1] + 1):
+            msg_id = THREAD_LISTS[search_term]['list'][i - 1]._msg_id
             msg = DBASE.find_message(msg_id)
             for f in msg.get_filenames():
                 delete_attachment_all(f)
@@ -3001,7 +2979,7 @@ def cut_thread(msg_id, dumy):
         index = [i for i, x in enumerate(
             THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id]
         if index:
-            reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
+            reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)
             vim.command('call s:fold_open()')
         else:
             print('Already Delete/Move/Change folder/tag')
@@ -3056,7 +3034,7 @@ def connect_thread_tree():
     index = [i for i, x in enumerate(
         THREAD_LISTS[search_term]['list']) if x._msg_id == r_msg_id]
     if index:
-        reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
+        reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)
         vim.command('call s:fold_open()')
     else:
         print('Already Delete/Move/Change folder/tag')
@@ -3066,10 +3044,10 @@ def get_mark_in_thread():
     """ マークの付いた先頭行を 0 とした行番号リストを返す """
     lines = []
     # notmuch-thread と notmuch-search からしか呼ばれないので、bufnr() を調べない
-    signs = vim.bindeval('sign_getplaced(' + str(vim.current.buffer.number) +
-                         ', {"name":"notmuch", "group":"mark_thread"})')[0]['signs']
+    signs = vim.bindeval('sign_getplaced(' + str(vim.current.buffer.number)
+                         + ', {"name":"notmuch", "group":"mark_thread"})')[0]['signs']
     for i in range(len(signs)):
-        lines.append(signs[i]['lnum']-1)
+        lines.append(signs[i]['lnum'] - 1)
     return lines
 
 
@@ -3077,21 +3055,21 @@ def get_save_dir():
     if 'notmuch_save_dir' in vim.vars:
         # 設定が有れば ~ や $HOME などの環境変数展開
         save_path = os.path.expandvars(
-                os.path.expanduser(vim.vars['notmuch_save_dir'].decode()))
-        return os.path.expandvars(save_path).replace('/', os.sep)+os.sep
+            os.path.expanduser(vim.vars['notmuch_save_dir'].decode()))
+        return os.path.expandvars(save_path).replace('/', os.sep) + os.sep
     else:
-        return os.getcwd()+os.sep
+        return os.getcwd() + os.sep
 
 
 def get_save_filename(path):
     """ 保存ファイル名の取得 (既存ファイルなら上書き確認) """
     while True:
         if use_browse():
-            path = vim.eval('browse(1, "Save", "' +
-                            os.path.dirname(path) + '", "' +
-                            os.path.basename(path) + '")')
+            path = vim.eval('browse(1, "Save", "'
+                            + os.path.dirname(path) + '", "'
+                            + os.path.basename(path) + '")')
         else:
-            path = vim.eval('input("Save as: ", "'+path+'", "file")')
+            path = vim.eval('input("Save as: ", "' + path + '", "file")')
         if path == '':
             return ''
         elif os.path.isfile(path):
@@ -3122,14 +3100,14 @@ def view_mail_info():
                      'tags       : ' + b_v['tags'].decode(),
                      'file       : ' + f]
             if os.path.isfile(f):
-                lists += ['Modified   : ' +
-                          datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
+                lists += ['Modified   : '
+                          + datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
                           'Size       : ' + str(os.path.getsize(f)) + ' Bytes']
             else:
                 lists += ['Modified   : No save']
             return lists
         if bnum == vim.bindeval('s:buf_num')['folders']:
-            search_term = vim.vars['notmuch_folders'][vc.window.cursor[0]-1][1].decode()
+            search_term = vim.vars['notmuch_folders'][vc.window.cursor[0] - 1][1].decode()
             if search_term == '':
                 return None
             return [search_term]
@@ -3157,8 +3135,8 @@ def view_mail_info():
         for f in msg.get_filenames():
             if os.path.isfile(f):
                 lists += ['file       : ' + f,
-                          'Modified   : ' +
-                          datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
+                          'Modified   : '
+                          + datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
                           'Size       : ' + str(os.path.getsize(f)) + ' Bytes']
             else:
                 lists.append('file       : Already Delete.   ' + f)
@@ -3180,18 +3158,18 @@ def view_mail_info():
         for ls in info:
             vim_ls += ls.replace('\\', '\\\\').replace('"', '\\"') + '","'
         vim_ls = vim_ls[:-2] + ']'
-        vim.command('call popup_atcursor(' + vim_ls +
-                    ',{' +
-                    '"border": [1,1,1,1],' +
-                    '"drag": 1,' +
-                    '"close": "click",' +
-                    '"moved": "any",' +
-                    '"filter": function("s:close_popup"),' +
-                    '"col": "cursor",' +
-                    '"wrap": 0,' +
-                    '"mapping": 0' +
-                    '})')
-        # '"minwidth": 400,' +
+        vim.command('call popup_atcursor(' + vim_ls
+                    + ',{'
+                    + '"border": [1,1,1,1],'
+                    + '"drag": 1,'
+                    + '"close": "click",'
+                    + '"moved": "any",'
+                    + '"filter": function("s:close_popup"),'
+                    + '"col": "cursor",'
+                    + '"wrap": 0,'
+                    + '"mapping": 0'
+                    + '})')
+        # '"minwidth": 400,'+
     else:
         print('\n'.join(info))
 
@@ -3252,8 +3230,7 @@ def open_original(msg_id, search_term, args):
             encoding = encoding.lower()
         active_win = str(vim.current.buffer.number)
         if encoding == 'quoted-printable' or encoding == 'base64':
-            vim.command(vim.vars['notmuch_open_way']['edit'].decode()
-                        + ' ' + filename)
+            vim.command(vim.vars['notmuch_open_way']['edit'].decode() + ' ' + filename)
             print_warring('The mail is ' + encoding + '.')
         else:
             vim.command(vim.vars['notmuch_open_way']['edit'].decode()
@@ -3272,9 +3249,10 @@ def open_original(msg_id, search_term, args):
         else:
             draft_dir = PATH + os.sep + 'draft'
         if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
-            vim.command('setlocal filetype=notmuch-draft | call s:au_write_draft() | cd ' +
-                        os.path.dirname(vim.bindeval('getbufinfo(' +
-                                        str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
+            vim.command('setlocal filetype=notmuch-draft | call s:au_write_draft() | cd '
+                        + os.path.dirname(vim.bindeval('getbufinfo('
+                                          + str(vim.bindeval('s:buf_num')['folders'])
+                                          + ')')[0]['name'].decode()))
         else:
             vim.command('setlocal filetype=notmuch-edit')
     if message != '':
@@ -3481,8 +3459,8 @@ def send_str(msg_data, msgid):
                 except ModuleNotFoundError:
                     charset = ''
                     pass
-            part.replace_header('Content-Type', 'text/' + subtype + charset +
-                                '; name="' + name_param['name'] + '"')
+            part.replace_header('Content-Type', 'text/' + subtype + charset
+                                + '; name="' + name_param['name'] + '"')
         else:
             part = attach_binary(path, maintype, subtype, name_param, file_param)
         part.add_header('Content-Disposition', 'attachment', **file_param)
@@ -3550,7 +3528,7 @@ def send_str(msg_data, msgid):
         if ret.returncode:
             print_error(ret.stderr)
             return False, s
-        return True,  ret.stdout
+        return True, ret.stdout
 
     def signature(s, header, charset):
         local_user = email2only_address(header['From'][0])
@@ -3609,18 +3587,18 @@ def send_str(msg_data, msgid):
                     continue
                 elif h_term_l == 'encrypt':
                     flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_ENCRYPT) \
-                         | (get_flag(h_item, r'\bPGP\b') * PGP_ENCRYPT) \
-                         | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT) \
-                         | (get_flag(h_item, r'\bSubject\b') * PGPMIME_SUBJECT) \
-                         | (get_flag(h_item, r'\bPublic-?Key\b') * PGPMIME_PUBLIC)
+                        | (get_flag(h_item, r'\bPGP\b') * PGP_ENCRYPT) \
+                        | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_ENCRYPT) \
+                        | (get_flag(h_item, r'\bSubject\b') * PGPMIME_SUBJECT) \
+                        | (get_flag(h_item, r'\bPublic-?Key\b') * PGPMIME_PUBLIC)
                     if not flag_check:
                         print_error('The encryption method is wrong.')
                         return None, None, None
                     flag |= flag_check
                 elif h_term_l == 'signature':
                     flag_check = (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME_SIGNATURE) \
-                         | (get_flag(h_item, r'\bPGP\b') * PGP_SIGNATURE) \
-                         | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_SIGNATURE)
+                        | (get_flag(h_item, r'\bPGP\b') * PGP_SIGNATURE) \
+                        | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME_SIGNATURE)
                     if not flag_check:
                         print_error('The signature method is wrong.')
                         return None, None, None
@@ -3662,7 +3640,7 @@ def send_str(msg_data, msgid):
             flag = SMIME_ENCRYPT | (SMIME_SIGNATURE if flag & ALL_SIGNATURE else 0x0)
         elif flag & PGPMIME_ENCRYPT:
             flag = PGPMIME_ENCRYPT | (PGPMIME_SIGNATURE if flag & ALL_SIGNATURE else 0x0) \
-                    | (flag & PGPMIME_SUBJECT) | (flag & PGPMIME_PUBLIC)
+                | (flag & PGPMIME_SUBJECT) | (flag & PGPMIME_PUBLIC)
         elif flag & PGP_ENCRYPT:
             flag = PGP_ENCRYPT | (PGP_SIGNATURE if flag & ALL_SIGNATURE else 0x0)
         elif flag & SMIME_SIGNATURE:
@@ -3712,7 +3690,7 @@ def send_str(msg_data, msgid):
         if index == -1:
             return None, None
         msgid_usr = mail_address[:index]
-        msgid_domain = mail_address[index+1:]
+        msgid_domain = mail_address[index + 1:]
         if msgid_usr is None:
             msg_id = email.utils.make_msgid()
         else:
@@ -3772,8 +3750,8 @@ def send_str(msg_data, msgid):
         with open(send_tmp, 'w') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
             if flag:
                 msg_data = msg_data[1:]
-                msg_data += '\nDate: ' + date + \
-                    '\nContent-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: 8bit'
+                msg_data += '\nDate: ' + date \
+                    + '\nContent-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: 8bit'
                 msg_data += '\nMessage-ID: ' + msg_id
                 if attachments is not None:
                     for attachment in attachments:
@@ -3969,8 +3947,8 @@ def send_str(msg_data, msgid):
                 if not (set_mime_sig(mail_body, mail_sig)):
                     return False
             else:
-                msg_send['Content-Type'] = 'multipart/signed; micalg="' + micalg_kind + '"; ' + \
-                        'protocol="application/' + sig_kind + '-signature"'
+                msg_send['Content-Type'] = 'multipart/signed; micalg="' + micalg_kind + '"; ' \
+                    + 'protocol="application/' + sig_kind + '-signature"'
                 if set_mime_sig(msg_send, mail_body):
                     return True
         if (flag & SMIME_ENCRYPT):  # S/MIME 暗号化
@@ -4058,8 +4036,8 @@ def send_str(msg_data, msgid):
         if not check_address(header_data, 'Resent-'):
             return False
         # ヘッダ設定
-        msg_data = '\nFrom: ' + header_data['Resent-From'][0] + \
-            '\nTo: ' + ', '.join(header_data['Resent-To'])
+        msg_data = '\nFrom: ' + header_data['Resent-From'][0] \
+            + '\nTo: ' + ', '.join(header_data['Resent-To'])
         for h in ['Resent-Sender', 'Resent-From', 'Resent-To', 'Resent-Cc', 'Resent-Bcc']:
             if h in header_data:
                 h_data = header_data[h]
@@ -4133,8 +4111,8 @@ def send_vim():
         if not send_vim_buffer():
             return
     else:
-        sent_tag = ' ((folder:draft or folder:.draft or tag:draft) not tag:' + \
-                SENT_TAG + ' not tag:Trash not tag:Spam)'
+        sent_tag = ' ((folder:draft or folder:.draft or tag:draft) not tag:' \
+            + SENT_TAG + ' not tag:Trash not tag:Spam)'
         buf_num = vim.bindeval('s:buf_num')
         if bufnr == buf_num['folders']:
             send_search(sent_tag)
@@ -4168,8 +4146,8 @@ def new_mail(s):
         headers['to'] = s[:re_match.start()]
         s = s[re_match.start():]
         while True:
-            header_len = re_match.end()-re_match.start()
-            header = s[1:header_len-1].lower()
+            header_len = re_match.end() - re_match.start()
+            header = s[1:header_len - 1].lower()
             s = s[header_len:]
             re_match = re.search(r'\?[A-Za-z-]+=', s)
             if re_match is None:
@@ -4184,7 +4162,7 @@ def new_mail(s):
             win_nr = vim.bindeval('bufwinnr(s:buf_num["folders"])')
             for w in vim.windows:
                 if w.number == win_nr:
-                    s = vim.vars['notmuch_folders'][w.cursor[0]-1][1].decode()
+                    s = vim.vars['notmuch_folders'][w.cursor[0] - 1][1].decode()
                     break
             to = ''
             for i in vim.vars.get('notmuch_to', []):
@@ -4310,7 +4288,7 @@ def reply_mail():
         if not addr_exist:
             addr_exist = addr_tmp
             send_from_name = send_tmp
-        send_to_name = ', '.join((recive_to_name+[recive_from_name]))
+        send_to_name = ', '.join((recive_to_name + [recive_from_name]))
     add_head = 0x01
     for header in headers:
         header = header.decode()
@@ -4319,7 +4297,7 @@ def reply_mail():
             b.append('From: ' + send_from_name)
         elif header_lower == 'subject':
             subject = re.sub(r'(re([*^][0-9]+)?: *)+', 'Re: ',
-                    'Re: ' + subject, flags=re.IGNORECASE)
+                             'Re: ' + subject, flags=re.IGNORECASE)
             b.append('Subject: ' + subject)
             b_v['subject'] = subject
         elif header_lower == 'to':
@@ -4365,7 +4343,7 @@ def forward_mail():
             subject = 'FWD:' + subject
             b_v['subject'] = subject
         elif s != '':
-            msg_data = h + ': ' + ' ' * (7-len(h)) + s + '\n' + msg_data
+            msg_data = h + ': ' + ' ' * (7 - len(h)) + s + '\n' + msg_data
         s_len = 9 + strdisplaywidth(s)
         cut_line = max(cut_line, s_len)
     headers = vim.vars['notmuch_draft_header']
@@ -4501,8 +4479,8 @@ def after_make_draft(b, msg, add_head):
     del b[0]
     b.options['modified'] = 0
     if 'buf_num' in vim.bindeval('s:') and 'folders' in vim.bindeval('s:buf_num'):
-        vim.command('cd ' + os.path.dirname(vim.bindeval('getbufinfo(' +
-                    str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
+        vim.command('cd ' + os.path.dirname(vim.bindeval('getbufinfo('
+                    + str(vim.bindeval('s:buf_num')['folders']) + ')')[0]['name'].decode()))
     vim.command('call s:au_write_draft()')
 
 
@@ -4583,7 +4561,7 @@ def set_reference(b, msg, flag):
     if flag:
         b.append('In-Reply-To:' + re_msg_id)
     fcc = msg.get_filenames().__str__().split('\n')[0]
-    fcc = fcc[len(PATH)+1:]
+    fcc = fcc[len(PATH) + 1:]
     if MAILBOX_TYPE == 'Maildir':
         fcc = re.sub(r'/(new|tmp|cur)/[^/]+', '', fcc)
     else:
@@ -4599,8 +4577,8 @@ def set_reply_after(n):
     to, h_from = set_from()
     b = vim.current.buffer
     b_v = b.vars['notmuch']
-    lines = ['On ' + b_v['org_mail_date'].decode() + ', ' +
-             email2only_name(b_v['org_mail_from'].decode()) + ' wrote:']
+    lines = ['On ' + b_v['org_mail_date'].decode() + ', '
+             + email2only_name(b_v['org_mail_from'].decode()) + ' wrote:']
     for line in b_v['org_mail_body'].decode().split('\n'):
         lines.append('> ' + line)
     if vim.vars.get('notmuch_signature_prev_quote', 0):
@@ -4678,12 +4656,12 @@ def set_from():
             return addr
         lst = ''
         for i, j in enumerate(mail_address):
-            lst += str(i+1) + '. ' + \
-                j['id'].decode() + ': ' + \
-                j['address'].decode() + '\n'
+            lst += str(i + 1) + '. ' \
+                + j['id'].decode() + ': ' \
+                + j['address'].decode() + '\n'
         while True:
-            s = vim.eval('input("Select using From:.  When only [Enter], use default (' +
-                         default_addr + ').\n' + lst + '")')
+            s = vim.eval('input("Select using From:.  When only [Enter], use default ('
+                         + default_addr + ').\n' + lst + '")')
             if s == '':
                 return default_addr
             try:
@@ -4696,7 +4674,7 @@ def set_from():
             else:
                 vim.command('echo "\n" | redraw')
                 continue
-        return mail_address[s-1]['address'].decode()
+        return mail_address[s - 1]['address'].decode()
 
     def compress_addr():  # 名前+メール・アドレスで両者が同じならメール・アドレスだけに
         def compress_addr_core(s):
@@ -4829,9 +4807,9 @@ def move_mail(msg_id, s, args):
         print_warring('Please save and close mail.')
         return
     mbox = args[2:]
-    if vim_input(mbox, "'Move Mail folder: ', '" +
-                 ('.' if MAILBOX_TYPE == 'Maildir' else '') +
-                 "', 'customlist,Complete_Folder'"):
+    if vim_input(mbox, "'Move Mail folder: ', '"
+                 + ('.' if MAILBOX_TYPE == 'Maildir' else '')
+                 + "', 'customlist,Complete_Folder'"):
         return
     mbox = mbox[0]
     if mbox == '.':
@@ -4924,10 +4902,10 @@ def import_mail(args):
     else:
         if os.name == 'nt':
             f = vim.eval(
-                'input("Import: ", "'+os.path.expandvars('$USERPROFILE\\')+'", "file")')
+                'input("Import: ", "' + os.path.expandvars('$USERPROFILE\\') + '", "file")')
         else:
             f = vim.eval(
-                'input("Import: ", "'+os.path.expandvars('$HOME/')+'", "file")')
+                'input("Import: ", "' + os.path.expandvars('$HOME/') + '", "file")')
     if f == '':
         return
     if os.path.isdir(f):  # ディレクトリならサブ・ディレクトリまで含めてすべてのファイルを対象とする
@@ -4953,7 +4931,7 @@ def import_mail(args):
         del msg['Delivered-To']
         msg_id = msg.get('Message-Id')
         if msg_id is None:
-            print_warring('Import fail : '+f)
+            print_warring('Import fail : ' + f)
             continue
         if msg_id[0] == '<' and msg_id[-1] == '>':
             msg_id = msg_id[1:-1]
@@ -5015,7 +4993,7 @@ def select_file(msg_id, question):
         print('The email has already been completely deleted.')
         DBASE.close()
         return [], '', 0
-    prefix = len(PATH)+1
+    prefix = len(PATH) + 1
     files = []
     lst = ''
     size = 0
@@ -5033,21 +5011,21 @@ def select_file(msg_id, question):
             fmt = '{0:<' + str(len_i) + '}|{1}{2:<5}{3:>' + str(size) + '} B| {4}\n'
             attach = get_attach_info(f)
             lst += fmt.format(
-                    str(i+1),
-                    datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
-                    attach,
-                    str(os.path.getsize(f)),
-                    f[prefix:])
+                str(i + 1),
+                datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
+                attach,
+                str(os.path.getsize(f)),
+                f[prefix:])
             files.append(f)
         else:
             print_warring('Already Delete. ' + f[prefix:])
     DBASE.close()
     if len(files) == 1:
         return [files[0]], subject, 1
-    i = i+1
+    i = i + 1
     while True:
-        s = vim.eval('input("' + question +
-                     ' [1-' + str(i) + ']/[A]ll/[Enter]:[C]ancel\n' + lst + '")')
+        s = vim.eval('input("' + question
+                     + ' [1-' + str(i) + ']/[A]ll/[Enter]:[C]ancel\n' + lst + '")')
         if s == '' or s == 'C' or s == 'c':
             return [], '', 0
         elif s == 'A' or s == 'a':
@@ -5067,7 +5045,7 @@ def select_file(msg_id, question):
     if s == 'A':
         return files, subject, len(files)
     else:
-        return [files[s-1]], subject, len(files)
+        return [files[s - 1]], subject, len(files)
 
 
 def is_draft():
@@ -5105,8 +5083,8 @@ def do_mail(cmd, args):
             and bnum == vim.bindeval('s:buf_num')['search'][search_term]):
         args[0] = int(args[0])
         args[1] = int(args[1])
-        for i in range(args[0], args[1]+1):
-            msg_id = THREAD_LISTS[search_term]['list'][i-1]._msg_id
+        for i in range(args[0], args[1] + 1):
+            msg_id = THREAD_LISTS[search_term]['list'][i - 1]._msg_id
             args = cmd(msg_id, search_term, args)
     elif (('show' in vim.bindeval('s:buf_num'))
             and bnum == vim.bindeval('s:buf_num')['show']) \
@@ -5187,8 +5165,7 @@ def get_mail_folders():
 def run_shell_program(msg_id, s, args):
     prg_param = args[2:]
     if not prg_param:
-        prg_param = vim.eval(
-                'input("Program and args: ", "", "customlist,Complete_run")')
+        prg_param = vim.eval('input("Program and args: ", "", "customlist,Complete_run")')
         if prg_param == '':
             return
         else:
@@ -5322,18 +5299,18 @@ def command_marked(cmdline):
         for line in marked_line:
             msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
             if cmd[0] in [  # 複数選択対応で do_mail() から呼び出されるものは search_term が必要
-                          # 不要な場合はダミーの文字列
-                          'add_tags',
-                          'set_tags',
-                          'delete_mail',
-                          'delete_tags',
-                          'export_mail',
-                          'move_mail',
-                          'open_original',
-                          'reindex_mail',
-                          'run_shell_program',
-                          'toggle_tags',
-                          ]:
+                # 不要な場合はダミーの文字列
+                'add_tags',
+                'set_tags',
+                'delete_mail',
+                'delete_tags',
+                'export_mail',
+                'move_mail',
+                'open_original',
+                'reindex_mail',
+                'run_shell_program',
+                'toggle_tags',
+            ]:
                 args = GLOBALS[cmd[0]](msg_id, search_term, cmd[1])
             else:
                 args = GLOBALS[cmd[0]](msg_id, cmd[1])
@@ -5351,7 +5328,7 @@ def notmuch_search(search_term):
     search_term = search_term[2:]
     if search_term == '' or search_term == []:  # コマンド空
         if vim.current.buffer.number == vim.bindeval('s:buf_num')['folders']:
-            i_search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0]-1][1].decode()
+            i_search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0] - 1][1].decode()
         else:
             i_search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
         search_term = vim.eval(
@@ -5445,7 +5422,7 @@ def notmuch_address():
     vim.command('normal! zO')
     index = [i for i, msg in enumerate(
         THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
-    reset_cursor_position(vim.current.buffer, vim.current.window, index[0]+1)
+    reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)
 
 
 def notmuch_duplication(remake):
@@ -5457,7 +5434,7 @@ def notmuch_duplication(remake):
         ls = []
         for msg in msgs:
             if len(list(msg.get_filenames())) >= 2:
-                thread = notmuch.Query(DBASE, 'thread:'+msg.get_thread_id())
+                thread = notmuch.Query(DBASE, 'thread:' + msg.get_thread_id())
                 thread = list(thread.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
                 ls.append(MailData(msg, thread, 0, 0))
         DBASE.close()
@@ -5600,8 +5577,7 @@ def set_attach(args):
 
 def use_browse():
     return vim.bindeval('has("browse")') \
-            and (not ('notmuch_use_commandline' in vim.vars)
-                 or vim.vars['notmuch_use_commandline'] == 0)
+        and (not ('notmuch_use_commandline' in vim.vars) or vim.vars['notmuch_use_commandline'] == 0)
 
 
 def set_encrypt(args):
@@ -5632,16 +5608,16 @@ def set_encrypt(args):
         h_item = s[match.end():]
         if h_term == 'encrypt':
             flag = flag | ENCRYPT \
-             | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
-             | (get_flag(h_item, r'\bPGP\b') * PGP) \
-             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME) \
-             | (get_flag(h_item, r'\bSubject\b') * SUBJECT) \
-             | (get_flag(h_item, r'\bPublic-?Key\b') * PUBLIC)
+                | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
+                | (get_flag(h_item, r'\bPGP\b') * PGP) \
+                | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME) \
+                | (get_flag(h_item, r'\bSubject\b') * SUBJECT) \
+                | (get_flag(h_item, r'\bPublic-?Key\b') * PUBLIC)
         elif h_term == 'signature':
             flag = flag | SIGNATURE \
-             | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
-             | (get_flag(h_item, r'\bPGP\b') * PGP) \
-             | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME)
+                | (get_flag(h_item, r'\bS[/-]?MIME\b') * SMIME) \
+                | (get_flag(h_item, r'\bPGP\b') * PGP) \
+                | (get_flag(h_item, r'\bPGP[/-]?MIME\b') * PGPMIME)
     if encrypt != []:
         if 'encrypt' in encrypt:
             flag = ENCRYPT
@@ -5694,17 +5670,17 @@ def set_encrypt(args):
             else:
                 public_key = 'OFF'
             if (flag & PGPMIME_ENCRYPT) == PGPMIME_ENCRYPT:
-                select = '\nSubject : ' + subject + \
-                        ' | Public Key: ' + public_key + \
-                        '", "&Encrypt\n&Digital Signature\n&Method\n&Subject\n' + \
-                        '&Public Key\n&Apply", 6, "Question")'
+                select = '\nSubject : ' + subject \
+                    + ' | Public Key: ' + public_key \
+                    + '", "&Encrypt\n&Digital Signature\n&Method\n&Subject\n' \
+                    + '&Public Key\n&Apply", 6, "Question")'
             else:
                 select = '", "&Encrypt\n&Digital Signature\n&Method\n&Apply", 4, "Question")'
             applies = vim.bindeval(
-                'confirm("Encrypt: ' + encrypt +
-                ' | Signature: ' + signature +
-                ' | Method: ' + method +
-                select)
+                'confirm("Encrypt: ' + encrypt
+                + ' | Signature: ' + signature
+                + ' | Method: ' + method
+                + select)
             if applies == 0 or applies == b'':
                 return
             elif applies == 1 or applies == b'E' or applies == b'e':
@@ -5804,8 +5780,8 @@ def get_refine_index():
     msg_id = get_msg_id()
     DBASE.open(PATH)
     index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
-             if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and (' +
-                              vim.bindeval('s:refined_search_term').decode() + ')'
+             if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and ('
+                              + vim.bindeval('s:refined_search_term').decode() + ')'
                               ).count_messages()]
     if not index:
         return -1, '', []
@@ -5833,7 +5809,7 @@ def notmuch_refine_common(s, index):
         for i in [i for i, x in enumerate(list(
                 vim.bindeval('tabpagebuflist(' + str(t.number) + ')')))
                 if x == b_num]:
-            reset_cursor_position(b, t.windows[i], index+1)
+            reset_cursor_position(b, t.windows[i], index + 1)
             if (is_same_tabpage('thread', '') or is_same_tabpage('search', s)):
                 vim.command('call win_gotoid(bufwinid(' + str(b.number) + '))')
                 vim.command('call s:fold_open()')
@@ -5908,7 +5884,7 @@ def get_folded_list(start, end):
     search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
     if search_term == '':
         return ''
-    msg = THREAD_LISTS[search_term]['list'][start-1]
+    msg = THREAD_LISTS[search_term]['list'][start - 1]
     line = msg.get_folded_list().replace('\u200B', '      ')
     tags = copy.copy(msg._tags)
     while start < end:
@@ -6114,7 +6090,7 @@ def get_hide_header():
         'x400-recipients',
         'x400-trace',
         'xref'
-        ]
+    ]
     for h in vim.vars['notmuch_show_headers']:
         h = h.decode().lower()
         if h in hide:
@@ -6132,46 +6108,46 @@ class notmuchVimError(Exception):
 def set_defaults():
     if 'notmuch_folders' not in vim.vars:
         vim.vars['notmuch_folders'] = [
-                ['new',       '(tag:inbox and tag:unread)'],
-                ['inbox',     '(tag:inbox)'],
-                ['unread',    '(tag:unread)'],
-                ['draft',
-                    '((folder:draft or folder:.draft or tag:draft) not tag:sent not tag:Trash not tag:Spam)'],
-                ['attach',    '(tag:attachment)'],
-                ['6 month',   '(date:183days..now'],
-                ['',          ''],
-                ['All',       '(folder:/./)'],
-                ['Trash',     '(folder:.Trash or folder:Trash or tag:Trash)'],
-                ['New Search', ''],
-                ]
+            ['new', '(tag:inbox and tag:unread)'],
+            ['inbox', '(tag:inbox)'],
+            ['unread', '(tag:unread)'],
+            ['draft',
+                '((folder:draft or folder:.draft or tag:draft) not tag:sent not tag:Trash not tag:Spam)'],
+            ['attach', '(tag:attachment)'],
+            ['6 month', '(date:183days..now'],
+            ['', ''],
+            ['All', '(folder:/./)'],
+            ['Trash', '(folder:.Trash or folder:Trash or tag:Trash)'],
+            ['New Search', ''],
+        ]
     if 'notmuch_show_headers' not in vim.vars:
         vim.vars['notmuch_show_headers'] = [
-                 'From',
-                 'Resent-From',
-                 'Subject',
-                 'Date',
-                 'Resent-Date',
-                 'To',
-                 'Resent-To',
-                 'Cc',
-                 'Resent-Cc',
-                 'Bcc',
-                 'Resent-Bcc',
-                ]
+            'From',
+            'Resent-From',
+            'Subject',
+            'Date',
+            'Resent-Date',
+            'To',
+            'Resent-To',
+            'Cc',
+            'Resent-Cc',
+            'Bcc',
+            'Resent-Bcc',
+        ]
     if 'notmuch_show_hide_headers' not in vim.vars:
         vim.vars['notmuch_show_hide_headers'] = [
-                'Return-Path',
-                'Reply-To',
-                'Message-ID',
-                'Resent-Message-ID',
-                'In-Reply-To',
-                'References',
-                'Errors-To',
-                ]
+            'Return-Path',
+            'Reply-To',
+            'Message-ID',
+            'Resent-Message-ID',
+            'In-Reply-To',
+            'References',
+            'Errors-To',
+        ]
         # 何故か Content-Type, Content-Transfer-Encoding は取得できない
     # g:notmuch_show_headers 登録済み、virtual ヘッダは除く
-    for h in list(vim.vars['notmuch_show_headers']) + \
-            [b'Attach', b'Decrypted', b'Encrypt', b'Fcc', b'HTML', b'Signature']:
+    for h in list(vim.vars['notmuch_show_headers']) \
+            + [b'Attach', b'Decrypted', b'Encrypt', b'Fcc', b'HTML', b'Signature']:
         h = h.decode().lower()
         for i, j in enumerate(vim.vars['notmuch_show_hide_headers']):
             if h == j.decode().lower():
@@ -6240,9 +6216,9 @@ if VIM_MODULE:
     strdisplaywidth = vim.Function('strdisplaywidth')
 else:
     TEMP_DIR = os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))).replace('/', os.sep)+os.sep
-    ATTACH_DIR = TEMP_DIR+'attach'+os.sep
-    TEMP_DIR += '.temp'+os.sep
+        os.path.abspath(__file__))).replace('/', os.sep) + os.sep
+    ATTACH_DIR = TEMP_DIR + 'attach' + os.sep
+    TEMP_DIR += '.temp' + os.sep
     if not ('DISPLAY_ITEM' in globals()):
         DISPLAY_ITEM = ('subject', 'from', 'date')
     if not ('FOLDER_FORMAT' in globals()):  # フォルダー・リストのフォーマット
@@ -6257,9 +6233,9 @@ else:
     if not ('DATE_FORMAT' in globals()):
         DATE_FORMAT = '%Y-%m-%d %H:%M'
 if not ('DELETE_TOP_SUBJECT' in globals()):
-    DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' + \
-        r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' + \
-        r'|R[Ee][: ]+)*[　 ]*'
+    DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' \
+        + r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' \
+        + r'|R[Ee][: ]+)*[　 ]*'
 RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
 RE_END_SPACE = re.compile(r'\s*$')  # 行末空白削除
 RE_TAB2SPACE = re.compile('[　\t]+')  # タブと全角空白→スペース←スレッド・リストではできるだけ短く、タブはデリミタに使用予定
@@ -6267,12 +6243,12 @@ RE_DQUOTE = re.compile(r'\s*"([^"]+)"\s*')  # "に挟まれていれば挟まれ
 try:
     RE_SUBJECT = re.compile(DELETE_TOP_SUBJECT)
 except re.error:
-    print_warring('Error: Regurlar Expression.' +
-                  '\nReset g:notmuch_delete_top_subject: ' + DELETE_TOP_SUBJECT +
-                  '\nusing default settings.')
-    DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' + \
-        r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' + \
-        r'|R[Ee][: ]+)*[　 ]*'
+    print_warring('Error: Regurlar Expression.'
+                  + '\nReset g:notmuch_delete_top_subject: ' + DELETE_TOP_SUBJECT
+                  + '\nusing default settings.')
+    DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' \
+        + r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' \
+        + r'|R[Ee][: ]+)*[　 ]*'
     try:  # 先頭空白削除
         RE_SUBJECT = re.compile(DELETE_TOP_SUBJECT)
     except re.error:
