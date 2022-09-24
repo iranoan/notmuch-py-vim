@@ -5311,7 +5311,7 @@ def command_marked(cmdline):
                 'run_shell_program',
                 'toggle_tags',
             ]:
-                args = GLOBALS[cmd[0]](msg_id, search_term, cmd[1])
+                args = GLOBALS[cmd[0]](msg_id, search_term, [line, line] + cmd[1])
             else:
                 args = GLOBALS[cmd[0]](msg_id, cmd[1])
             cmd_arg[i][1] = args  # 引数が空の場合があるので実行した引数で置き換え
