@@ -509,7 +509,7 @@ def set_subcmd_start():
         cmd['mail-save'] = ['s:save_mail', 0x04]
         cmd['mail-send'] = ['s:send_vim', 0x0c]
         cmd['mark'] = ['s:mark_in_thread', 0x04]
-        cmd['mark-command'] = ['s:command_marked', 0x04]
+        cmd['mark-command'] = ['s:command_marked', 0x05]
         cmd['open'] = ['s:open_something', 0x04]
         cmd['view-previous'] = ['s:previous_page', 0x04]
         cmd['view-unread-page'] = ['s:next_unread_page', 0x04]
