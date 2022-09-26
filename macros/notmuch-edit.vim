@@ -9,4 +9,4 @@ setlocal formatoptions+=ql comments=n:>
 setlocal foldtext=FoldHeaderText()
 
 " keymap
-nnoremap <buffer><silent><leader>q : if len(getbufinfo()) == 1 \| q!  \|else \| bwipeout!  \|endif<CR>
+nnoremap <buffer><silent><leader>q : if len(getbufinfo()) == 1 \| quit!  \|else \| bwipeout!  \|endif<CR>
