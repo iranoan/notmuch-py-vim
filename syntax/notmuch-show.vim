@@ -9,7 +9,6 @@ endif
 let s:cpo_save = &cpoptions
 set cpoptions&vim
 
-syntax case match
 syntax case ignore
 
 syntax match   mailNewPartHead  contained contains=@NoSpell '^[\x0C]\zs.\+ part$'

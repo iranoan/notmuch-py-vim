@@ -38,7 +38,7 @@ function s:set_colorcolmun() abort
 	endfor
 	execute 'setlocal colorcolumn=' .. l:colorcolumn
 	if g:notmuch_visible_line == 2
-		execute 'highlight ColorColumn ' .. substitute(notmuch_py#get_highlight('Normal'), '\(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
+		execute 'highlight ColorColumn ' .. substitute(notmuch_py#get_highlight('Normal'), '\m\C\(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
 	endif
 endfunction
 

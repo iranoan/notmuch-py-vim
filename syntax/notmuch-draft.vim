@@ -13,7 +13,6 @@ set cpoptions&vim
 syntax cluster mailHeaderComp  contains=mailHeaderAddress,mailHeaderAttach,mailHeaderEncrypt,mailHeaderFcc,mailHeaderSignature
 syntax cluster mailHeaderFields2  contains=mailHeaderKey,mailHeaderShow,@mailHeaderComp,@mailHeaderFields
 
-syntax case match
 syntax case ignore
 
 syntax match   mailMultiHead     contained contains=@NoSpell '^--\(\([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$'
