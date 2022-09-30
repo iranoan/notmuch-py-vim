@@ -14,8 +14,8 @@ if !exists('g:ft_notmuch_show')
 		autocmd!
 		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show' |
 					\ setlocal concealcursor=nvic conceallevel=3 nolist|
-					\ call matchadd('Conceal', '[\x0C]') |
-					\ call matchadd('Conceal', '[\u200B]') |
+					\ call matchadd('Conceal', '\m[\x0C]') |
+					\ call matchadd('Conceal', '\m[\u200B]') |
 					\ endif
 		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-show' |
 					\ setlocal foldlevel=2 |

@@ -1025,7 +1025,7 @@ function s:close_boundary(header_end, close_start, boundary_start) abort " ヘ�
 	let l:i = a:boundary_start
 	while v:true
 		for l:str in getline(l:i, '$')
-			let l:boundary = matchstr(l:str, '\%(\<boundary=["'']\)\@<=[^"'']\+')
+			let l:boundary = matchstr(l:str, '\m\c\%(\<boundary=["'']\)\@<=[^"'']\+')
 			if l:boundary !=? ''
 				break
 			endif
@@ -1118,7 +1118,7 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 			return []
 		else
 			if match(a:CmdLine, 'Notmuch \+mark-command *') != -1
-				let l:match = matchend(a:CmdLine, 'Notmuch \+mark-command *')
+				let l:match = matchend(a:CmdLine, '\m\CNotmuch \+mark-command *')
 				return s:complete_command(strpart(a:CmdLine, l:match), a:CursorPos - l:match, v:true)
 			elseif l:cmd ==# 'run'
 				let l:snippet = py3eval('get_sys_command(''' .. s:vim_escape(a:CmdLine) .. ''' , ''' .. s:vim_escape(a:ArgLead) .. ''')')
@@ -1446,7 +1446,7 @@ function FoldThread(n) abort " スレッド・リストの折畳設定
 	elseif a:n == 2
 		let l:str = substitute(l:str, '^[^\t]\+\t[^\t]\+\t[^\t]\+\t  ', '', 'g')
 	endif
-	let l:depth = strlen(matchstr(l:str, '^ \+')) / 2
+	let l:depth = strlen(matchstr(l:str, '\m^ \+')) / 2
 	if l:depth
 		return l:depth + 1
 	else
