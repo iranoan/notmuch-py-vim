@@ -1,4 +1,5 @@
 " notmuch-draft/show common part
+scriptversion 4
 
 " Syntax clusters
 syntax cluster mailHeaderFields  contains=mailHeaderKey,mailHeaderEmail,@mailLinks
@@ -6,46 +7,46 @@ syntax cluster mailLinks         contains=mailURL,mailEmail
 syntax cluster mailQuoteExps     contains=mailQuoteExp1,mailQuoteExp2,mailQuoteExp3,mailQuoteExp4,mailQuoteExp5,mailQuoteExp6
 
 execute 'syntax region mailHideHeader contained contains=@mailHeaderFields,@NoSpell,@mailHeaderComp '
-			\ . 'start=''^\(' . py3eval('get_hide_header()') . '\):'' skip=''^\s'' '
-			\ . 'end=''' . '^\(' . join(g:notmuch_show_headers, '\|') . '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
-			\ . 'end=''^$''  fold'
+			\ .. 'start=''^\(' .. py3eval('get_hide_header()') .. '\):'' skip=''^\s'' '
+			\ .. 'end=''' .. '^\(' .. join(g:notmuch_show_headers, '\|') .. '\|\(Del-\)\?\(Attach\|HTML\)\|Fcc\|\(Not-\)\?Decrypted\|Encrypt\|\(Good-\|Bad-\)\?Signature\):''me=s-1 '
+			\ .. 'end=''^$'' fold'
 execute 'syntax region mailHeaderShow contained contains=mailHeaderKey,mailHeaderEmail,mailEmail,@NoSpell,@mailHeaderComp '
-			\ . 'start=''^\(' . join(g:notmuch_show_headers, '\|') . '\):\s*'' skip=''^\s'' end=''$'''
+			\ .. 'start=''^\(' .. join(g:notmuch_show_headers, '\|') .. '\):\s*'' skip=''^\s'' end=''$'''
 
 " Anything in the header between < and > is an email address
-syntax match  mailHeaderEmail contained contains=@NoSpell '<.\{-}>'
+syntax match mailHeaderEmail contained contains=@NoSpell '<.\{-}>'
 
 " Mail Signatures. (Begin with "-- ", end with change in quote level)
 syntax region mailSignature keepend contains=@mailLinks,@mailQuoteExps start='^--\s$' end='^$' end='^\(> \?\)\+'me=s-1 fold
 syntax region mailSignature keepend contains=@mailLinks,@mailQuoteExps,@NoSpell start='^\z(\(> \?\)\+\)--\s$' end='^\z1$' end='^\z1\@!'me=s-1 end='^\z1\(> \?\)\+'me=s-1 fold
 
 " Treat verbatim Text special.
-syntax region  mailVerbatim contains=@NoSpell keepend start='^#v+$' end='^#v-$' fold
-syntax region  mailVerbatim contains=@mailQuoteExps,@NoSpell keepend start='^\z(\(> \?\)\+\)#v+$' end='\z1#v-$' fold
+syntax region mailVerbatim contains=@NoSpell keepend start='^#v+$' end='^#v-$' fold
+syntax region mailVerbatim contains=@mailQuoteExps,@NoSpell keepend start='^\z(\(> \?\)\+\)#v+$' end='\z1#v-$' fold
 
 " URLs start with a known protocol or www,web,w3.
 syntax match mailURL contains=@NoSpell '\v<(((https?|ftp|gopher)://|(mailto|file|news):)[^' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^' \t<>"]+)[a-z0-9/]'
 syntax match mailEmail contains=@NoSpell '\v[_=a-z\./+0-9-]+\@[a-z0-9._-]+\a{2}'
 
 " Make sure quote markers in regions (header / signature) have correct color
-syntax match mailQuoteExp1 contained '\v^(\> ?)'
-syntax match mailQuoteExp2 contained '\v^(\> ?){2}'
-syntax match mailQuoteExp3 contained '\v^(\> ?){3}'
-syntax match mailQuoteExp4 contained '\v^(\> ?){4}'
-syntax match mailQuoteExp5 contained '\v^(\> ?){5}'
-syntax match mailQuoteExp6 contained '\v^(\> ?){6}'
+syntax match mailQuoteExp1 contained '\v^[ \t]*(\> ?)'
+syntax match mailQuoteExp2 contained '\v^[ \t]*(\> ?){2}'
+syntax match mailQuoteExp3 contained '\v^[ \t]*(\> ?){3}'
+syntax match mailQuoteExp4 contained '\v^[ \t]*(\> ?){4}'
+syntax match mailQuoteExp5 contained '\v^[ \t]*(\> ?){5}'
+syntax match mailQuoteExp6 contained '\v^[ \t]*(\> ?){6}'
 
 " Even and odd quoted lines. Order is important here!
-syntax region  mailQuoted6  keepend contains=mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{5}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted5  keepend contains=mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{4}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted4  keepend contains=mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{3}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted3  keepend contains=mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{2}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted2  keepend contains=mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z(\(\([a-z]\+>\|[]>]\)[ \t]*\)\{1}\([a-z]\+>\|[]>]\)\)' end='^\z1\@!' fold
-syntax region  mailQuoted1  keepend contains=mailQuoted2,mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([a-z]\+>\|[]>]\)' end='^\z1\@!' fold
+syntax region mailQuoted6 keepend contains=mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([ \t]*\(\([a-z]\+>\|[]>]\)[ \t]*\)\{5}\([ \t]*[a-z]\+>\|[ \t]*[]>]\)\)' end='^\z1\@!' fold
+syntax region mailQuoted5 keepend contains=mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([ \t]*\(\([a-z]\+>\|[]>]\)[ \t]*\)\{4}\([ \t]*[a-z]\+>\|[ \t]*[]>]\)\)' end='^\z1\@!' fold
+syntax region mailQuoted4 keepend contains=mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([ \t]*\(\([a-z]\+>\|[]>]\)[ \t]*\)\{3}\([ \t]*[a-z]\+>\|[ \t]*[]>]\)\)' end='^\z1\@!' fold
+syntax region mailQuoted3 keepend contains=mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([ \t]*\(\([a-z]\+>\|[]>]\)[ \t]*\)\{2}\([ \t]*[a-z]\+>\|[ \t]*[]>]\)\)' end='^\z1\@!' fold
+syntax region mailQuoted2 keepend contains=mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([ \t]*\(\([a-z]\+>\|[]>]\)[ \t]*\)\{1}\([ \t]*[a-z]\+>\|[ \t]*[]>]\)\)' end='^\z1\@!' fold
+syntax region mailQuoted1 keepend contains=mailQuoted2,mailQuoted3,mailQuoted4,mailQuoted5,mailQuoted6,mailVerbatim,mailHeader,mailHeader2,@mailLinks,mailSignature,@NoSpell start='^\z([ \t]*[a-z]\+>\|[ \t]*[]>]\)' end='^\z1\@!' fold
 
 " Need to sync on the header. Assume we can do that within 100 lines
 if exists('mail_minlines')
-	execute 'syn sync minlines=' . mail_minlines
+	execute 'syn sync minlines=' .. mail_minlines
 else
 	syntax sync minlines=100
 endif
