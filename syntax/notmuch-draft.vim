@@ -1,5 +1,6 @@
 " Vim syntax file
 " Language: notmuch-draft window
+scriptversion 4
 
 " Quit when a syntax file was already loaded
 if exists('b:current_syntax')
@@ -27,7 +28,7 @@ syntax region mailHeaderFcc       contained contains=mailHeaderKey,@NoSpell star
 syntax region mailHeaderSignature contained contains=mailHeaderKey,@NoSpell start='^Signature:\s*.\+' end='$'
 syntax region mailHeader2                   contains=mailHideHeader,@mailHeaderFields2,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
 
-execute 'source ' . expand('<sfile>:p:h:h') . '/macros/syntax-common.vim'
+execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
 
 highlight def link mailHeaderAddress   mailHeader
 highlight def link mailHeaderAttach    mailHeader

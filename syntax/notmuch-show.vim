@@ -1,5 +1,6 @@
 " Vim syntax file
 " Language: notmuch-show window
+scriptversion 4
 
 " Quit when a syntax file was already loaded
 if exists('b:current_syntax')
@@ -21,7 +22,7 @@ syntax match   mailHeaderKey    contained contains=mailHeaderEmail,mailEmail,@No
 " syntax region  mailHeader       contains=@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+[\u200B]' skip='^\s' end='^[^:]*\n' fold
 syntax region mailHeader                 contains=mailHideHeader,@mailHeaderFields,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
 
-execute 'source ' . expand('<sfile>:p:h:h') . '/macros/syntax-common.vim'
+execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
 
  " marddown
 syntax cluster markdownInline contains=markdownLinkText,markdownItalic,markdownBold
