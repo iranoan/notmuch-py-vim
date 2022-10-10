@@ -9,7 +9,7 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
-2022/09/30 Ver.1.35~
+2022/10/06 Ver.1.36~
 * 仕様変更
   行頭に空白が有っても続く文字が > 等なら引用行扱いとする
 

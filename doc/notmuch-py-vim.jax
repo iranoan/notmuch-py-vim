@@ -581,8 +581,7 @@ g:notmuch_from                                       *g:notmuch_from*
 	Default: `[]`
 
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で本文部分にカーソ
-	  ル移動した時、From ヘッダが空の時に書き
-	  込む内容
+	  ル移動した時、From ヘッダが空の時に書き込む内容
 	* `[]` だと Notmuch の user.primary_email 設定 (~/.notmuch_config の次
 		のような記載部分) が使われる >
 			[user]
