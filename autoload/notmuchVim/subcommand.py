@@ -3450,15 +3450,16 @@ def send_str(msg_data, msgid):
                         continue
             else:
                 part = attach_binary(path, maintype, subtype, name_param, file_param)
-                try:
-                    import chardet
-                    charset = '; charset="' + chardet.detect(bs)['encoding'].lower() + '"'
-                except ImportError:
+                import chardet
+                charset = chardet.detect(bs)['encoding']
+                if charset is None:
                     charset = ''
-                    pass
-                except ModuleNotFoundError:
-                    charset = ''
-                    pass
+                else:
+                    try:
+                        charset = '; charset="' + charset.lower() + '"'
+                    except (ImportError, ModuleNotFoundError):
+                        charset = ''
+                        pass
             part.replace_header('Content-Type', 'text/' + subtype + charset
                                 + '; name="' + name_param['name'] + '"')
         else:
