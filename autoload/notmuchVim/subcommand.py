@@ -3328,6 +3328,8 @@ def marge_tag(msg_id, send):
         for t in msg.get_tags():
             m_tag.append(t)
         for t in m_tag:
+            if t == 'attachment':
+                continue
             if not (t in b_tag):
                 del_tag.append(t)
         delete_msg_tags(msg, del_tag)
@@ -3760,14 +3762,13 @@ def send_str(msg_data, msgid):
                 msg_data += '\nDate: ' + date \
                     + '\nContent-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: 8bit'
                 msg_data += '\nMessage-ID: ' + msg_id
-                if attachments is not None:
-                    for attachment in attachments:
-                        msg_data += '\nX-Attach: ' + attachment
+                for attachment in attachments:
+                    msg_data += '\nX-Attach: ' + attachment
                 msg_data += '\n\n' + mail_context
                 fp.write(msg_data)
             else:
                 fp.write(msg_send.as_string())
-        if attachments is None:
+        if not attachments:
             add_tag = [SENT_TAG]
         else:
             add_tag = [SENT_TAG, 'attachment']
