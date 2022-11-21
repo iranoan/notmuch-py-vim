@@ -3315,6 +3315,13 @@ def marge_tag(msg_id, send):
     else:
         b_v = b.vars['notmuch']
         b_tag = b_v['tags'].decode().split(' ')
+        b_tag = ['unread' if i == '📩' else i for i in b_tag]
+        b_tag = ['draft' if i == '📝' else i for i in b_tag]
+        b_tag = ['flagged' if i == '⭐' else i for i in b_tag]
+        b_tag = ['Trash' if i == '🗑' else i for i in b_tag]
+        b_tag = ['attachment' if i == '📎' else i for i in b_tag]
+        b_tag = ['encrypted' if i == '🔑' else i for i in b_tag]
+        b_tag = ['signed' if i == '🖋️' else i for i in b_tag]
         if send:
             if 'draft' in b_tag:
                 b_tag.remove('draft')
