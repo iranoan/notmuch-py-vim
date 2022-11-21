@@ -2194,8 +2194,10 @@ def get_msg_tags_diff(tmp):
 
 
 def vim_input(ls, s):
-    """ vim のインプット関数を呼び出しリストで取得 """
-    # リストが空なら True
+    """
+    vim のインプット関数を呼び出しリストで取得
+    リストが空なら True
+    """
     if ls == []:
         for i in vim.eval('input(' + s + ')').split():
             ls.append(i)
@@ -3261,8 +3263,10 @@ def open_original(msg_id, search_term, args):
 
 
 def send_mail(filename):
-    """ ファイルをメールとして送信←元のファイルは削除 """
-    # 添付ファイルのエンコードなどの変換済みデータを送信済み保存
+    """
+    ファイルをメールとして送信←元のファイルは削除
+    添付ファイルのエンコードなどの変換済みデータを送信済み保存
+    """
     if VIM_MODULE:
         for b in vim.buffers:
             if b.name == filename:  # Vim で開いている
@@ -3299,8 +3303,10 @@ def send_vim_buffer():
 
 
 def marge_tag(msg_id, send):
-    """ 下書きバッファと notmuch database のタグをマージ """
-    # send 送信時か?→draft, unread タグは削除
+    """
+    下書きバッファと notmuch database のタグをマージ
+    send 送信時か?→draft, unread タグは削除
+    """
     b = vim.current.buffer
     DBASE.open(PATH)
     msg = change_tags_before(msg_id)
@@ -3338,7 +3344,7 @@ def get_flag(s, search):
 
 
 def send_str(msg_data, msgid):
-    """ 文字列をメールとして保存し設定従い送信済みに保存 """
+    """ 文字列をメールとして保存し設定に従い送信済みに保存 """
     PGP_ENCRYPT = 0x10
     PGP_SIGNATURE = 0x20
     PGPMIME_ENCRYPT = 0x100
@@ -4486,8 +4492,10 @@ def after_make_draft(b, msg, add_head):
 
 
 def save_draft():
-    """ 下書きバッファと Notmuch database のタグをマージと notmuch-folders の更新 """
-    # 下書き保存時に呼び出される
+    """
+    下書きバッファと Notmuch database のタグをマージと notmuch-folders の更新
+    下書き保存時に呼び出される
+    """
     notmuch_new(False)
     b = vim.current.buffer
     msg_id = b.vars['notmuch']['msg_id'].decode()
@@ -4555,8 +4563,10 @@ def get_mail_body(active_win):
 
 
 def set_reference(b, msg, flag):
-    """ References, In-Reply-To, Fcc 追加 """
-    # In-Reply-To は flag == True
+    """
+    References, In-Reply-To, Fcc 追加
+    In-Reply-To は flag == True
+    """
     re_msg_id = ' <' + msg.get_header('Message-ID') + '>'
     b.append('References: ' + msg.get_header('References') + re_msg_id)
     if flag:
@@ -5063,8 +5073,11 @@ def is_draft():
 
 
 def do_mail(cmd, args):
-    """ mail に対しての処理、folders では警告表示 """
-    # 行番号などのコマンド引数
+    """
+    cmd:mail に対しての処理
+    args:行番号などのコマンド引数
+    folders では警告表示
+    """
     b = vim.current.buffer
     bnum = b.number
     b_v = b.vars['notmuch']
@@ -5950,9 +5963,11 @@ def buf_kind():
 
 
 def get_hide_header():
-    """ メールファイルを開いた時に折り畳み対象となるヘッダの Vim の正規表現生成 """
-    # 一般的なヘッダから g:notmuch_show_headers は除く
-    # ただし X- で始まるヘッダは常に折り畳み対象
+    """
+    メールファイルを開いた時に折り畳み対象となるヘッダの Vim の正規表現生成
+    一般的なヘッダから g:notmuch_show_headers は除く
+    ただし X- で始まるヘッダは常に折り畳み対象
+    """
     hide = [
         'accept-language',
         'alternate-recipient',
