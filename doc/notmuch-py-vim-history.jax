@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/11/21 Ver.1.38~
+* バグ修正
+	- 送信メールの attachment タグの処理
+
 2022/11/12 Ver.1.37~
 * テキスト・ファイルの文字コードが判定できない時の処理見直し
 
