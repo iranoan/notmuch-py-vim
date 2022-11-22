@@ -3101,7 +3101,7 @@ def get_save_filename(path):
             return ''
         elif os.path.isfile(path):
             if vim.bindeval('s:is_gtk()'):
-                over_write = 'confirm("Overwrite?", "(&Y)Yes\n(&N)No", 1, "Question")'
+                over_write = 'confirm("Overwrite?", "Yes(&Y)\nNo(&N)", 1, "Question")'
             else:
                 over_write = 'confirm("Overwrite?", "&Yes\n&No", 1, "Question")'
             over_write = vim.bindeval(over_write)
@@ -3360,7 +3360,7 @@ def marge_tag(msg_id, send):
         for t in msg.get_tags():
             m_tag.append(t)
         for t in m_tag:
-            if t == 'attachment':
+            if t in ['attachment', 'encrypted', 'signed']:
                 continue
             if not (t in b_tag):
                 del_tag.append(t)
@@ -4664,7 +4664,7 @@ def set_resent_after(n):
     to, h_from = set_from()
     if to:
         if vim.bindeval('s:is_gtk()'):
-            s = 'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n(&C)Cancel", 1, "Question")'
+            s = 'confirm("Mail: Send or Write and exit?", "&Send\n&Write\nCancel(&C)", 1, "Question")'
         else:
             s = 'confirm("Mail: Send or Write and exit?", "&Send\n&Write\n&Cancel", 1, "Question")'
         s = vim.bindeval(s)
@@ -4996,7 +4996,7 @@ def import_mail(args):
         vim.command('redraw')
 
 
-def select_file(msg_id, question):
+def select_file(msg_id, question, s):
     """ get mail file list """
     def get_attach_info(f):
         with open(f, 'rb') as fp:
@@ -5024,19 +5024,19 @@ def select_file(msg_id, question):
     if msg_id == '':
         msg_id = get_msg_id()
         if msg_id == '':
-            return [], '', 0
+            return [], '', 0, ''
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
     if msg is None:  # すでにファイルが削除されているとき
         print('The email has already been completely deleted.')
         DBASE.close()
-        return [], '', 0
+        return [], '', 0, ''
     try:
         subject = msg.get_header('Subject')
     except notmuch.errors.NullPointerError:  # すでにファイルが削除されているとき
         print('The email has already been completely deleted.')
         DBASE.close()
-        return [], '', 0
+        return [], '', 0, ''
     prefix = len(PATH) + 1
     files = []
     lst = ''
@@ -5054,27 +5054,47 @@ def select_file(msg_id, question):
         if os.path.isfile(f):
             fmt = '{0:<' + str(len_i) + '}|{1}{2:<5}{3:>' + str(size) + '} B| {4}\n'
             attach = get_attach_info(f)
+            date = datetime.datetime.fromtimestamp(os.path.getmtime(f))
+            f_size = os.path.getsize(f)
             lst += fmt.format(
                 str(i + 1),
-                datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
+                date.strftime(DATE_FORMAT),
                 attach,
-                str(os.path.getsize(f)),
+                str(f_size),
                 f[prefix:])
-            files.append(f)
+            files.append({'name': f, 'date': date, 'size': int(f_size)})
         else:
             print_warring('Already Delete. ' + f[prefix:])
     DBASE.close()
     if len(files) == 1:
-        return [files[0]], subject, 1
+        return files, subject, 1, ''
     i = i + 1
     while True:
-        s = vim.eval('input("' + question
-                     + ' [1-' + str(i) + ']/[A]ll/[Enter]:[C]ancel\n' + lst + '")')
-        if s == '' or s == 'C' or s == 'c':
-            return [], '', 0
+        if s == '':
+            s = vim.eval('input("' + question
+                         + ' [1-' + str(i)
+                         + ']/[N]ewest/[O]ldest/[B]iggest/[S]mallest/[A]ll/[Enter]:[C]ancel\n'
+                         + lst + '")')
+        if s == '':
+            return [], '', 0, ''
+        else:
+            s = s[0]
+        if s == 'C' or s == 'c':
+            return [], '', 0, ''
         elif s == 'A' or s == 'a':
-            s = 'A'
-            break
+            return files, subject, -1, ''
+        elif s == 'B' or s == 'b':
+            return files, subject, [i for i, x in enumerate(files)
+                                    if x['size'] == max([x['size'] for x in files])][0] + 1, 'B'
+        elif s == 'S' or s == 's':
+            return files, subject, [i for i, x in enumerate(files)
+                                    if x['size'] == min([x['size'] for x in files])][0] + 1, 'S'
+        elif s == 'N' or s == 'n':
+            return files, subject, [i for i, x in enumerate(files)
+                                    if x['date'] == max([x['date'] for x in files])][0] + 1, 'N'
+        elif s == 'O' or s == 'o':
+            return files, subject, [i for i, x in enumerate(files)
+                                    if x['date'] == min([x['date'] for x in files])][0] + 1, 'O'
         else:
             try:
                 s = int(s)
@@ -5086,10 +5106,7 @@ def select_file(msg_id, question):
             else:
                 vim.command('echo "\n" | redraw')
                 continue
-    if s == 'A':
-        return files, subject, len(files)
-    else:
-        return [files[s - 1]], subject, len(files)
+    return files, subject, s, ''
 
 
 def is_draft():
@@ -5141,28 +5158,49 @@ def do_mail(cmd, args):
 
 
 def delete_mail(msg_id, s, args):
-    """ s, args はダミー """
-    files, tmp, num = select_file(msg_id, 'Select delete file')
-    if num == 1:
+    """ s はダミー """
+    if len(args) > 2:
+        key = args[2]
+    else:
+        key = ''
+    files, tmp, num, key = select_file(msg_id, 'Select file to keep.\nTo lelete all mail, input a.', key)
+    if not num:
+        return [0, 0, key]
+    if len(files) == 1:
         if vim.bindeval('s:is_gtk()'):
-            s = 'confirm("Delete ' + files[0] + '?", "(&Y)Yes\n(&N)No", 2, "Question")'
+            s = 'confirm("Delete ' + files[0]['name'] + '?", "Yes(&Y)\nNo(&N)", 2, "Question")'
         else:
-            s = 'confirm("Delete ' + files[0] + '?", "&Yes\n&No", 2, "Question")'
+            s = 'confirm("Delete ' + files[0]['name'] + '?", "&Yes\n&No", 2, "Question")'
         s = vim.bindeval(s)
         if s != 1:
-            return
+            return [0, 0, key]
+    if num != -1:
+        del files[num - 1]
     for f in files:
-        os.remove(f)
+        os.remove(f['name'])
     if not notmuch_new(True):
         print_warring('Can\'t update database.')
+    return [0, 0, key]
 
 
 def export_mail(msg_id, s, args):
     """ s, args はダミー """
-    files, subject, tmp = select_file(msg_id, 'Select export file')
+    if len(args) > 2:
+        key = args[2]
+    else:
+        key = ''
+    files, subject, num, key = select_file(msg_id, 'Select export file', key)
+    if not num:
+        return [0, 0, key]
     s_dir = get_save_dir()
     subject = s_dir + re.sub(r'[\\/:\*\? "<>\|]', '-',
                              RE_TOP_SPACE.sub('', RE_END_SPACE.sub('', subject)))
+    if num != -1:
+        path = subject + '.eml'
+        path = get_save_filename(path)
+        if path != '':
+            shutil.copyfile(files[num - 1]['name'], path)
+        return [0, 0, key]
     for i, f in enumerate(files):
         if i:
             path = subject + '(' + str(i) + ').eml'
@@ -5170,7 +5208,8 @@ def export_mail(msg_id, s, args):
             path = subject + '.eml'
         path = get_save_filename(path)
         if path != '':
-            shutil.copyfile(f, path)
+            shutil.copyfile(f['name'], path)
+    return [0, 0, key]
 
 
 def get_mail_subfolders(root, folder, lst):
