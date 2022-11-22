@@ -2483,6 +2483,28 @@ def get_part_deocde(part):
 
 
 def get_attach_info(line):
+    def same_name():
+        # バッファの行番号毎に同一ファイル名の出現順序を返す
+        line_name = {}  # 行番号とファイル名取得
+        for i, j in b_attachments.items():
+            name = j[0].decode('utf-8')
+            i = i.decode()
+            if j[0] == '':
+                name = 'noname'
+            line_name[i] = name
+        line_name_sorted = {}  # 行番号とファイル名を行番号順にソート
+        for i in sorted(line_name.keys(), key=int):
+            line_name_sorted[i] = line_name[i]
+        line_count = {}
+        name_count = {}
+        for i, j in line_name_sorted.items():
+            if j in name_count:
+                name_count[j] += 1
+            else:
+                name_count[j] = 0
+            line_count[i] = name_count[j]
+        return line_count
+
     b_v = vim.current.buffer.vars['notmuch']
     try:
         search_term = b_v['search_term'].decode()
@@ -2505,7 +2527,10 @@ def get_attach_info(line):
     if part_num == [-1]:
         return name, None, None, dirORmes_str.decode('utf-8')
     global ATTACH_DIR
-    tmpdir = ATTACH_DIR + sha256(b_v['msg_id']).hexdigest() + os.sep + str(part_num) + os.sep
+    tmpdir = ATTACH_DIR + sha256(b_v['msg_id']).hexdigest() + os.sep
+    count = same_name()
+    if count[line]:
+        name = os.path.splitext(name)[0] + '-' + str(count[line]) + os.path.splitext(name)[1]
     if len(part_num) >= 2:
         dirORmes_str = email.message_from_bytes(dirORmes_str)
         decode = get_part_deocde(dirORmes_str)
