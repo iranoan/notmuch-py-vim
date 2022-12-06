@@ -20,7 +20,7 @@ function s:do_use_new_buffer(type) abort " 新規のバッファを開くか?
 	" notmuch-folder の時だけバッファが空なら開き方に関係なく今のバッファをそのまま使う
 	return !(
 				\    a:type ==# 'folders'
-				\ && wordcount()['bytes'] == 0
+				\ && wordcount().bytes == 0
 				\ )
 endfunction
 
@@ -30,7 +30,7 @@ function s:new_buffer(type, search_term) abort
 			execute g:notmuch_open_way[a:type]
 		catch /^Vim\%((\a\+)\)\=:E36:/
 			echomsg 'execute only command'
-			call win_gotoid(bufwinid(s:buf_num['folders']))
+			call win_gotoid(bufwinid(s:buf_num.folders))
 			silent only
 			execute g:notmuch_open_way[a:type]
 		endtry
@@ -93,18 +93,18 @@ function s:change_exist_tabpage_core(bufnum) abort
 endfunction
 
 function s:make_folders_list() abort
-	if has_key(s:buf_num, 'folders') " && bufname(s:buf_num['folders']) !=? ''
-		call s:change_exist_tabpage_core(s:buf_num['folders'])
-		if bufwinid(s:buf_num['folders']) == -1
+	if has_key(s:buf_num, 'folders') " && bufname(s:buf_num.folders) !=? ''
+		call s:change_exist_tabpage_core(s:buf_num.folders)
+		if bufwinid(s:buf_num.folders) == -1
 			py3 reopen('folders', '')
 		else
-			call win_gotoid(bufwinid(s:buf_num['folders']))
+			call win_gotoid(bufwinid(s:buf_num.folders))
 		endif
 		call s:close_notmuch('thread')
 		call s:close_notmuch('show')
 		call s:close_notmuch('search')
 		call s:close_notmuch('view')
-		let open_way = g:notmuch_open_way['folders']
+		let open_way = g:notmuch_open_way.folders
 		if open_way ==# 'enew' || open_way ==# 'tabedit'
 			silent only
 		endif
@@ -120,7 +120,7 @@ function s:make_folders_list() abort
 endfunction
 
 function s:make_thread_list() abort " スレッド・バッファを用意するだけ
-	if has_key(s:buf_num, 'thread') " && bufname(s:buf_num['thread']) !=? ''
+	if has_key(s:buf_num, 'thread') " && bufname(s:buf_num.thread) !=? ''
 		py3 reopen('thread', '')
 		return
 	endif
@@ -129,15 +129,15 @@ function s:make_thread_list() abort " スレッド・バッファを用意する
 	call s:set_thread()
 	augroup NotmuchMakeThread
 		autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num['thread']
+		autocmd BufWipeout <buffer> unlet s:buf_num.thread
 	augroup END
-	if g:notmuch_open_way['show'] !=? 'enew' && g:notmuch_open_way['show'] !=? 'tabedit'
+	if g:notmuch_open_way.show !=? 'enew' && g:notmuch_open_way.show !=? 'tabedit'
 		call s:make_show()
 	endif
 endfunction
 
 function s:make_search_list(search_term) abort
-	if has_key(s:buf_num['search'], a:search_term)
+	if has_key(s:buf_num.search, a:search_term)
 		py3 reopen('search', vim.bindeval('a:search_term'))
 		return
 	endif
@@ -147,9 +147,9 @@ function s:make_search_list(search_term) abort
 	call s:set_thread()
 	augroup NotmuchMakeSearch
 		" autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd BufWipeout <buffer> unlet s:buf_num['search'][b:notmuch.search_term]
+		autocmd BufWipeout <buffer> unlet s:buf_num.search[b:notmuch.search_term]
 	augroup END
-	if g:notmuch_open_way['view'] !=? 'enew' && g:notmuch_open_way['view'] !=? 'tabedit'
+	if g:notmuch_open_way.view !=? 'enew' && g:notmuch_open_way.view !=? 'tabedit'
 		call s:make_view(a:search_term)
 	endif
 endfunction
@@ -187,7 +187,7 @@ function s:open_thread(select_unread, remake) abort " 実際にスレッドを�
 endfunction
 
 function s:make_show() abort " メール・バッファを用意するだけ
-	if has_key(s:buf_num, 'show') " && bufname(s:buf_num['show']) !=? ''
+	if has_key(s:buf_num, 'show') " && bufname(s:buf_num.show) !=? ''
 		py3 reopen('show','')
 		return
 	endif
@@ -196,12 +196,12 @@ function s:make_show() abort " メール・バッファを用意するだけ
 	silent file! notmuch-show
 	augroup NotmuchMakeShow
 		autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num['show']
+		autocmd BufWipeout <buffer> unlet s:buf_num.show
 	augroup END
 endfunction
 
 function s:make_view(search_term) abort " メール・バッファを用意するだけ
-	if has_key(s:buf_num['view'], a:search_term)
+	if has_key(s:buf_num.view, a:search_term)
 		py3 reopen('view', vim.eval('a:search_term'))
 		return
 	endif
@@ -211,7 +211,7 @@ function s:make_view(search_term) abort " メール・バッファを用意す�
 	call s:set_show()
 	augroup NotmuchMakeView
 		" autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num['view'][b:notmuch.search_term]
+		autocmd BufWipeout <buffer> unlet s:buf_num.view[b:notmuch.search_term]
 	augroup END
 endfunction
 
@@ -243,12 +243,12 @@ function s:next_unread_page(args) abort " メール最後の行が表示され�
 	if !has_key(s:buf_num, 'show')
 		call s:make_show()
 	endif
-	if win_gotoid(bufwinid(s:buf_num['show'])) == 0
+	if win_gotoid(bufwinid(s:buf_num.show)) == 0
 		if has_key(s:buf_num, 'view')
 					\ && has_key(b:notmuch, 'search_term')
 					\ && b:notmuch.search_term !=# ''
 					\ && has_key(s:buf_num.view, b:notmuch.search_term)
-			call win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
+			call win_gotoid(bufwinid(s:buf_num.view[b:notmuch.search_term]))
 		else
 			py3 reopen('show', '')
 		endif
@@ -304,12 +304,12 @@ function s:previous_page(args) abort
 	if !has_key(s:buf_num, 'show')
 		call s:make_show()
 	endif
-	if win_gotoid(bufwinid(s:buf_num['show'])) == 0
+	if win_gotoid(bufwinid(s:buf_num.show)) == 0
 		if has_key(s:buf_num, 'view')
 					\ && has_key(b:notmuch, 'search_term')
 					\ && b:notmuch.search_term !=# ''
 					\ && has_key(s:buf_num.view, b:notmuch.search_term)
-			call win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
+			call win_gotoid(bufwinid(s:buf_num.view[b:notmuch.search_term]))
 		else
 			py3 reopen('show', '')
 		endif
@@ -556,19 +556,19 @@ function s:start_notmuch() abort
 		let s:buf_num = {}
 	endif
 	if !has_key(s:buf_num, 'search')
-		let s:buf_num['search'] = {}
+		let s:buf_num.search = {}
 	endif
 	if !has_key(s:buf_num, 'view')
-		let s:buf_num['view'] = {}
+		let s:buf_num.view = {}
 	endif
 	call s:import()
 	py3 set_subcmd_start()
 	execute 'cd ' .. py3eval('get_save_dir()')
 	call s:make_folders_list()
 	call s:set_title_etc()
-	if g:notmuch_open_way['thread'] !=? 'enew' && g:notmuch_open_way['thread'] !=? 'tabedit'
+	if g:notmuch_open_way.thread !=? 'enew' && g:notmuch_open_way.thread !=? 'tabedit'
 		call s:make_thread_list()
-		call win_gotoid(bufwinid(s:buf_num['folders']))
+		call win_gotoid(bufwinid(s:buf_num.folders))
 	endif
 	" guifg=red ctermfg=red
 	" 次の変数は Python スクリプトを読み込んでしまえばもう不要←一度閉じて再び開くかもしれない
@@ -608,7 +608,7 @@ function! MakeGUITabline() abort
 	" このタブページに変更のあるバッファは '+' を追加する
 	for l:bufnr in l:bufnrlist
 		if getbufvar(l:bufnr, '&modified')
-					\ && !( match(getbufinfo(l:bufnr)[0]['name'], '!/') == 0 && swapname(l:bufnr) ==# '' )
+					\ && !( match(getbufinfo(l:bufnr)[0].name, '!/') == 0 && swapname(l:bufnr) ==# '' )
 					" 名前が !/bin/bash 等で !/ ではじまり、スワップ・ファイルがなければ :terminal の可能性が高い
 			let l:label ..= '+'
 			break
@@ -622,16 +622,16 @@ function! MakeGUITabline() abort
 		return '%N|' .. l:label .. ' %t'
 	else
 		let l:type = py3eval('buf_kind()')
-		let l:vars = getbufinfo(bufnr())[0]['variables']
+		let l:vars = getbufinfo(bufnr())[0].variables
 		if l:type ==# 'edit'
 			return '%N| ' .. l:label .. '%{b:notmuch.subject} %{b:notmuch.date}'
 		elseif l:type ==# 'show'
 			if py3eval('is_same_tabpage("thread", "")')
-				return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch'])
+				return s:get_gui_tab(getbufinfo(s:buf_num.thread)[0].variables.notmuch)
 			else
 				return '%N| ' .. l:label .. '%{b:notmuch.subject} %{b:notmuch.date}'
 			endif
-		elseif l:type ==# 'view' && has_key(l:vars['notmuch'], 'search_term')
+		elseif l:type ==# 'view' && has_key(l:vars.notmuch, 'search_term')
 			if py3eval('is_same_tabpage("search", ''' .. s:vim_escape(b:notmuch.search_term) .. ''')')
 				return '%N| notmuch [' .. b:notmuch.search_term .. ']%<'
 			else
@@ -641,18 +641,18 @@ function! MakeGUITabline() abort
 			" return '%N| ' .. l:label .. 'notmuch %t %{b:notmuch.subject}%<'
 			return '%N| ' .. l:label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
 		elseif l:type ==# 'search'
-			return s:get_gui_tab(l:vars['notmuch'])
+			return s:get_gui_tab(l:vars.notmuch)
 		elseif has_key(s:buf_num, 'thread') " notmuch-folder では notmuch-search と同じにするのを兼ねている
-			return s:get_gui_tab(getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch'])
+			return s:get_gui_tab(getbufinfo(s:buf_num.thread)[0].variables.notmuch)
 		else
-			return s:get_gui_tab(l:vars['notmuch'])
+			return s:get_gui_tab(l:vars.notmuch)
 		endif
 	endif
 endfunction
 
 function s:get_gui_tab(vars) abort
 	if has_key(a:vars, 'search_term')
-		return '%N| notmuch [' .. a:vars['search_term'] .. ']%<'
+		return '%N| notmuch [' .. a:vars.search_term .. ']%<'
 	else  " notmuch-search 作成直後は b:notmuch.search_term 未定義
 		return '%N| notmuch []%<'
 	endif
@@ -810,8 +810,8 @@ function s:reload(args) abort
 	endif
 	if l:type ==# 'folders'
 		if py3eval('is_same_tabpage("thread", "")')
-			if getbufinfo(s:buf_num['thread'])[0]['variables']['notmuch']['search_term'] == g:notmuch_folders[line('.') - 1][1] " search_term が folder, thread で同じならリロード
-				call win_gotoid(bufwinid(s:buf_num['thread']))
+			if getbufinfo(s:buf_num.thread)[0].variables.notmuch.search_term == g:notmuch_folders[line('.') - 1][1] " search_term が folder, thread で同じならリロード
+				call win_gotoid(bufwinid(s:buf_num.thread))
 				py3 reload_thread()
 			else " search_term が folder, thread で異なるなら開く (同じ場合はできるだけ開いているメールを変えない)
 				call s:open_thread(v:false, v:true)
@@ -836,9 +836,9 @@ function s:cursor_move_thread(search_term) abort
 	endif
 	let l:type = py3eval('buf_kind()')
 	if l:type ==# 'thread'
-		let l:buf_num = s:buf_num['thread']
+		let l:buf_num = s:buf_num.thread
 	elseif l:type ==# 'search'
-		let l:buf_num = s:buf_num['search'][a:search_term]
+		let l:buf_num = s:buf_num.search[a:search_term]
 	else
 		return
 	endif
@@ -892,11 +892,11 @@ function s:save_mail(args) abort
 	let l:winid = bufwinid(bufnr(''))
 	let l:type = py3eval('buf_kind()')
 	if l:type ==# 'folders' || l:type ==# 'thread'
-		if !win_gotoid(bufwinid(s:buf_num['show']))
+		if !win_gotoid(bufwinid(s:buf_num.show))
 			return
 		endif
 	elseif l:type ==# 'search'
-		if !win_gotoid(bufwinid(s:buf_num['view'][b:notmuch.search_term]))
+		if !win_gotoid(bufwinid(s:buf_num.view[b:notmuch.search_term]))
 			return
 		endif
 	endif
@@ -1067,22 +1067,22 @@ function s:mark_in_thread(args) range abort
 	let l:beg = a:args[0]
 	let l:end = a:args[1]
 	let l:bufnr = bufnr('')
-	if !( l:bufnr == s:buf_num['thread']
-				\ || ( py3eval('buf_kind()') ==# 'search' && l:bufnr != s:buf_num['search'][b:notmuch.search_term] )
+	if !( l:bufnr == s:buf_num.thread
+				\ || ( py3eval('buf_kind()') ==# 'search' && l:bufnr != s:buf_num.search[b:notmuch.search_term] )
 				\ || py3eval('get_msg_id()') !=? '' )
 				return
 	endif
-	if sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':line('.') })[0]['signs'] == []
+	if sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':line('.') })[0].signs == []
 		for l:i in range(l:beg, l:end)
-			if sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':l:i })[0]['signs'] == []
+			if sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':l:i })[0].signs == []
 				call sign_place(0, 'mark_thread', 'notmuch', '',{'lnum':l:i})
 			endif
 		endfor
 	else
 		for l:i in range(l:beg, l:end)
-			let l:id = sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':l:i })[0]['signs']
+			let l:id = sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':l:i })[0].signs
 			if l:id != []
-				call sign_unplace('mark_thread', {'name':'notmuch', 'buffer':'', 'id':l:id[0]['id'] })
+				call sign_unplace('mark_thread', {'name':'notmuch', 'buffer':'', 'id':l:id[0].id })
 			endif
 		endfor
 	endif

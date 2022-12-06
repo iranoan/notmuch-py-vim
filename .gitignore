@@ -1,3 +1,6 @@
+/*
+/*.*
+
 /attach/
 /temp/
 /.temp/
@@ -10,3 +13,4 @@ __pycache__
 !/macros/
 !/plugin/
 !/syntax/
+!/.gitignore
