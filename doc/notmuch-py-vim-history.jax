@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/12/10 Ver.1.40~
+* 仕様変更
+	- |statusline| の設定が有れば |{S-WIN}| は変更しない
+
 2022/11/22 Ver.1.39~
 * mail-delete, mail-export 使用時に複数メールが有った時の選択
 	(|notmuch-python-vim-select-file|) で、ファイルの新旧・サイズ大小の選択も可能に

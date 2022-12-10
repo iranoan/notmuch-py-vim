@@ -216,6 +216,13 @@ Vim packadd~
 	* |zn| を無効にしている
 |{S-WIN}|
 	* メールのヘッダ・本文表示
+	* |statusline| の設定がなければ、ステータス・バーに次を表示するように設定
+		- サブジェクト
+		- 日付
+		- カーソル位置の
+			+ バイト/桁位置
+			+ 行番号
+			+ 文字コード
 
 ------------------------------------------------------------------------------
                                                      *notmuch-python-vim-keymap*
@@ -470,7 +477,7 @@ g:notmuch_date_format                                *g:notmuch_date_format*
 
 	* 次で表示する日時情報の書式
 		- |{T-WIN}| の Date ヘッダ
-		- |{S-WIN}| のステータス行に表示する Date ヘッダ
+		- |{S-WIN}| のステータス・バーに表示する Date ヘッダ
 		- attach-delete (|notmuch-python-vim-attach-delete|), mail-export
 			(|notmuch-python-vim-mail-export|), mail-info
 			(|notmuch-python-vim-mail-info|) 使用時のメール・ファイルの更新日時

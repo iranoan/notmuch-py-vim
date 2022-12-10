@@ -23,14 +23,7 @@ if !exists('g:ft_notmuch_show')
 	augroup END
 endif
 
-if &statusline !=? ''
-	let s:status = substitute(&statusline, '"', '''', 'g')
-	let s:status = substitute(s:status, '%[ymrhwq<]\c', '', 'g')
-	let s:status = substitute(s:status, ' \[%{(&fenc!=''''?&fenc:&enc)}:%{ff_table\[&ff\]}\]', '', 'g')
-	let s:status = substitute(s:status, '%f\c', '%{b:notmuch.subject}%= %<%{b:notmuch.date}', 'g')
-	let s:status = substitute(s:status, ' \+', '\\ ', 'g')
-	execute 'setlocal statusline='. s:status
-else
+if &statusline ==? ''
 	setlocal statusline=%{b:notmuch.subject}%=\ %<%{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
 setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=FoldHeaderText() foldlevel=2 nolist
