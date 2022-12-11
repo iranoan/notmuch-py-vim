@@ -175,9 +175,11 @@ Vim 起動後なら
 
 で次のレイアウトで起動する
 
-<table style='border: solid thin; width: 95%;'>
-<tr><td rowspan=2 style='width: 20%; text-align: center; vertical-align: center;'><em><strong>F-WIN</strong></em></td><td style='width: 60%; height: 6em; text-align: center; vertical-align: center;'><em><strong>T-WIN</strong></em></td></tr>
-<tr><td style='text-align: center; vertical-align: center; height: 18em;'><em><strong>S-WIN</strong></em></td></tr>
+![起動例](notmuch_py_vim.png)
+
+<table style='border: solid thin;'>
+<tr><td rowspan=2 style='border: solid thin;'><em><strong>F-WIN</strong></em></td><td style='border: solid thin;'><em><strong>T-WIN</strong></em></td></tr>
+<tr><td style='border: solid thin;'><em><strong>S-WIN</strong></em></td></tr>
 </table>
 
 ### デフォルト環境の主な使用法
