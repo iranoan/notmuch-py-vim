@@ -3,13 +3,13 @@
 
 scriptencoding utf-8
 
-let s:save_cpo = &cpoptions
-set cpoptions&vim
-
 if exists('g:loaded_notmuch_py')
 	finish
 endif
 let g:loaded_notmuch_py = 1
+
+let s:save_cpo = &cpoptions
+set cpoptions&vim
 
 if !has('python3') || v:version < 800 || !has('vimscript-4')
 scriptversion 4

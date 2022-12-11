@@ -4,9 +4,6 @@
 scriptencoding utf-8
 scriptversion 4
 
-let s:save_cpo = &cpoptions
-set cpoptions&vim
-
 " 下記の二重読み込み防止変数の前に取得しておかないと、途中の読み込み失敗時に設定されずに読み込むファイルの取得ができなくなる変数
 let s:script_root = expand('<sfile>:p:h:h')
 
@@ -1484,7 +1481,3 @@ function FoldHeaderText() abort " メールでは foldtext を変更する
 	endwhile
 	return printf('%s%' .. (l:line_width-strdisplaywidth(l:line)) .. 'S', l:line, cnt)
 endfunction
-
-" Reset User condition
-let &cpoptions = s:save_cpo
-unlet s:save_cpo
