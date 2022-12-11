@@ -175,12 +175,12 @@ Vim 起動後なら
 
 で次のレイアウトで起動する
 
-![起動例](notmuch_py_vim.png)
-
-<table style='border: solid thin;'>
+<table style='border: solid thin; float: left'>
 <tr><td rowspan=2 style='border: solid thin;'><em><strong>F-WIN</strong></em></td><td style='border: solid thin;'><em><strong>T-WIN</strong></em></td></tr>
 <tr><td style='border: solid thin;'><em><strong>S-WIN</strong></em></td></tr>
 </table>
+
+![起動例](notmuch_py_vim.png)
 
 ### デフォルト環境の主な使用法
 
