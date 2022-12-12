@@ -407,12 +407,12 @@ function s:get_sort_snippet(cmdLine, cursorPos, direct_command) abort
 	return l:snippet
 endfunction
 
-function Complete_sort(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_sort(ArgLead, CmdLine, CursorPos) abort
 	let l:snippet = s:get_sort_snippet(a:CmdLine, a:CursorPos, v:false)
 	return s:is_one_snippet(l:snippet)
 endfunction
 
-function Complete_delete_tag(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_del_tag(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_tag_common('get_msg_tags_list', a:CmdLine, a:CursorPos, v:false)
 endfunction
 
@@ -420,7 +420,7 @@ function s:add_tags(args) abort
 	py3 do_mail(add_tags, vim.eval('a:args'))
 endfunction
 
-function Complete_add_tag(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_add_tag(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:false)
 endfunction
 
@@ -428,7 +428,7 @@ function s:set_tags(args) abort
 	py3 do_mail(set_tags, vim.eval('a:args'))
 endfunction
 
-function Complete_set_tag(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_set_tag(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_tag_common('get_msg_tags_any_kind', a:CmdLine, a:CursorPos, v:false)
 endfunction
 
@@ -436,7 +436,7 @@ function s:toggle_tags(args) abort
 	py3 do_mail(toggle_tags, vim.eval('a:args'))
 endfunction
 
-function Complete_tag(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_tag(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_tag_common('get_msg_all_tags_list', a:CmdLine, a:CursorPos, v:false)
 endfunction
 
@@ -914,7 +914,7 @@ function s:move_mail(args) abort
 	py3 do_mail(move_mail, vim.eval('a:args'))
 endfunction
 
-function Complete_Folder(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_dir(ArgLead, CmdLine, CursorPos) abort
 	let l:folders = py3eval('get_mail_folders()')
 	let l:filter_cmd = printf('v:val =~ "^%s"', a:ArgLead)
 	return filter(l:folders, l:filter_cmd)
@@ -1103,7 +1103,7 @@ function s:command_marked(args) abort " マークしたメールに纏めてコ�
 	py3 command_marked(vim.eval('a:args'))
 endfunction
 
-function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_all_args(ArgLead, CmdLine, CursorPos) abort
 	let l:cmdline = substitute(a:CmdLine, '[\n\r]\+', ' ', 'g')
 	let l:last = py3eval('get_last_cmd(get_cmd_name(), "' .. l:cmdline .. '", ' .. a:CursorPos .. ')')
 	if l:last == []
@@ -1171,7 +1171,7 @@ function Notmuch_complete(ArgLead, CmdLine, CursorPos) abort
 	endif
 endfunction
 
-function Complete_command(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_cmd(ArgLead, CmdLine, CursorPos) abort
 	return s:complete_command(a:CmdLine, a:CursorPos, 0)
 endfunction
 
@@ -1252,12 +1252,12 @@ function s:notmuch_duplication(args) abort
 	py3 notmuch_duplication(0)
 endfunction
 
-function Complete_search(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_search(ArgLead, CmdLine, CursorPos) abort
 	let l:snippet = s:get_snippet('get_search_snippet', a:CmdLine, a:CursorPos, v:false)
 	return s:is_one_snippet(l:snippet)
 endfunction
 
-function Complete_run(ArgLead, CmdLine, CursorPos) abort
+function notmuch_py#comp_run(ArgLead, CmdLine, CursorPos) abort
 	let l:cmdLine = split(a:CmdLine[0:a:CursorPos-1], ' ')
 	if a:CmdLine[a:CursorPos-1] ==# ' '
 		let l:filter = ''

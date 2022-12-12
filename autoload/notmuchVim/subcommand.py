@@ -863,11 +863,11 @@ def thread_change_sort(sort_way):
             sort_way = ' '.join(sort_way)
             print_warring('Too many arguments: ' + sort_way)
             sort_way = vim.eval('input("sorting_way: ", "' + sort_way
-                                + '", "customlist,Complete_sort")').split()
+                                + '", "customlist,notmuch_py#comp_sort")').split()
             if sort_way == []:
                 return
         elif sort_way == []:
-            sort_way = vim.eval('input("sorting_way: ", "", "customlist,Complete_sort")').split()
+            sort_way = vim.eval('input("sorting_way: ", "", "customlist,notmuch_py#comp_sort")').split()
             if sort_way == []:
                 return
         else:
@@ -2008,7 +2008,7 @@ def set_tags(msg_id, s, args):
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Set tag: ', '', 'customlist,Complete_set_tag'"):
+    if vim_input(tags, "'Set tag: ', '', 'customlist,notmuch_py#comp_set_tag'"):
         return
     add_tags = []
     delete_tags = []
@@ -2060,7 +2060,7 @@ def add_tags(msg_id, s, args):
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Add tag: ', '', 'customlist,Complete_add_tag'"):
+    if vim_input(tags, "'Add tag: ', '', 'customlist,notmuch_py#comp_add_tag'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -2083,7 +2083,7 @@ def delete_tags(msg_id, s, args):
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Delete tag: ', '', 'customlist,Complete_delete_tag'"):
+    if vim_input(tags, "'Delete tag: ', '', 'customlist,notmuch_py#comp_del_tag'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -2106,7 +2106,7 @@ def toggle_tags(msg_id, s, args):
     if args is None:
         return
     tags = args[2:]
-    if vim_input(tags, "'Toggle tag: ', '', 'customlist,Complete_tag'"):
+    if vim_input(tags, "'Toggle tag: ', '', 'customlist,notmuch_py#comp_tag'"):
         return
     if is_draft():
         b_v = vim.current.buffer.vars['notmuch']
@@ -4853,7 +4853,7 @@ def move_mail(msg_id, s, args):
     mbox = args[2:]
     if vim_input(mbox, "'Move Mail folder: ', '"
                  + ('.' if MAILBOX_TYPE == 'Maildir' else '')
-                 + "', 'customlist,Complete_Folder'"):
+                 + "', 'customlist,notmuch_py#comp_dir'"):
         return
     mbox = mbox[0]
     if mbox == '.':
@@ -5251,7 +5251,7 @@ def get_mail_folders():
 def run_shell_program(msg_id, s, args):
     prg_param = args[2:]
     if not prg_param:
-        prg_param = vim.eval('input("Program and args: ", "", "customlist,Complete_run")')
+        prg_param = vim.eval('input("Program and args: ", "", "customlist,notmuch_py#comp_run")')
         if prg_param == '':
             return
         else:
@@ -5344,7 +5344,7 @@ def command_marked(cmdline):
     if marked_line == []:
         print_warring('Mark the email that you want to command. (:Notmuch mark)')
         return
-    if vim_input(cmdline, "'Command: ', '', 'customlist,Complete_command'"):
+    if vim_input(cmdline, "'Command: ', '', 'customlist,notmuch_py#comp_cmd'"):
         return
     # コマンドの区切りである改行の前後に空白がない場合に対処
     arg_ls = []
@@ -5418,7 +5418,7 @@ def notmuch_search(search_term):
         else:
             i_search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
         search_term = vim.eval(
-            'input("search term: ", "' + i_search_term + '", "customlist,Complete_search")')
+            'input("search term: ", "' + i_search_term + '", "customlist,notmuch_py#comp_search")')
         if search_term == '':
             return
     elif type(search_term) == list:
@@ -5587,7 +5587,7 @@ def set_fcc(args):
             break
         i += 1
     mbox = args[2:]
-    if vim_input(mbox, "'Save Mail folder: ', '" + fcc + "', 'customlist,Complete_Folder'"):
+    if vim_input(mbox, "'Save Mail folder: ', '" + fcc + "', 'customlist,notmuch_py#comp_dir'"):
         delete_header(b, 'fcc')
     else:
         mbox = mbox[0]
@@ -5831,7 +5831,7 @@ def notmuch_refine(args):
         return
     args = args[2:]
     if args == []:  # コマンド空
-        args = vim.eval('input("search term: ", "", "customlist,Complete_search")')
+        args = vim.eval('input("search term: ", "", "customlist,notmuch_py#comp_search")')
         if args == '':
             return
     elif type(args) == list:
