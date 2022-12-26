@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/12/27 Ver.1.41~
+* バグ修正
+
 2022/12/10 Ver.1.40~
 * 仕様変更
 	- |statusline| の設定が有れば |{S-WIN}| は変更しない

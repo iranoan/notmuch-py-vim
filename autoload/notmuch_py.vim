@@ -755,6 +755,7 @@ function s:end_notmuch() abort " 全て終了 (notmuch-folders が bwipeout さ�
 			execute l:bufnr .. 'bwipeout'
 		endif
 	endfor
+	call <SID>change_fold_highlight()
 	unlet s:buf_num
 endfunction
 

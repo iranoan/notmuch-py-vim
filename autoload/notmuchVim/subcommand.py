@@ -245,7 +245,7 @@ class MailData:  # メール毎の各種データ
         try:
             m_to = msg.get_header('To')
         except notmuch.errors.NullPointerError:  # どの様な条件で起きるのか不明なので、取り敢えず From ヘッダを使う
-            print_warring('Message-ID:' + self._msg_id + 'notmuch.errors.NullPointerError')
+            # print_warring('Message-ID:' + self._msg_id + 'notmuch.errors.NullPointerError') ←マルチスレッド中だと落ちる
             m_to = m_from
         # ↓From, To が同一なら From←名前が入っている可能性がより高い
         m_to_adr = email2only_address(m_to)
