@@ -502,7 +502,7 @@ def set_subcmd_start():
         cmd['mail-forward'] = ['s:forward_mail', 0x04]
         cmd['mail-import'] = ['s:import_mail', 0x05]
         cmd['mail-info'] = ['s:view_mail_info', 0x0c]
-        cmd['mail-move'] = ['s:move_mail', 0x06]
+        cmd['mail-move'] = ['s:move_mail', 0x07]
         cmd['mail-reply'] = ['s:reply_mail', 0x04]
         cmd['mail-reindex'] = ['s:reindex_mail', 0x06]
         cmd['mail-resent-forward'] = ['s:forward_mail_resent', 0x04]
