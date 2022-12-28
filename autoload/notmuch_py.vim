@@ -621,21 +621,20 @@ function! MakeGUITabline() abort
 		let l:type = py3eval('buf_kind()')
 		let l:vars = getbufinfo(bufnr())[0].variables
 		if l:type ==# 'edit'
-			return '%N| ' .. l:label .. '%{b:notmuch.subject} %{b:notmuch.date}'
+			return '%N| ' .. l:label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 		elseif l:type ==# 'show'
 			if py3eval('is_same_tabpage("thread", "")')
 				return s:get_gui_tab(getbufinfo(s:buf_num.thread)[0].variables.notmuch)
 			else
-				return '%N| ' .. l:label .. '%{b:notmuch.subject} %{b:notmuch.date}'
+				return '%N| ' .. l:label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 			endif
 		elseif l:type ==# 'view' && has_key(l:vars.notmuch, 'search_term')
 			if py3eval('is_same_tabpage("search", ''' .. s:vim_escape(b:notmuch.search_term) .. ''')')
 				return '%N| notmuch [' .. b:notmuch.search_term .. ']%<'
 			else
-				return '%N| ' .. l:label .. '%{b:notmuch.subject} %{b:notmuch.date}'
+				return '%N| ' .. l:label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 			endif
 		elseif l:type ==# 'draft'
-			" return '%N| ' .. l:label .. 'notmuch %t %{b:notmuch.subject}%<'
 			return '%N| ' .. l:label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
 		elseif l:type ==# 'search'
 			return s:get_gui_tab(l:vars.notmuch)
@@ -676,10 +675,6 @@ function s:make_title() abort
 	endif
 	if &filetype =~# '^notmuch-'
 		let l:title = 'Notmuch-Python-Vim'
-	" elseif &filetype ==# 'notmuch-edit' " tabline を変えているので、こちらは変えない
-	" ↓s:set_title_etc() の autocmd も次に書き換えが必要になる
-	" autocmd BufEnter,BufFilePost,WinEnter * let &titlestring=s:make_title()
-	" 	let l:title = '%{b:notmuch.subject} %{b:notmuch.date}%< %m ' .. '(' .. expand('%:~') .. ')'
 	elseif &filetype ==# 'qf'
 		let l:title = '%t'
 	elseif &filetype ==# 'help'
@@ -1373,7 +1368,7 @@ function notmuch_py#get_highlight(hi) abort
 	return substitute(substitute(substitute(execute('highlight ' .. a:hi),
 				\ '[\n\r \t]\+', ' ', 'g'),
 				\ ' *' .. a:hi .. '\s\+xxx *', '', ''),
-				\ '\(font=\(\w\+ \)\+\ze\w\+=\|font=\(\w\+ \?\)\+$\)', '', '')
+				\ '\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
 endfunction
 
 let s:fold_highlight = notmuch_py#get_highlight('Folded')
