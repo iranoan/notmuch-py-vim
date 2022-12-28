@@ -5172,8 +5172,9 @@ def delete_mail(msg_id, s, args):
         else:
             s = 'confirm("Delete ' + files[0]['name'] + '?", "&Yes\n&No", 2, "Question")'
         s = vim.bindeval(s)
-        if s != 1:
-            return [0, 0, key]
+        if s == 1:
+            os.remove(files[0]['name'])
+        return [0, 0, key]
     if num != -1:
         del files[num - 1]
     for f in files:
