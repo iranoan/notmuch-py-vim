@@ -2429,6 +2429,7 @@ def next_unread(active_win):
 
 def reindex_mail(msg_id, s, args):
     shellcmd_popen(['notmuch', 'reindex', 'id:"' + msg_id + '"'])
+    return [0, 0]  # ダミー・リストを返す
 
 
 def decode_header(f):
@@ -3285,6 +3286,7 @@ def open_original(msg_id, search_term, args):
     if message != '':
         vim.command('redraw')  # redraw しないと次のメッセージがすぐに消えてしまう
         print(message)
+    return [0, 0]  # ダミー・リストを返す
 
 
 def send_mail(filename):
@@ -5398,7 +5400,7 @@ def command_marked(cmdline):
                 'run_shell_program',
                 'toggle_tags',
             ]:
-                args = GLOBALS[cmd[0]](msg_id, search_term, [line, line] + cmd[1])
+                args = (GLOBALS[cmd[0]](msg_id, search_term, [line, line] + cmd[1]))[2:]
             else:
                 args = GLOBALS[cmd[0]](msg_id, cmd[1])
             cmd_arg[i][1] = args  # 引数が空の場合があるので実行した引数で置き換え
