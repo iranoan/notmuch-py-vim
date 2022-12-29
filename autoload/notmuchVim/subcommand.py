@@ -5274,7 +5274,7 @@ def run_shell_program(msg_id, s, args):
     DBASE.close()
     shellcmd_popen(prg_param)
     print(' '.join(prg_param))
-    return args
+    return [0, 0, prg_param]
 
 
 def get_cmd_name_ftype():
