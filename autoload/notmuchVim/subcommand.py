@@ -6237,12 +6237,14 @@ def set_defaults():
         ]
         # 何故か Content-Type, Content-Transfer-Encoding は取得できない
     # g:notmuch_show_headers 登録済み、virtual ヘッダは除く
+    hide_headers = list(vim.vars['notmuch_show_hide_headers'])
     for h in list(vim.vars['notmuch_show_headers']) \
             + [b'Attach', b'Decrypted', b'Encrypt', b'Fcc', b'HTML', b'Signature']:
         h = h.decode().lower()
-        for i, j in enumerate(vim.vars['notmuch_show_hide_headers']):
+        for i, j in enumerate(hide_headers):
             if h == j.decode().lower():
-                vim.vars['notmuch_show_hide_headers'].popup(i)
+                hide_headers.pop(i)
+    vim.vars['notmuch_show_hide_headers'] = hide_headers
     if 'notmuch_draft_header' not in vim.vars:
         vim.vars['notmuch_draft_header'] = ['From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach']
     if 'notmuch_send_param' not in vim.vars:
