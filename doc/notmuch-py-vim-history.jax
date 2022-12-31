@@ -9,6 +9,18 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2022/12/31 Ver.1.42~
+* バグ修正
+	- mark-command (|notmuch-python-vim-mark-command|) で動作しないコマンドが有る
+	- メール・ファイルが一つの時、mail-delete (|notmuch-python-vim-mail-delete|) で
+		実際の削除ができてない
+	- |g:notmuch_show_hide_headers|, |g:notmuch_show_headers| で重複ヘッダーが有
+		ると動かない
+		+ 重複削除処理の間違い
+	* mail-move (|notmuch-python-vim-mail-move|) の補完が動作しない
+* 内部処理
+	- *.py 内で繰り返し使われる Vim 関数は vim.Function() を用いる
+
 2022/12/27 Ver.1.41~
 * バグ修正
 

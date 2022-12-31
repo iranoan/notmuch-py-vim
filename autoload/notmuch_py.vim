@@ -162,25 +162,7 @@ function s:set_thread() abort
 endfunction
 
 function s:open_something(args) abort
-	let l:type = py3eval('buf_kind()')
-	if l:type ==# 'folders'
-		" let l:s = reltime()
-		call s:open_thread(v:true, v:false)
-		" echomsg reltimestr(reltime(l:s))
-	elseif l:type ==# 'thread' || l:type ==# 'search'
-		call s:open_mail()
-	elseif l:type ==# 'show' || l:type ==# 'view'
-		py3 open_attachment(vim.eval('a:args'))
-	endif
-endfunction
-
-function s:open_thread(select_unread, remake) abort " 実際にスレッドを印字←フォルダ・リストがアクティブ前提
-	let l:line = line('.')
-	call s:make_thread_list()
-	py3 open_thread(vim.bindeval('l:line'), vim.bindeval('a:select_unread'), vim.bindeval('a:remake'))
-	if py3eval('is_same_tabpage("show", "")')
-		call s:open_mail()
-	endif
+	py3 open_something(vim.eval('a:args'))
 endfunction
 
 function s:make_show() abort " メール・バッファを用意するだけ
@@ -217,19 +199,6 @@ function s:set_show() abort
 	let b:notmuch.subject = ''
 	let b:notmuch.date = ''
 	let b:notmuch.tags = ''
-endfunction
-
-function s:open_mail() abort
-	if b:notmuch.search_term ==# '' || getline('.') ==# ''
-		if py3eval('is_same_tabpage("show", "")')
-			py3 empty_show()
-		endif
-		return
-	endif
-	let l:mail_index = line('.') - 1
-	let l:search_term = b:notmuch.search_term
-	let l:buf_num = bufnr('')
-	py3 open_mail(vim.eval('l:search_term'), vim.bindeval('l:mail_index'), vim.eval('l:buf_num'))
 endfunction
 
 function s:next_unread_page(args) abort " メール最後の行が表示されていればスクロールしない+既読にする
@@ -473,19 +442,20 @@ if 'notmuchVim' not in sys.modules:
     # vim から呼び出す関数は関数名だけで呼び出せるようにする
     from notmuchVim.subcommand import add_tags
     from notmuchVim.subcommand import buf_kind
-    from notmuchVim.subcommand import change_buffer_vars
     from notmuchVim.subcommand import command_marked
     from notmuchVim.subcommand import connect_thread_tree
+    from notmuchVim.subcommand import cursor_move_thread
     from notmuchVim.subcommand import cut_thread
     from notmuchVim.subcommand import delete_attachment
     from notmuchVim.subcommand import delete_mail
     from notmuchVim.subcommand import delete_tags
     from notmuchVim.subcommand import do_mail
-    from notmuchVim.subcommand import empty_show
     from notmuchVim.subcommand import export_mail
+    from notmuchVim.subcommand import fold_open
     from notmuchVim.subcommand import forward_mail
     from notmuchVim.subcommand import forward_mail_attach
     from notmuchVim.subcommand import forward_mail_resent
+    from notmuchVim.subcommand import get_cmd_name
     from notmuchVim.subcommand import get_cmd_name_ftype
     from notmuchVim.subcommand import get_command
     from notmuchVim.subcommand import get_folded_list
@@ -498,7 +468,6 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import get_msg_tags_any_kind
     from notmuchVim.subcommand import get_msg_tags_diff
     from notmuchVim.subcommand import get_msg_tags_list
-    from notmuchVim.subcommand import get_cmd_name
     from notmuchVim.subcommand import get_save_dir
     from notmuchVim.subcommand import get_save_filename
     from notmuchVim.subcommand import get_search_snippet
@@ -516,14 +485,11 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import notmuch_search
     from notmuchVim.subcommand import notmuch_thread
     from notmuchVim.subcommand import notmuch_up_refine
-    from notmuchVim.subcommand import open_attachment
-    from notmuchVim.subcommand import open_mail
     from notmuchVim.subcommand import open_original
-    from notmuchVim.subcommand import open_thread
+    from notmuchVim.subcommand import open_something
     from notmuchVim.subcommand import print_folder
     from notmuchVim.subcommand import reindex_mail
-    from notmuchVim.subcommand import reload_show
-    from notmuchVim.subcommand import reload_thread
+    from notmuchVim.subcommand import reload
     from notmuchVim.subcommand import reopen
     from notmuchVim.subcommand import reply_mail
     from notmuchVim.subcommand import reset_cursor_position
@@ -538,12 +504,12 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import set_new_after
     from notmuchVim.subcommand import set_reply_after
     from notmuchVim.subcommand import set_resent_after
+    from notmuchVim.subcommand import set_subcmd_newmail
+    from notmuchVim.subcommand import set_subcmd_start
     from notmuchVim.subcommand import set_tags
     from notmuchVim.subcommand import thread_change_sort
     from notmuchVim.subcommand import toggle_tags
     from notmuchVim.subcommand import view_mail_info
-    from notmuchVim.subcommand import set_subcmd_start
-    from notmuchVim.subcommand import set_subcmd_newmail
 _EOF_
 endfunction
 
@@ -793,26 +759,7 @@ function s:open_original(args) abort
 endfunction
 
 function s:reload(args) abort
-	let l:type = py3eval('buf_kind()')
-	if l:type ==# 'show' || l:type ==# 'view'
-		if !exists('b:notmuch.search_term') || !exists('b:notmuch.msg_id')
-			return
-		endif
-		py3 reload_show()
-		return
-	endif
-	if l:type ==# 'folders'
-		if py3eval('is_same_tabpage("thread", "")')
-			if getbufinfo(s:buf_num.thread)[0].variables.notmuch.search_term == g:notmuch_folders[line('.') - 1][1] " search_term が folder, thread で同じならリロード
-				call win_gotoid(bufwinid(s:buf_num.thread))
-				py3 reload_thread()
-			else " search_term が folder, thread で異なるなら開く (同じ場合はできるだけ開いているメールを変えない)
-				call s:open_thread(v:false, v:true)
-			endif
-		endif
-	elseif l:type ==# 'thread' ||  l:type ==# 'search'
-		py3 reload_thread()
-	endif
+	py3 reload()
 endfunction
 
 function s:get_tags() abort
@@ -827,23 +774,7 @@ function s:cursor_move_thread(search_term) abort
 	if line('.') != line('v')
 		return
 	endif
-	let l:type = py3eval('buf_kind()')
-	if l:type ==# 'thread'
-		let l:buf_num = s:buf_num.thread
-	elseif l:type ==# 'search'
-		let l:buf_num = s:buf_num.search[a:search_term]
-	else
-		return
-	endif
-	if bufnr('') != l:buf_num || py3eval('get_msg_id()') ==# '' || b:notmuch.msg_id == py3eval('get_msg_id()')
-		return
-	endif
-	py3 change_buffer_vars()
-	if py3eval('is_same_tabpage("show", "")') || py3eval('is_same_tabpage("view", ''' .. s:vim_escape(a:search_term) .. ''')')
-		echo ''
-		" ↑エラーなどのメッセージをクリア
-		call s:open_mail()
-	endif
+	py3 cursor_move_thread(vim.eval('a:search_term'))
 endfunction
 
 function s:new_mail(...) abort
@@ -965,6 +896,7 @@ function s:augroup_notmuch_select(win, reload) abort " notmuch-edit 閉じた時
 					\ '      endif |'
 					\ '      call win_gotoid(bufwinid(' .. a:win .. ')) |' ..
 					\ '      autocmd! NotmuchEdit' .. l:bufnr .. ' |' ..
+					\ '      augroup! NotmuchEdit' .. l:bufnr .. ' |' ..
 					\ '    endif'
 	augroup END
 	" a:win に戻れない時は、そのバッファを読み込みたいが以下の方法でも駄目
@@ -1047,15 +979,6 @@ function s:close_boundary(header_end, close_start, boundary_start) abort " ヘ�
 	endwhile
 endfunction
 
-function s:fold_open() abort " 折畳全開を試み、無くてもエラーとしない
-	try
-		normal! zO
-		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0])
-	catch /^Vim\%((\a\+)\)\=:E490:/
-		" 何もしない
-	endtry
-endfunction
-
 function s:mark_in_thread(args) range abort
 	let l:beg = a:args[0]
 	let l:end = a:args[1]
@@ -1080,9 +1003,9 @@ function s:mark_in_thread(args) range abort
 		endfor
 	endif
 	if l:beg == l:end
-		call s:fold_open()
+		py3 fold_open()
 		normal! j
-		call s:fold_open()
+		py3 fold_open()
 	endif
 endfunction
 
@@ -1400,17 +1323,6 @@ function s:change_fold_highlight() abort " Folded の色変更↑highlight の�
 			execute 'silent! highlight SpecialKey ' .. s:specialkey_highlight
 		endif
 	endif
-endfunction
-
-function s:is_gtk() abort
-	if !has('gui_running')
-		return 0
-	endif
-	let l:gtk = execute('version')
-	if match(l:gtk, '\<with GTK\d\? GUI\.') != -1
-		return 1
-	endif
-		return 0
 endfunction
 
 augroup ChangeFoldHighlight
