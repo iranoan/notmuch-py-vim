@@ -2466,7 +2466,7 @@ def next_unread(active_win):
 
     active_win = int(active_win)
     if not ('search_term' in vim.current.buffer.vars['notmuch']):
-        if vim.current.buffer.number == s_buf_num('folders', ''):
+        if active_win == s_buf_num('folders', ''):
             msg_id = ''
             if not ('thread' in vim.bindeval('s:buf_num')):
                 vim.command('call s:make_thread_list()')
