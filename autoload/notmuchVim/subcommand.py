@@ -50,6 +50,9 @@ vim_tabpagebuflist = vim.Function('tabpagebuflist')
 vim_confirm = vim.Function('confirm')
 vim_foldlevel = vim.Function('foldlevel')
 vim_popup_atcursor = vim.Function('popup_atcursor')
+win_id2tabwin = vim.Function('win_id2tabwin')
+bufwinnr = vim.Function('bufwinnr')
+sign_unplace = vim.Function('sign_unplace')
 
 
 def vim_input(p, *s):
@@ -65,20 +68,20 @@ def vim_input_ls(p, s, comp):
 
 
 def vim_goto_bufwinid(n):
-    return vim_win_gotoid(vim_bufwinid(n))  # ←なぜか vim_bufwinid(n) が-1 になる事が有った
+    return vim_win_gotoid(vim_bufwinid(n))
     # return vim.bindeval('win_gotoid(bufwinid(' + str(n) + '))')  # 予備として記述を残しておく
 
 
 def vim_win_id2tabwin(k, s):
-    return (vim.Function('win_id2tabwin')(vim_bufwinid(s_buf_num(k, s))))[0]
+    return (win_id2tabwin(vim_bufwinid(s_buf_num(k, s))))[0]
 
 
 def vim_bufwinnr(k):
-    return vim.Function('bufwinnr')(s_buf_num(k, ''))
+    return bufwinnr(s_buf_num(k, ''))
 
 
 def vim_sign_unplace(n):
-    return vim.Function('sign_unplace')('mark_thread', {'name': 'notmuch', 'buffer': n})
+    return sign_unplace('mark_thread', {'name': 'notmuch', 'buffer': n})
 
 
 def s_buf_num(k, s):
@@ -2461,12 +2464,13 @@ def next_unread(active_win):
         DBASE.close()
         return True
 
+    active_win = int(active_win)
     if not ('search_term' in vim.current.buffer.vars['notmuch']):
         if vim.current.buffer.number == s_buf_num('folders', ''):
             msg_id = ''
             if not ('thread' in vim.bindeval('s:buf_num')):
                 vim.command('call s:make_thread_list()')
-            active_win = str(s_buf_num('thread', ''))
+            active_win = s_buf_num('thread', '')
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0] - 1][1]
         else:
             msg_id = get_msg_id()
@@ -4670,8 +4674,7 @@ def check_org_mail():
                     or s_buf_num('thread', '') == is_search
                     or show_win == is_search)
     if is_search:
-        show_win = \
-            s_buf_num('view', b_v['search_term'].decode())
+        show_win = s_buf_num('view', b_v['search_term'].decode())
     if vim_goto_bufwinid(show_win) == 0:
         return 0, '', ''
     msg_id = get_msg_id()
@@ -4969,7 +4972,6 @@ def move_mail(msg_id, s, args):
         else:
             print('Already Delete: ' + f)
     DBASE.close()
-    # if 'folders' in vim.bindeval('s:buf_num'):
     reprint_folder2()  # 閉じた後でないと、メール・ファイル移動の情報がデータベースに更新されていないので、エラーになる
     return [1, 1, mbox]  # Notmuch mark-command (command_marked) から呼び出された時の為、リストで返す
 
@@ -5503,7 +5505,6 @@ def command_marked(cmdline):
             cmd_arg[i][1] = args  # 引数が空の場合があるので実行した引数で置き換え
     vim_sign_unplace('')
     # DBASE.open(PATH)
-    # if 'folders' in vim.bindeval('s:buf_num'):
     reprint_folder2()
     # DBASE.close()
 

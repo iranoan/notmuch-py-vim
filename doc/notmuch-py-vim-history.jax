@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2023/01/04 Ver.1.43~
+* バグ修正
+
 2022/12/31 Ver.1.42~
 * バグ修正
 	- mark-command (|notmuch-python-vim-mark-command|) で動作しないコマンドが有る
