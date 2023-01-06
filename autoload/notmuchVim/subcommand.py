@@ -1120,7 +1120,7 @@ def reload_show():
     DBASE.open(PATH)
     b_v = b.vars['notmuch']
     open_mail_by_msgid(b_v['search_term'].decode(),
-                       b_v['msg_id'].decode(), str(b.number), True)
+                       b_v['msg_id'].decode(), b.number, True)
     DBASE.close()
 
 
@@ -1167,7 +1167,7 @@ def reload_thread():
             open_mail_by_msgid(
                 search_term,
                 THREAD_LISTS[search_term]['list'][w.cursor[0] - 1]._msg_id,
-                str(b.number), False)
+                b.number, False)
             DBASE.close()
 
 
@@ -2457,7 +2457,7 @@ def next_unread(active_win):
             open_mail_by_msgid(search_term,
                                THREAD_LISTS[search_term]['list'][index]._msg_id,
                                active_win, False)
-        if str(s_buf_num('folders', '')) == active_win:
+        if s_buf_num('folders', '') == active_win:
             vim_goto_bufwinid(s_buf_num('thread', ''))
         else:
             vim_goto_bufwinid(active_win)
