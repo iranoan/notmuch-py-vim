@@ -5924,7 +5924,7 @@ def set_encrypt(args):
 
 def notmuch_refine(args):
     b = vim.current.buffer
-    if b.number == s_buf_num('folders'):
+    if b.number == s_buf_num('folders', ''):
         return
     b_v = b.vars
     if not ('search_term' in b_v['notmuch']):
@@ -5949,7 +5949,7 @@ def notmuch_refine(args):
 def get_refine_index():
     b = vim.current.buffer
     b_num = b.number
-    if b_num == s_buf_num('folders'):
+    if b_num == s_buf_num('folders', ''):
         return -1, '', []
     b_v = b.vars
     if not ('search_term' in b_v['notmuch']):
