@@ -5251,6 +5251,8 @@ def do_mail(cmd, args):
     if search_term == '':
         print_warring('Don\'t open mail or is done with \'folders\'.')
         return
+    if get_msg_id() == '':
+        return
     if bnum == s_buf_num('thread', '') \
         or ((search_term in s_buf_num('search', ''))
             and bnum == s_buf_num('search', search_term)):
