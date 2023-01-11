@@ -1259,7 +1259,6 @@ def open_mail_by_index(search_term, index, active_win):
 
 
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
-    print(search_term, msg_id, active_win, mail_reload)
     """ open mail by Message-ID (not threader order)
 
     save caller buffer variable before open
