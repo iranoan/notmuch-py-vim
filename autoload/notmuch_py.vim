@@ -799,28 +799,11 @@ def Send_vim(args: list<any>): void
 enddef
 
 function Save_mail(args) abort
-	let l:winid = bufwinid(bufnr(''))
-	let l:type = py3eval('buf_kind()')
-	if l:type ==# 'folders' || l:type ==# 'thread'
-		if !win_gotoid(bufwinid(s:buf_num.show))
-			return
-		endif
-	elseif l:type ==# 'search'
-		if !win_gotoid(bufwinid(s:buf_num.view[b:notmuch.search_term]))
-			return
-		endif
+	if len(a:args) > 3
+		py3 do_mail(save_mail, vim.eval('a:args[:2]'))
+	else
+		py3 do_mail(save_mail, vim.eval('a:args'))
 	endif
-	let l:save_file = py3eval('get_save_filename(get_save_dir())')
-	if l:save_file ==# ''
-		echo "\n"
-		echo 'No save.'
-		return
-	endif
-	redraw
-	setlocal modifiable
-	execute 'write! ' .. l:save_file
-	setlocal nomodifiable
-	call win_gotoid(l:winid)
 endfunction
 
 function Move_mail(args) abort

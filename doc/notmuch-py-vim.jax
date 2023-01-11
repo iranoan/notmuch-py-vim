@@ -1042,10 +1042,14 @@ mail-resent-forward
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
                                                   *notmuch-python-vim-mail-save*
-mail-save
-	* |{S-WIN}| で表示しているメールを別ファイルに保存
+mail-save [{path}]
+	* |{S-WIN}| で表示される内容を別ファイルに保存
 	* バッファの内容をそのまま保存するので、元のメール・ファイルにどんなヘッダが
-		付いていたのかに関係なく、今表示されている内容のみを保存
+		付いていたのかに関係なく、|{S-WIN}| で表示されている内容のみを保存
+	* {path} が無ければファイル選択になる
+		- この指定でも空入力や <Esc> だとキャンセル
+	* |{T-WIN}| で複数メールを選択している場合は連番付きで、既存ファイルが有っても、
+		そのまま上書き保存する
 
                                                   *notmuch-python-vim-mail-send*
 mail-send

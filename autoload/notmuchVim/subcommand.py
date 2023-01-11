@@ -4955,6 +4955,86 @@ def get_config(config):
     return ret.stdout.decode('utf-8').replace('\n', '')
 
 
+def save_mail(msg_id, s, args):
+    '''
+    メール本文をテキスト・ファイルとして保存
+    msg_id, s は使用しない
+    thread で複数選択時
+        * 元は
+            - args[0] 選択した先頭行
+            - args[1] 選択した最終行
+        * 一度処理すると
+            - args[0] 処理するファイルのインデックス (ファイル名なしでキャンセルすると -1)
+            - args[1] 選択した最終行←変わらない
+            - args[2] 保存ファイルのベース名
+            - args[3] 連番のためのカウンタ
+            - args[4] 保存ファイルの拡張子
+    '''
+    def single_file():
+        if len(args) >= 3:
+            save_file = args[2]
+            if os.path.isfile(save_file):
+                if is_gtk():
+                    over_write = vim_confirm('Overwrite?', 'Yes(&Y)\nNo(&N)', 1, 'Question')
+                else:
+                    over_write = vim_confirm('Overwrite?', '&Yes\n&No', 1, 'Question')
+                if over_write != 1:
+                    return ''
+        else:
+            save_file = get_save_filename(get_save_dir())
+        return save_file
+
+    def multi_file():
+        if len(args) == 2:
+            if use_browse():
+                save_file = vim_browse(1, 'Save',
+                                       os.path.dirname(get_save_dir()), '').decode()
+            else:
+                save_file = vim_input('Save as: ', get_save_dir(), 'file')
+            if save_file == '':
+                return ''
+            args.extend(['', 2, ''])
+        else:
+            save_file = args[2]
+            args.extend([2, ''])
+        (args[2], args[4]) = os.path.splitext(save_file)
+        return args[2] + '-1' + args[4]
+
+    type = buf_kind()
+    if type == 'show' or type == 'view':
+        save_file = single_file()
+    elif args[0] == -1:
+        return args
+    else:
+        if len(args) == 5:
+            save_file = args[2] + '-' + str(args[3]) + args[4]
+            args[0] += 1
+            args[3] += 1
+        elif args[0] == args[1]:
+            save_file = single_file()
+            if save_file == '':
+                print('No save.')
+                return args
+        else:
+            save_file = multi_file()
+            if save_file == '':
+                return [-1, -1]
+        b = vim.current.buffer
+        if type == 'folders' or type == 'thread':
+            buf_num = s_buf_num('show', '')
+        elif type == 'search':
+            buf_num = s_buf_num('view', b.vars.search_term)
+        if not vim_goto_bufwinid(buf_num):
+            return [-1, -1]
+        open_mail_by_index(s, args[0] - 1, buf_num)
+    with open(save_file, 'w') as fp:
+        fp.write('\n'.join(vim.current.buffer[:]))
+    vim_goto_bufwinid(b.number)
+    vim.command('redraw')
+    print('save ' + save_file)
+    return args
+
+
 def move_mail(msg_id, s, args):
     """ move mail to other mbox """
     if args is None:  # 複数選択してフォルダを指定しなかった時の 2 つ目以降

@@ -9,6 +9,12 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2023/01/11 Ver.1.46~
+* vim9script (|Vim9-script|) 化
+* mail-save (|notmuch-python-vim-mail-save|)
+	- 引数で保存ファイル指定可能に
+	- |{T-WIN}| で複数選択可能に
+
 2023/01/09 Ver.1.45~
 * バグ修正
 
