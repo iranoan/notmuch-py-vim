@@ -6,7 +6,7 @@ scriptencoding utf-8
 
 # 下記の二重読み込み防止変数の前に取得しておかないと、途中の読み込み失敗時に設定されずに読み込むファイルの取得ができなくなる変数
 var script_root = expand('<sfile>:p:h:h')
-var s:buf_num: dict<any>
+var buf_num: dict<any>
 
 if !exists('g:loaded_notmuch_py')
 	finish
@@ -14,34 +14,34 @@ endif
 g:loaded_notmuch_py = 1
 
 # Function
-function Do_use_new_buffer(type) abort " 新規のバッファを開くか?
-	" notmuch-folder の時だけバッファが空なら開き方に関係なく今のバッファをそのまま使う
+def Do_use_new_buffer(type: string): bool # 新規のバッファを開くか?
+	# notmuch-folder の時だけバッファが空なら開き方に関係なく今のバッファをそのまま使う
 	return !(
-				\    a:type ==# 'folders'
-				\ && wordcount().bytes == 0
-				\ )
-endfunction
+				   type ==# 'folders'
+				&& wordcount().bytes == 0
+				)
+enddef
 
-function New_buffer(type, search_term) abort
-	if s:Do_use_new_buffer(a:type)
+def New_buffer(type: string, search_term: string): void
+	if Do_use_new_buffer(type)
 		try
-			execute g:notmuch_open_way[a:type]
+			execute substitute(g:notmuch_open_way[type], '\d\+', ':&', 'g')
 		catch /^Vim\%((\a\+)\)\=:E36:/
 			echomsg 'execute only command'
-			call win_gotoid(bufwinid(s:buf_num.folders))
+			win_gotoid(bufwinid(buf_num.folders))
 			silent only
-			execute g:notmuch_open_way[a:type]
+			execute substitute(g:notmuch_open_way[type], '\d\+', ':&', 'g')
 		endtry
 	endif
-	if a:type !=? 'search' && a:type !=? 'view'
-		let s:buf_num[a:type] = bufnr('')
-		let b:notmuch = {}
+	if type !=? 'search' && type !=? 'view'
+		buf_num[type] = bufnr('')
+		b:notmuch = {}
 	else
-		let s:buf_num[a:type][a:search_term] = bufnr('')
-		let b:notmuch = {}
+		buf_num[type][search_term] = bufnr('')
+		b:notmuch = {}
 	endif
-	" キーマップ
-	" draft/edit 以外共通
+	# キーマップ
+	# draft/edit 以外共通
 	nnoremap <buffer><silent><F1> :topleft help notmuch-python-vim-keymap<CR>
 	nnoremap <buffer><silent><leader>h :topleft help notmuch-python-vim-keymap<CR>
 	nnoremap <buffer><silent><Leader>s :Notmuch mail-send<CR>
@@ -57,325 +57,328 @@ function New_buffer(type, search_term) abort
 	nnoremap <buffer><silent>c :Notmuch mail-new<CR>
 	nnoremap <buffer><silent>i :Notmuch mail-import<CR>
 	nnoremap <buffer><silent>r :Notmuch mail-reply<CR>
-	if a:type ==# 'folders'
+	if type ==# 'folders'
 		setlocal filetype=notmuch-folders
-	elseif a:type ==# 'thread' || a:type ==# 'search'
+	elseif type ==# 'thread' || type ==# 'search'
 		setlocal filetype=notmuch-thread
-	elseif a:type ==# 'show' || a:type ==# 'view'
+	elseif type ==# 'show' || type ==# 'view'
 		setlocal filetype=notmuch-show
 	endif
 	setlocal modifiable buftype=nofile bufhidden=hide noequalalways fileencoding=utf-8 noswapfile
-	keepjumps 0d
-endfunction
+	keepjumps :0d
+enddef
 
-function Change_exist_tabpage(type, search_term) abort
-	if a:type !=? 'search' && a:type !=? 'view'
-		let l:buf_num = s:buf_num[a:type]
+def Change_exist_tabpage(type: string, search_term: string): void
+	var l_buf_num: number
+	if type !=? 'search' && type !=? 'view'
+		l_buf_num = buf_num[type]
 	else
-		let l:buf_num = s:buf_num[a:type][a:search_term]
+		l_buf_num = buf_num[type][search_term]
 	endif
-	call s:Change_exist_tabpage_core(l:buf_num)
-endfunction
+	Change_exist_tabpage_core(l_buf_num)
+enddef
 
-function Change_exist_tabpage_core(bufnum) abort
-	let l:tabpage = 0
-	for l:i in range(tabpagenr('$'))
-		if match(tabpagebuflist(l:i + 1), a:bufnum) != -1
-			let l:tabpage = l:i + 1
+def Change_exist_tabpage_core(bufnum: number): void
+	var tabpage: number = 0
+	for i in range(tabpagenr('$'))
+		if match(tabpagebuflist(i + 1), '' .. bufnum) != -1
+			tabpage = i + 1
 			break
 		endif
 	endfor
-	if l:tabpage != 0 " タブページが有る場合
-		execute l:tabpage .. 'tabnext'
+	if tabpage != 0 # タブページが有る場合
+		execute ':' .. tabpage .. 'tabnext'
 	endif
-endfunction
+enddef
 
-function Make_folders_list() abort
-	if has_key(s:buf_num, 'folders') " && bufname(s:buf_num.folders) !=? ''
-		call s:Change_exist_tabpage_core(s:buf_num.folders)
-		if bufwinid(s:buf_num.folders) == -1
+def Make_folders_list(): void
+	if has_key(buf_num, 'folders') # && bufname(buf_num.folders) !=? ''
+		call Change_exist_tabpage_core(buf_num.folders)
+		if bufwinid(buf_num.folders) == -1
 			py3 reopen('folders', '')
 		else
-			call win_gotoid(bufwinid(s:buf_num.folders))
+			call win_gotoid(bufwinid(buf_num.folders))
 		endif
-		call s:Close_notmuch('thread')
-		call s:Close_notmuch('show')
-		call s:Close_notmuch('search')
-		call s:Close_notmuch('view')
-		let open_way = g:notmuch_open_way.folders
+		call Close_notmuch('thread')
+		call Close_notmuch('show')
+		call Close_notmuch('search')
+		call Close_notmuch('view')
+		var open_way: string = g:notmuch_open_way.folders
 		if open_way ==# 'enew' || open_way ==# 'tabedit'
 			silent only
 		endif
 	else
-		call s:New_buffer('folders', '')
-		silent file! notmuch-folder
+		call New_buffer('folders', '')
+		:silent file! notmuch-folder
 		py3 print_folder()
 		augroup NotmuchMakeFolder
 			autocmd!
-			autocmd BufWipeout <buffer> call s:End_notmuch()
+			autocmd BufWipeout <buffer> End_notmuch()
 		augroup END
 	endif
-endfunction
+enddef
 
-function Make_thread_list() abort " スレッド・バッファを用意するだけ
-	if has_key(s:buf_num, 'thread') " && bufname(s:buf_num.thread) !=? ''
+def Make_thread_list(): void # スレッド・バッファを用意するだけ
+	if has_key(buf_num, 'thread') # && bufname(buf_num.thread) !=? ''
 		py3 reopen('thread', '')
 		return
 	endif
-	call s:New_buffer('thread', '')
+	New_buffer('thread', '')
 	silent file! notmuch-thread
-	call s:Set_thread()
+	Set_thread()
 	augroup NotmuchMakeThread
 		autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num.thread
+		autocmd BufWipeout <buffer> unlet buf_num.thread
 	augroup END
 	if g:notmuch_open_way.show !=? 'enew' && g:notmuch_open_way.show !=? 'tabedit'
-		call s:Make_show()
+		Make_show()
 	endif
-endfunction
+enddef
 
-function Make_search_list(search_term) abort
-	if has_key(s:buf_num.search, a:search_term)
-		py3 reopen('search', vim.bindeval('a:search_term'))
+def Make_search_list(search_term: string): void
+	if has_key(buf_num.search, search_term)
+		py3eval('reopen("search", "' .. escape(search_term, '"') .. '")')
 		return
 	endif
-	call s:New_buffer('search', a:search_term)
-	let l:s = substitute(a:search_term, '"', '\\"', 'g')
-	execute 'silent file! notmuch-thread [' .. l:s .. ']'
-	call s:Set_thread()
+	New_buffer('search', search_term)
+	execute 'silent file! notmuch-thread [' .. substitute(search_term, '#', '\\#', 'g') .. ']'
+	Set_thread()
 	augroup NotmuchMakeSearch
-		" autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd BufWipeout <buffer> unlet s:buf_num.search[b:notmuch.search_term]
+		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
+		autocmd BufWipeout <buffer> unlet buf_num.search[b:notmuch.search_term]
 	augroup END
 	if g:notmuch_open_way.view !=? 'enew' && g:notmuch_open_way.view !=? 'tabedit'
-		call s:Make_view(a:search_term)
+		Make_view(search_term)
 	endif
-endfunction
+enddef
 
-function Set_thread() abort
-	let b:notmuch.tags = ''
-	let b:notmuch.search_term = ''
-	let b:notmuch.msg_id = ''
+def Set_thread(): void
+	b:notmuch.tags = ''
+	b:notmuch.search_term = ''
+	b:notmuch.msg_id = ''
 	augroup NotmuchSetThread
-		" autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd CursorMoved <buffer> call s:Cursor_move_thread(b:notmuch.search_term)
+		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
+		autocmd CursorMoved <buffer> Cursor_move_thread(b:notmuch.search_term)
 	augroup END
-endfunction
+enddef
 
 function Open_something(args) abort
 	py3 open_something(vim.eval('a:args'))
 endfunction
 
-function Make_show() abort " メール・バッファを用意するだけ
-	if has_key(s:buf_num, 'show') " && bufname(s:buf_num.show) !=? ''
+def Make_show(): void # メール・バッファを用意するだけ
+	if has_key(buf_num, 'show') # && bufname(buf_num.show) !=? ''
 		py3 reopen('show','')
 		return
 	endif
-	call s:New_buffer('show', '')
-	call s:Set_show()
-	silent file! notmuch-show
+	call New_buffer('show', '')
+	call Set_show()
+	:silent file! notmuch-show
 	augroup NotmuchMakeShow
 		autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num.show
+		autocmd BufWipeout <buffer> unlet buf_num.show
 	augroup END
-endfunction
+enddef
 
-function Make_view(search_term) abort " メール・バッファを用意するだけ
-	if has_key(s:buf_num.view, a:search_term)
-		py3 reopen('view', vim.eval('a:search_term'))
+def Make_view(search_term: string): void # メール・バッファを用意するだけ
+	if has_key(buf_num.view, search_term)
+		py3eval('reopen("view", "' .. escape(search_term, '"') .. '")')
 		return
 	endif
-	call s:New_buffer('view', a:search_term)
-	let l:s = substitute(a:search_term, '"', '\\"', 'g')
-	execute 'silent file! notmuch-show [' .. l:s .. ']'
-	call s:Set_show()
+	New_buffer('view', search_term)
+	execute 'silent file! notmuch-show [' .. substitute(search_term, '#', '\\"', 'g') .. ']'
+	Set_show()
 	augroup NotmuchMakeView
-		" autocmd!
-		autocmd BufWipeout <buffer> unlet s:buf_num.view[b:notmuch.search_term]
+		# autocmd!
+		autocmd BufWipeout <buffer> unlet buf_num.view[b:notmuch.search_term]
 	augroup END
-endfunction
+enddef
 
-function Set_show() abort
-	let b:notmuch.msg_id = ''
-	let b:notmuch.subject = ''
-	let b:notmuch.date = ''
-	let b:notmuch.tags = ''
-endfunction
+def Set_show(): void
+	b:notmuch.msg_id = ''
+	b:notmuch.subject = ''
+	b:notmuch.date = ''
+	b:notmuch.tags = ''
+enddef
 
-function Next_unread_page(args) abort " メール最後の行が表示されていればスクロールしない+既読にする
-	let l:buf_num = bufnr('')
-	if !has_key(s:buf_num, 'thread')
-		call s:Make_thread_list()
+def Next_unread_page(args: list<any>): void # メール最後の行が表示されていればスクロールしない+既読にする
+	var l_buf_num = bufnr('')
+	if !has_key(buf_num, 'thread')
+		Make_thread_list()
 	endif
-	if !has_key(s:buf_num, 'show')
-		call s:Make_show()
+	if !has_key(buf_num, 'show')
+		Make_show()
 	endif
-	if win_gotoid(bufwinid(s:buf_num.show)) == 0
-		if has_key(s:buf_num, 'view')
-					\ && has_key(b:notmuch, 'search_term')
-					\ && b:notmuch.search_term !=# ''
-					\ && has_key(s:buf_num.view, b:notmuch.search_term)
-			call win_gotoid(bufwinid(s:buf_num.view[b:notmuch.search_term]))
+	if win_gotoid(bufwinid(buf_num.show)) == 0
+		if has_key(buf_num, 'view')
+					&& has_key(b:notmuch, 'search_term')
+					&& b:notmuch.search_term !=# ''
+					&& has_key(buf_num.view, b:notmuch.search_term)
+			win_gotoid(bufwinid(buf_num.view[b:notmuch.search_term]))
 		else
 			py3 reopen('show', '')
 		endif
 	endif
 	if !exists('b:notmuch.msg_id') || b:notmuch.msg_id ==# ''
-		call py3eval('next_unread(' .. l:buf_num .. ')')
+		py3eval('next_unread(' .. l_buf_num .. ')')
 		return
 	endif
-	if line('w$') == line('$') " 最終行表示
-		let l:column = col('.')
-		if line('w0') == line('w$') " 最終行表示でも 表示先頭行=表示最終行 なら折り返し部分が非表示の可能性→カーソル移動
+	if line('w$') == line('$') # 最終行表示
+		var column = col('.')
+		if line('w0') == line('w$') # 最終行表示でも 表示先頭行=表示最終行 なら折り返し部分が非表示の可能性→カーソル移動
 			execute 'normal!' 2 * winheight(0) - winline() - 1 .. 'gj'
-			if l:column == col('.')
+			if column == col('.')
 				py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
-				py3 next_unread(vim.eval('l:buf_num'))
+				py3eval('next_unread(' .. l_buf_num .. ')')
 			endif
 		else
 			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
-			py3 next_unread(vim.eval('l:buf_num'))
+			py3eval('next_unread(' .. l_buf_num .. ')')
 		endif
-	elseif line('w0') != line('w$') " 一行で 1 ページ全体だと、<PageDown> では折り返されている部分が飛ばされるので分ける
+	elseif line('w0') != line('w$') # 一行で 1 ページ全体だと、<PageDown> では折り返されている部分が飛ばされるので分ける
 		execute "normal! \<PageDown>"
-		if line('w0') != line('w$') && line('w$') == line('$') " 表示先頭行 != 最終行 かつ 表示最終行 = 最終行 なら最後まで表示
+		if line('w0') != line('w$') && line('w$') == line('$') # 表示先頭行 != 最終行 かつ 表示最終行 = 最終行 なら最後まで表示
 			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 		endif
 	else
-		let l:pos=line('.')
+		var pos = line('.')
 		execute 'normal!' winheight(0) - winline() + 1 .. 'gj'
-		if line('.') != l:pos " 移動前に表示していた次の行までカーソル移動して、行番号が異なれば行の最後まで表示されていた
-			call cursor(l:pos,0) " 一旦前の位置に移動し次で次行を画面最上部に表示
+		if line('.') != pos # 移動前に表示していた次の行までカーソル移動して、行番号が異なれば行の最後まで表示されていた
+			cursor(pos, 0) # 一旦前の位置に移動し次で次行を画面最上部に表示
 			normal! jzt
-		else " 行の途中まで表示していた
+		else # 行の途中まで表示していた
 			execute 'normal!' winheight(0) - 2 .. 'gj'
-			" ↑追加で 1 ページ分カーソル移動←本当はページ先頭に戻したいがやり方がわからない
-			if line('.') != l:pos " カーソル移動して行番号異なれば、以降の行まで移動した
-				call cursor(l:pos,0) " 一旦前の位置に移動し次で行末の表示先頭桁に移動
+			# ↑追加で 1 ページ分カーソル移動←本当はページ先頭に戻したいがやり方がわからない
+			if line('.') != pos # カーソル移動して行番号異なれば、以降の行まで移動した
+				cursor(pos, 0) # 一旦前の位置に移動し次で行末の表示先頭桁に移動
 				normal! $g^
 			endif
 		endif
 	endif
-	call win_gotoid(bufwinid(l:buf_num))
-endfunction
+	win_gotoid(bufwinid(l_buf_num))
+enddef
 
-function Next_unread(args) abort
-	py3 next_unread(vim.eval('bufnr("")'))
-endfunction
+def Next_unread(args: list<any>): void
+	py3eval('next_unread(' .. bufnr('') .. ')')
+enddef
 
-function Previous_page(args) abort
-	let l:buf_num = bufnr('')
-	if !has_key(s:buf_num, 'thread')
-		call s:Make_thread_list()
+def Previous_page(args: list<any>): void
+	var l_buf_num = bufnr('')
+	if !has_key(buf_num, 'thread')
+		Make_thread_list()
 	endif
-	if !has_key(s:buf_num, 'show')
-		call s:Make_show()
+	if !has_key(buf_num, 'show')
+		Make_show()
 	endif
-	if win_gotoid(bufwinid(s:buf_num.show)) == 0
-		if has_key(s:buf_num, 'view')
-					\ && has_key(b:notmuch, 'search_term')
-					\ && b:notmuch.search_term !=# ''
-					\ && has_key(s:buf_num.view, b:notmuch.search_term)
-			call win_gotoid(bufwinid(s:buf_num.view[b:notmuch.search_term]))
+	if win_gotoid(bufwinid(buf_num.show)) == 0
+		if has_key(buf_num, 'view')
+					&& has_key(b:notmuch, 'search_term')
+					&& b:notmuch.search_term !=# ''
+					&& has_key(buf_num.view, b:notmuch.search_term)
+			win_gotoid(bufwinid(buf_num.view[b:notmuch.search_term]))
 		else
 			py3 reopen('show', '')
 		endif
 	endif
 	execute "normal! \<PageUp>"
-	call win_gotoid(bufwinid(l:buf_num))
-endfunction
+	win_gotoid(bufwinid(l_buf_num))
+enddef
 
 function Save_attachment(args) abort
 	py3 save_attachment(vim.eval('a:args'))
 endfunction
 
-function View_mail_info(args) abort
+def View_mail_info(args: list<any>): void
 	py3 view_mail_info()
-endfunction
+enddef
 
-function Close_popup(id, key) abort
-	if a:key ==? 'x' || a:key ==? 'q' || a:key ==? 'c' || a:key ==? 'p' || a:key ==? "\<Esc>"
-		call popup_close(a:id)
+def Close_popup(id: number, key: string): bool
+	if key ==? 'x' || key ==? 'q' || key ==? 'c' || key ==? 'p' || key ==? "\<Esc>"
+		popup_close(id)
 		return 1
 	else
 		return 0
 	endif
-endfunction
+enddef
 
 function Delete_tags(args) abort
 	py3 do_mail(delete_tags, vim.eval('a:args'))
 endfunction
 
-function Complete_tag_common(func, cmdLine, cursorPos, direct_command) abort
-	let l:tags = s:Get_snippet(a:func, a:cmdLine, a:cursorPos, a:direct_command)
-	for l:t in split(a:cmdLine)[2:]
-		let l:filter = printf('v:val !~ "^%s\\>"', l:t)
-		let l:tags = filter(l:tags, l:filter)
+def Complete_tag_common(func: string, cmdLine: string, cursorPos: number, direct_command: bool): list<string>
+	var tags: list<string> = Get_snippet(func, cmdLine, cursorPos, direct_command)
+	var filter: string
+	for t in split(cmdLine)[2 : ]
+		filter = printf('v:val !~ "^%s\\>"', t)
+		tags = filter(tags, filter)
 	endfor
-	if len(l:tags) != 1
-		return l:tags
+	if len(tags) != 1
+		return tags
 	endif
-	return [ l:tags[0] .. ' ' ]
-endfunction
+	return [ tags[0] .. ' ' ]
+enddef
 
-function Get_snippet(func, cmdLine, cursorPos, direct_command) abort  " list から cmdLine カーソル位置の単語から補完候補を取得
-	let l:cmdLine = split(a:cmdLine[0:a:cursorPos-1], ' ')
-	if a:cmdLine[a:cursorPos-1] ==# ' '
-		let l:filter = ''
-		let l:prefix = join(l:cmdLine, ' ')
-	elseif a:cmdLine !=? ''
-		let l:filter = l:cmdLine[-1]
-		let l:prefix = join(l:cmdLine[0:-2], ' ')
+def Get_snippet(func: string, cmdLine: string, cursorPos: number, direct_command: bool): list<string>  # list から cmdLine カーソル位置の単語から補完候補を取得
+	var l_cmdLine: list<string> = split(cmdLine[0 : cursorPos - 1], ' ')
+	var prefix: string
+	var filter: string
+	if cmdLine[cursorPos - 1] ==# ' '
+		filter = ''
+		prefix = join(l_cmdLine, ' ')
+	elseif cmdLine !=? ''
+		filter = l_cmdLine[-1]
+		prefix = join(l_cmdLine[0 : -2], ' ')
 	else
-		let l:filter = ''
-		let l:prefix = ''
+		filter = ''
+		prefix = ''
 	endif
-	if l:prefix !=?  ''
-		let l:prefix = l:prefix .. ' '
+	if prefix !=?  ''
+		prefix = prefix .. ' '
 	endif
-	let l:list = py3eval(a:func .. '("' .. substitute(l:filter, '"', '\\"', 'g') .. '")')
-	let l:filter = printf('v:val =~ "^%s"', l:filter)
-	let l:snippet_org = filter(l:list, l:filter)
-	if a:direct_command  " input() 関数ではなく、command 直接の補完
-		return l:snippet_org
+	var ls: list<string> = py3eval(func .. '("' .. escape(filter, '"') .. '")')
+	filter = printf('v:val =~ "^%s"', filter)
+	var snippet_org: list<string> = filter(ls, filter)
+	if direct_command  # input() 関数ではなく、command 直接の補完
+		return snippet_org
 	endif
-	" 補完候補にカーソル前の文字列を追加
-	let l:snippet = []
-	for l:v in l:snippet_org
-		call add(l:snippet, l:prefix .. l:v)
+	# 補完候補にカーソル前の文字列を追加
+	var snippet: list<string>
+	for v in snippet_org
+		add(snippet, prefix .. v)
 	endfor
-	return l:snippet
-endfunction
+	return snippet
+enddef
 
-function Get_sort_snippet(cmdLine, cursorPos, direct_command) abort
-	let l:cmdLine = split(a:cmdLine[0:a:cursorPos-1], ' ')
-	echomsg l:cmdLine
-	if a:cmdLine[a:cursorPos-1] ==# ' '
-		let l:filter = ''
-		let l:prefix = join(l:cmdLine, ' ')
-	elseif a:cmdLine !=? ''
-		let l:filter = l:cmdLine[-1]
-		let l:prefix = join(l:cmdLine[0:-2], ' ')
+def Get_sort_snippet(cmdLine: string, cursorPos: number, direct_command: bool): list<string>
+	var l_cmdLine: list<string> = split(cmdLine[0 : cursorPos - 1], ' ')
+	var filter: string
+	var prefix: string
+	if cmdLine[cursorPos - 1] ==# ' '
+		filter = ''
+		prefix = join(l_cmdLine, ' ')
+	elseif cmdLine !=? ''
+		filter = l_cmdLine[-1]
+		prefix = join(l_cmdLine[0 : -2], ' ')
 	else
-		let l:filter = ''
-		let l:prefix = ''
+		filter = ''
+		prefix = ''
 	endif
-	if l:prefix !=?  ''
-		let l:prefix = l:prefix .. ' '
+	if prefix !=?  ''
+		prefix = prefix .. ' '
 	endif
-	let l:list = ['list', 'tree', 'Date', 'date', 'From', 'from', 'Subject', 'subject']
-	let l:filter = printf('v:val =~# "^%s"', l:filter)
-	let l:snippet_org = filter(l:list, l:filter)
-	if a:direct_command  " input() 関数ではなく、command 直接の補完
-		return l:snippet_org
+	var ls: list<string> = ['list', 'tree', 'Date', 'date', 'From', 'from', 'Subject', 'subject']
+	filter = printf('v:val =~# "^%s"', filter)
+	var snippet_org: list<string>  = filter(ls, filter)
+	if direct_command  # input() 関数ではなく、command 直接の補完
+		return snippet_org
 	endif
-	" 補完候補にカーソル前の文字列を追加
-	let l:snippet = []
-	for l:v in l:snippet_org
-		call add(l:snippet, l:prefix .. l:v)
+	# 補完候補にカーソル前の文字列を追加
+	var snippet: list<string>
+	for v in snippet_org
+		add(snippet, prefix .. v)
 	endfor
-	return l:snippet
-endfunction
+	return snippet
+enddef
 
 export function Comp_sort(ArgLead, CmdLine, CursorPos) abort
 	let l:snippet = s:Get_sort_snippet(a:CmdLine, a:CursorPos, v:false)
@@ -410,35 +413,35 @@ export function Comp_tag(ArgLead, CmdLine, CursorPos) abort
 	return s:Complete_tag_common('get_msg_all_tags_list', a:CmdLine, a:CursorPos, v:false)
 endfunction
 
-export function Notmuch_main(...) abort
-	if a:0 == 2
+export def Notmuch_main(...arg: list<any>): void
+	if len(arg) == 2
 		help notmuch-python-vim-command
 		echohl WarningMsg | echomsg 'Requires argument (subcommand).' | echomsg 'open help.' | echohl None
 	else
-		let l:cmd = copy(a:000)
-		let l:sub_cmd = remove(l:cmd, 2)
-		if !has_key(g:notmuch_command, l:sub_cmd)
+		var cmd: list<any> = copy(arg)
+		var sub_cmd: string = remove(cmd, 2)
+		if !has_key(g:notmuch_command, sub_cmd)
 			help notmuch-python-vim-command
-			echohl WarningMsg | echomsg 'Not exist ' .. l:sub_cmd .. ' subcommand.' | echomsg 'open help.' | echohl None
+			echohl WarningMsg | echomsg 'Not exist ' .. sub_cmd .. ' subcommand.' | echomsg 'open help.' | echohl None
 		else
-			if l:sub_cmd ==# 'start'
-				call s:Start_notmuch()
-			elseif l:sub_cmd ==# 'mail-new'
-				call remove(l:cmd, 0, 1)
-				call s:New_mail(join(l:cmd, ' '))
+			if sub_cmd ==# 'start'
+				Start_notmuch()
+			elseif sub_cmd ==# 'mail-new'
+				remove(cmd, 0, 1)
+				New_mail(join(cmd, ' '))
 			else
-				execute 'call ' .. g:notmuch_command[l:sub_cmd][0] .. '(l:cmd)'
+				function(g:notmuch_command[sub_cmd][0])(cmd)
 			endif
 		endif
 	endif
-endfunction
+enddef
 
-function Import()
+def Import(): void
 	python3 << _EOF_
 import os, sys, vim
 if 'notmuchVim' not in sys.modules:
-    if not vim.eval('s:script_root') + '/autoload/' in sys.path:
-        sys.path.append(vim.eval('s:script_root') + '/autoload/')
+    if not vim.eval('script_root') + '/autoload/' in sys.path:
+        sys.path.append(vim.eval('script_root') + '/autoload/')
     import notmuchVim
     # vim から呼び出す関数は関数名だけで呼び出せるようにする
     from notmuchVim.subcommand import add_tags
@@ -496,6 +499,7 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import reset_cursor_position
     from notmuchVim.subcommand import run_shell_program
     from notmuchVim.subcommand import save_attachment
+    from notmuchVim.subcommand import save_mail
     from notmuchVim.subcommand import save_draft
     from notmuchVim.subcommand import send_vim
     from notmuchVim.subcommand import set_attach
@@ -512,125 +516,127 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import toggle_tags
     from notmuchVim.subcommand import view_mail_info
 _EOF_
-endfunction
+enddef
 
-function Start_notmuch() abort
-	if !exists('s:buf_num')
-		let s:buf_num = {}
+def Start_notmuch(): void
+	if !exists('buf_num')
+		buf_num = {}
 	endif
-	if !has_key(s:buf_num, 'search')
-		let s:buf_num.search = {}
+	if !has_key(buf_num, 'search')
+		buf_num.search = {}
 	endif
-	if !has_key(s:buf_num, 'view')
-		let s:buf_num.view = {}
+	if !has_key(buf_num, 'view')
+		buf_num.view = {}
 	endif
-	call s:Import()
+	Import()
 	py3 set_subcmd_start()
 	execute 'cd ' .. py3eval('get_save_dir()')
-	call s:Make_folders_list()
-	call s:Set_title_etc()
+	Make_folders_list()
+	Set_title_etc()
 	if g:notmuch_open_way.thread !=? 'enew' && g:notmuch_open_way.thread !=? 'tabedit'
-		call s:Make_thread_list()
-		call win_gotoid(bufwinid(s:buf_num.folders))
+		Make_thread_list()
+		win_gotoid(bufwinid(buf_num.folders))
 	endif
-	" guifg=red ctermfg=red
-	" 次の変数は Python スクリプトを読み込んでしまえばもう不要←一度閉じて再び開くかもしれない
-	" unlet s:script_root
-endfunction
+	# guifg=red ctermfg=red
+	# 次の変数は Python スクリプトを読み込んでしまえばもう不要←一度閉じて再び開くかもしれない
+	# unlet script_root
+enddef
 
-function Close_notmuch(kind) abort
-	if !has_key(s:buf_num, a:kind)
+def Close_notmuch(kind: string): void
+	if !has_key(buf_num, kind)
 		return
 	endif
-	if a:kind ==# 'thread' || a:kind ==# 'show'
-		let l:bufs = [buf_num[a:kind]]
+	var bufs: list<number>
+	if kind ==# 'thread' || kind ==# 'show'
+		bufs = [buf_num[kind]]
 	else
-		let l:bufs = values(s:buf_num[a:kind])
+		bufs = values(buf_num[kind])
 	endif
-	for l:b in l:bufs
-		call s:Change_exist_tabpage_core(l:b)
-		if win_gotoid(bufwinid(l:b))
+	for b in bufs
+		Change_exist_tabpage_core(b)
+		if win_gotoid(bufwinid(b))
 			close
 		endif
 	endfor
-endfunction
+enddef
 
-function Vim_escape(s) abort " Python に受け渡す時に \, ダブルクォートをエスケープ
-	return substitute(substitute(a:s, '\\', '\\\\', 'g'), '''', '\\\''', 'g')
-endfunction
+def Vim_escape(s: string): string # Python に受け渡す時に \, ダブルクォートをエスケープ
+	return substitute(substitute(s, '\\', '\\\\', 'g'), '''', '\\\''', 'g')
+enddef
 
-function MakeGUITabline() abort
-	let l:bufnrlist = tabpagebuflist(v:lnum)
-	" ウィンドウが複数あるときにはその数を追加する
-	let l:wincount = tabpagewinnr(v:lnum, '$')
-	if l:wincount > 1
-		let l:label = l:wincount
+export def MakeGUITabline(): string
+	def Get_gui_tab(notmuch_dic: dict<any>): string
+		if has_key(notmuch_dic, 'search_term')
+			return '%N| notmuch [' .. notmuch_dic.search_term .. ']%<'
+		else # notmuch-search 作成直後は b:notmuch.search_term 未定義
+			return '%N| notmuch []%<'
+		endif
+	enddef
+
+	var bufnrlist = tabpagebuflist(v:lnum)
+	# ウィンドウが複数あるときにはその数を追加する
+	var wincount = tabpagewinnr(v:lnum, '$')
+	var label: string
+	if wincount > 1
+		label = nr2char(wincount)
 	else
-		let l:label = ''
+		label = ''
 	endif
-	" このタブページに変更のあるバッファは '+' を追加する
-	for l:bufnr in l:bufnrlist
-		if getbufvar(l:bufnr, '&modified')
-					\ && !( match(getbufinfo(l:bufnr)[0].name, '!/') == 0 && swapname(l:bufnr) ==# '' )
-					" 名前が !/bin/bash 等で !/ ではじまり、スワップ・ファイルがなければ :terminal の可能性が高い
-			let l:label ..= '+'
+	# このタブページに変更のあるバッファは '+' を追加する
+	for bufnr in bufnrlist
+		if getbufvar(bufnr, '&modified')
+					&& !( match(getbufinfo(bufnr)[0].name, '!/') == 0 && swapname(bufnr) ==# '' )
+					# 名前が !/bin/bash 等で !/ ではじまり、スワップ・ファイルがなければ :terminal の可能性が高い
+			label ..= '+'
 			break
 		endif
 	endfor
-	if l:label !=? ''
-		let l:label ..= ' '
+	if label !=? ''
+		label ..= ' '
 	endif
-	" バッファ名を追加する
+	# バッファ名を追加する
 	if &filetype !~# '^notmuch-'
-		return '%N|' .. l:label .. ' %t'
+		return '%N|' .. label .. ' %t'
 	else
-		let l:type = py3eval('buf_kind()')
-		let l:vars = getbufinfo(bufnr())[0].variables
-		if l:type ==# 'edit'
-			return '%N| ' .. l:label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
-		elseif l:type ==# 'show'
+		var type = py3eval('buf_kind()')
+		var vars = getbufinfo(bufnr())[0].variables
+		if type ==# 'edit'
+			return '%N| ' .. label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
+		elseif type ==# 'show'
 			if py3eval('is_same_tabpage("thread", "")')
-				return s:Get_gui_tab(getbufinfo(s:buf_num.thread)[0].variables.notmuch)
+				return Get_gui_tab(getbufinfo(buf_num.thread)[0].variables.notmuch)
 			else
-				return '%N| ' .. l:label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
+				return '%N| ' .. label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 			endif
-		elseif l:type ==# 'view' && has_key(l:vars.notmuch, 'search_term')
-			if py3eval('is_same_tabpage("search", ''' .. s:Vim_escape(b:notmuch.search_term) .. ''')')
+		elseif type ==# 'view' && has_key(vars.notmuch, 'search_term')
+			if py3eval('is_same_tabpage("search", ''' .. Vim_escape(b:notmuch.search_term) .. ''')')
 				return '%N| notmuch [' .. b:notmuch.search_term .. ']%<'
 			else
-				return '%N| ' .. l:label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
+				return '%N| ' .. label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 			endif
-		elseif l:type ==# 'draft'
-			return '%N| ' .. l:label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
-		elseif l:type ==# 'search'
-			return s:Get_gui_tab(l:vars.notmuch)
-		elseif has_key(s:buf_num, 'thread') " notmuch-folder では notmuch-search と同じにするのを兼ねている
-			return s:Get_gui_tab(getbufinfo(s:buf_num.thread)[0].variables.notmuch)
+		elseif type ==# 'draft'
+			return '%N| ' .. label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
+		elseif type ==# 'search'
+			return Get_gui_tab(vars.notmuch)
+		elseif has_key(buf_num, 'thread') # notmuch-folder では notmuch-search と同じにするのを兼ねている
+			return Get_gui_tab(getbufinfo(buf_num.thread)[0].variables.notmuch)
 		else
-			return s:Get_gui_tab(l:vars.notmuch)
+			return Get_gui_tab(vars.notmuch)
 		endif
 	endif
-endfunction
+enddef
 
-function Get_gui_tab(vars) abort
-	if has_key(a:vars, 'search_term')
-		return '%N| notmuch [' .. a:vars.search_term .. ']%<'
-	else  " notmuch-search 作成直後は b:notmuch.search_term 未定義
-		return '%N| notmuch []%<'
-	endif
-endfunction
-
-function Set_title_etc() abort
+def Set_title_etc(): void
 	if &title && &titlestring ==# ''
 		augroup NotmuchTitle
 			autocmd!
-			autocmd BufEnter,BufFilePost * let &titlestring=s:Make_title()
+			autocmd BufEnter,BufFilePost * &titlestring = Make_title()
 		augroup END
 	endif
-	if has('gui_running') && &showtabline != 0 " && &guitablabel ==# ''
-		set guitablabel=%!MakeGUITabline()
+	if has('gui_running') && &showtabline != 0 # && &guitablabel ==# ''
+		set guitablabel=%!notmuch_py#MakeGUITabline()
 	endif
-endfunction
+enddef
 
 function Make_title() abort
 	let l:tablist = tabpagenr('$')
@@ -653,129 +659,109 @@ function Make_title() abort
 	return l:title .. l:a .. ' - ' .. v:servername
 endfunction
 
-function Change_title() abort
-	let l:type = py3eval('buf_kind()')
-	if l:type ==# 'folders'
-				\ || l:type ==# 'thread'
-				\ || l:type ==# 'show'
-				\ || l:type ==# 'edit'
-				\ || l:type ==# 'draft'
-				\ || l:type ==# 'search'
-				\ || l:type ==# 'view'
-		set titlestring=Notmuch-Python\ -\ Vim
-	else
-		set titlestring=%f%(\ %M%)%(\ (%{expand(\"%:p:h\")})%)%(\ %a%)
-	endif
-endfunction
-
-function Search_not_notmuch() abort " notmuch-? 以外のリストされていて隠れていない、もしくは隠れていても更新されているバッファを探す
-	let l:notmuch_kind = ['notmuch-folders', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
-	let l:changed = 0
-	for l:buf in getbufinfo()
-		if count(l:notmuch_kind, getbufvar(l:buf.bufnr, '&filetype')) == 0
-			if !l:buf.listed
+def Search_not_notmuch(): number # notmuch-? 以外のリストされていて隠れていない、もしくは隠れていても更新されているバッファを探す
+	var notmuch_kind: list<string> = ['notmuch-folders', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
+	var changed: number = 0
+	for buf in getbufinfo()
+		if count(notmuch_kind, getbufvar(buf.bufnr, '&filetype')) == 0
+			if !buf.listed
 				continue
-			elseif l:buf.hidden
-				if l:buf.changed
-					let l:changed = l:buf.bufnr
+			elseif buf.hidden
+				if buf.changed
+					changed = buf.bufnr
 				endif
 			else
-				return l:buf.bufnr
+				return buf.bufnr
 			endif
 		endif
 	endfor
-	if l:changed
-		return l:changed
+	if changed != 0
+		return changed
 	endif
 	return 0
-endfunction
+enddef
 
-function End_notmuch() abort " 全て終了 (notmuch-folders が bwipeout されたら呼ばれる)
-	let l:bufinfo = getbufinfo()
-	for l:buf in l:bufinfo
-		let l:bufnr = l:buf.bufnr
-		let l:ftype = getbufvar(l:bufnr, '&filetype')
-		if l:ftype ==# 'notmuch-draft' && l:buf.changed || ( l:ftype ==# 'notmuch-edit' && l:buf.changed )
-			call s:Swich_buffer(l:bufnr)
-			echohl WarningMsg | echo 'Editing ' .. l:ftype .. '.' | echohl None
-			unlet s:buf_num.folders
+def End_notmuch(): void # 全て終了 (notmuch-folders が bwipeout されたら呼ばれる)
+	var bufinfo: list<dict<any>> = getbufinfo()
+	var bufnr: number
+	var ftype: string
+	for buf in bufinfo
+		bufnr = buf.bufnr
+		ftype = getbufvar(bufnr, '&filetype')
+		if ftype ==# 'notmuch-draft' && buf.changed || ( ftype ==# 'notmuch-edit' && buf.changed )
+			Swich_buffer(bufnr)
+			echohl WarningMsg | echo 'Editing ' .. ftype .. '.' | echohl None
+			unlet buf_num.folders
 			return
 		endif
 	endfor
 	py3 make_dump()
-	let l:bufnr = s:Search_not_notmuch()
-	if l:bufnr == 0
-		cquit " →全終了
+	bufnr = Search_not_notmuch()
+	if bufnr == 0
+		cquit # →全終了
 	endif
-	call s:Swich_buffer(l:bufnr)
-	" notmuch-* バッファ削除
-	let l:notmuch_kind = ['notmuch-folder', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
-	for l:buf in l:bufinfo
-		let l:bufnr = l:buf.bufnr
-		if count(l:notmuch_kind, getbufvar(l:bufnr, '&filetype'))
-			execute l:bufnr .. 'bwipeout'
+	Swich_buffer(bufnr)
+	# notmuch-* バッファ削除
+	var notmuch_kind: list<string> = ['notmuch-folder', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
+	for buf in bufinfo
+		bufnr = buf.bufnr
+		if count(notmuch_kind, getbufvar(bufnr, '&filetype'))
+			execute ':' .. bufnr .. 'bwipeout'
 		endif
 	endfor
-	call <SID>Change_fold_highlight()
-	unlet s:buf_num
-endfunction
+	Change_fold_highlight()
+	buf_num = {}
+	s_select_thread = -1
+enddef
 
-function Swich_buffer(bufnr) abort " できるだけ指定されたバッファに切り替える
-	" 他のタブページに有るか?
-	let l:tabpage = 0
-	for l:i in range(tabpagenr('$'))
-		if match(tabpagebuflist(l:i + 1), a:bufnr) != -1
-			let l:tabpage = l:i + 1
+def Swich_buffer(bufnr: number): void # できるだけ指定されたバッファに切り替える
+	# 他のタブページに有るか?
+	var tabpage: number = 0
+	for i in range(tabpagenr('$'))
+		if match(tabpagebuflist(i + 1), '' .. bufnr) != -1
+			tabpage = i + 1
 			break
 		endif
 	endfor
-	if l:tabpage != 0 " タブページが有る場合
-		execute l:tabpage .. 'tabnext'
+	if tabpage != 0 # タブページが有る場合
+		execute ':' .. tabpage .. 'tabnext'
 	endif
-	if win_gotoid(bufwinid(a:bufnr)) == 0
-		let l:type = getbufvar(a:bufnr, '&filetype')
-		if l:type ==# 'notmuch-edit' || l:type ==# 'notmuch-draft'
-			let l:open_way = g:notmuch_open_way[strpart(l:type, 8)]
-			if l:open_way ==# 'enew'
-				execute 'silent buffer ' .. a:bufnr
-			elseif l:open_way ==# 'tabedit'
-				execute 'silent tab sbuffer ' .. a:bufnr
+	if win_gotoid(bufwinid(bufnr)) == 0
+		var type: string = getbufvar(bufnr, '&filetype')
+		if type ==# 'notmuch-edit' || type ==# 'notmuch-draft'
+			var open_way: string = g:notmuch_open_way[strpart(type, 8)]
+			if open_way ==# 'enew'
+				execute 'silent buffer ' .. bufnr
+			elseif open_way ==# 'tabedit'
+				execute 'silent tab sbuffer ' .. bufnr
 			else
-				let l:open_way = substitute(l:open_way, '\<new\>',        'split',   '')
-				let l:open_way = substitute(l:open_way, '\([0-9]\)new\>', '\1split', '')
-				let l:open_way = substitute(l:open_way, '\<vnew\>',       'vsplit',  '')
-				let l:open_way = substitute(l:open_way, '\([0-9]\)vnew\>','\1vsplit','')
-				execute l:open_way
-				execute 'silent buffer ' .. a:bufnr
+				open_way = substitute(open_way, '\<new\>',           'split',     '')
+				open_way = substitute(open_way, '\([0-9]\+\)new\>',  ':\1split',  '')
+				open_way = substitute(open_way, '\<vnew\>',          'vsplit',    '')
+				open_way = substitute(open_way, '\([0-9]\+\)vnew\>', ':\1vsplit', '')
+				execute open_way
+				execute 'silent buffer ' .. bufnr
 			endif
 		else
-			execute a:bufnr .. 'buffer'
+			execute ':' .. bufnr .. 'buffer'
 		endif
 	endif
-endfunction
+enddef
 
 function Open_original(args) abort
 	py3 do_mail(open_original, vim.eval('a:args'))
 endfunction
 
-function Reload(args) abort
+def Reload(args: list<any>): void
 	py3 reload()
-endfunction
+enddef
 
-function Get_tags() abort
-	let l:tags = ''
-	for l:t in py3eval('get_msg_tags_list("")')
-		let l:tags = l:tags .. l:t .. ' '
-	endfor
-	return l:tags[:-1]
-endfunction
-
-function Cursor_move_thread(search_term) abort
+def Cursor_move_thread(search_term: string): void
 	if line('.') != line('v')
 		return
 	endif
-	py3 cursor_move_thread(vim.eval('a:search_term'))
-endfunction
+	call py3eval('cursor_move_thread("' .. escape(search_term, '"') .. '")')
+enddef
 
 function New_mail(...) abort
 	if !py3eval('"DBASE" in globals()')  " フォルダ一覧も非表示状態で呼ばれた場合
@@ -786,31 +772,31 @@ function New_mail(...) abort
 			let &titlestring=s:Make_title()
 		endif
 		if has('gui_running') && &showtabline != 0 " && &guitablabel ==# ''
-			set guitablabel=%!MakeGUITabline()
+			set guitablabel=%!notmuch_py#MakeGUITabline()
 		endif
 	endif
 	py3 new_mail(vim.eval('a:000'))
 endfunction
 
-function Forward_mail(args) abort
+def Forward_mail(args: list<any>): void
 	py3 forward_mail()
-endfunction
+enddef
 
-function Forward_mail_attach(args) abort
+def Forward_mail_attach(args: list<any>): void
 	py3 forward_mail_attach()
-endfunction
+enddef
 
-function Forward_mail_resent(args) abort
-		py3 forward_mail_resent()
-endfunction
+def Forward_mail_resent(args: list<any>): void
+	py3 forward_mail_resent()
+enddef
 
-function Reply_mail(args) abort
+def Reply_mail(args: list<any>): void
 	py3 reply_mail()
-endfunction
+enddef
 
-function Send_vim(args) abort
+def Send_vim(args: list<any>): void
 	py3 send_vim()
-endfunction
+enddef
 
 function Save_mail(args) abort
 	let l:winid = bufwinid(bufnr(''))
@@ -848,6 +834,8 @@ export function Comp_dir(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function Run_shell_program(args) abort
+	if len(args) > 3
+		args = args[:2]
 	py3 do_mail(run_shell_program, vim.eval('a:args'))
 endfunction
 
@@ -871,113 +859,80 @@ function Delete_attachment(args) abort
 	py3 delete_attachment(vim.eval('a:args'))
 endfunction
 
-function Close(args) abort " notmuch-* を閉じる (基本 close なので隠すだけ) が、他のバッファが残っていれば Vim を終了させずに、そのバッファを復活させる
+def Close(args: list<any>): void # notmuch-* を閉じる (基本 close なので隠すだけ) が、他のバッファが残っていれば Vim を終了させずに、そのバッファを復活させる
 	if winnr('$') == 1 && tabpagenr('$') == 1
-		let l:bufnr = s:Search_not_notmuch()
-		if l:bufnr
-			execute l:bufnr .. 'buffer'
+		var bufnr: number = Search_not_notmuch()
+		if bufnr
+			execute ':' .. bufnr .. 'buffer'
 		else
 			quit
 		endif
 	else
 		close
 	endif
-endfunction
+enddef
 
-function Augroup_notmuch_select(win, reload) abort " notmuch-edit 閉じた時の処理(呼び出し元に戻り notmuch-show が同じタブページに有れば再読込)
-	let l:bufnr = bufnr()
-	execute 'augroup NotmuchEdit' .. l:bufnr
+def Augroup_notmuch_select(win: number, reload: bool): void # notmuch-edit 閉じた時の処理(呼び出し元に戻り notmuch-show が同じタブページに有れば再読込)
+	var l_bufnr = bufnr()
+	execute 'augroup NotmuchEdit' .. l_bufnr
 		autocmd!
-		execute 'autocmd BufWinLeave <buffer> call s:Change_exist_tabpage_core(' .. a:win .. ') |' ..
-					\ '    if py3eval(''is_same_tabpage("show", "")'') |' ..
-					\ '      if ' .. a:reload .. ' |'
-					\ '        call win_gotoid(bufwinid(s:buf_num["show"])) |' ..
-					\ '        call s:Reload([]) |' ..
-					\ '      endif |'
-					\ '      call win_gotoid(bufwinid(' .. a:win .. ')) |' ..
-					\ '      autocmd! NotmuchEdit' .. l:bufnr .. ' |' ..
-					\ '      augroup! NotmuchEdit' .. l:bufnr .. ' |' ..
-					\ '    endif'
+		execute 'autocmd BufWinLeave <buffer> Change_exist_tabpage_core(' .. win .. ') |' ..
+					'    if py3eval(''is_same_tabpage("show", "")'') |' ..
+					'      if ' .. reload .. ' |'
+					'        win_gotoid(bufwinid(buf_num["show"])) |' ..
+					'        Reload([]) |' ..
+					'      endif |'
+					'      win_gotoid(bufwinid(' .. win .. ')) |' ..
+					'      autocmd! NotmuchEdit' .. l_bufnr .. ' |' ..
+					'      augroup! NotmuchEdit' .. l_bufnr .. ' |' ..
+					'    endif'
 	augroup END
-	" a:win に戻れない時は、そのバッファを読み込みたいが以下の方法でも駄目
-					" \ '    if win_gotoid(bufwinid(' .. a:win .. ')) == 0 |' ..
-					" \ '      buffer ' .. a:win .. '|' ..
-					" \ '    endif | ' ..
-endfunction
+	# win に戻れない時は、そのバッファを読み込みたいが以下の方法でも駄目
+					# \ '    if win_gotoid(bufwinid(' .. win .. ')) == 0 |' ..
+					# \ '      buffer ' .. win .. '|' ..
+					# \ '    endif | ' ..
+enddef
 
-function Au_new_mail() abort " 新規/添付転送メールでファイル末尾移動時に From 設定や署名の挿入
-	let l:bufnr = bufnr()
-	execute 'augroup NotmuchNewAfter' .. l:bufnr
+def Au_new_mail(): void # 新規/添付転送メールでファイル末尾移動時に From 設定や署名の挿入
+	var l_bufnr = bufnr()
+	execute 'augroup NotmuchNewAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3 set_new_after(' .. l:bufnr .. ')'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_new_after(' .. l_bufnr .. ')")'
 	augroup END
-endfunction
+enddef
 
-function Au_reply_mail() abort " 返信メールでファイル末尾移動時に From 設定や署名・返信元引用文の挿入
-	let l:bufnr = bufnr()
-	execute 'augroup NotmuchReplyAfter' .. l:bufnr
+def Au_reply_mail(): void # 返信メールでファイル末尾移動時に From 設定や署名・返信元引用文の挿入
+	var l_bufnr = bufnr()
+	execute 'augroup NotmuchReplyAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3 set_reply_after(' .. l:bufnr .. ')'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_reply_after(' .. l_bufnr .. ')")'
 	augroup END
-endfunction
+enddef
 
-function Au_forward_mail() abort " 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
-	let l:bufnr = bufnr()
-	execute 'augroup NotmuchForwardAfter' .. l:bufnr
+def Au_forward_mail(): void # 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
+	var l_bufnr = bufnr()
+	execute 'augroup NotmuchForwardAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3 set_forward_after(' .. l:bufnr .. ')'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_forward_after(' .. l_bufnr .. ')")'
 	augroup END
-endfunction
+enddef
 
-function Au_resent_mail() abort " 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
-	let l:bufnr = bufnr()
-	execute 'augroup NotmuchResentAfter' .. l:bufnr
+def Au_resent_mail(): void # 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
+	var l_bufnr = bufnr()
+	execute 'augroup NotmuchResentAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3 set_resent_after(' .. l:bufnr .. ')'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_resent_after(' .. l_bufnr .. ')")'
 	augroup END
-endfunction
+enddef
 
-function Au_write_draft() abort " draft mail の保存
-	let l:bufnr = bufnr()
-	execute 'augroup NotmuchSaveDraft' .. l:bufnr
+def Au_write_draft(): void # draft mail の保存
+	var l_bufnr = bufnr()
+	execute 'augroup NotmuchSaveDraft' .. l_bufnr
 		autocmd!
-		execute 'autocmd BufWritePost <buffer> py3 save_draft()'
-		execute 'autocmd BufWipeout <buffer> autocmd! NotmuchSaveDraft' .. l:bufnr
+		autocmd BufWritePost <buffer> py3 save_draft()
+		execute 'autocmd BufWipeout <buffer> autocmd! NotmuchSaveDraft' .. l_bufnr
 	augroup END
-endfunction
-
-function Close_boundary(header_end, close_start, boundary_start) abort " ヘッダの最後から multipart 部まで纏めて折りたたむ
-	let l:i = a:boundary_start
-	while v:true
-		for l:str in getline(l:i, '$')
-			let l:boundary = matchstr(l:str, '\m\c\%(\<boundary=["'']\)\@<=[^"'']\+')
-			if l:boundary !=? ''
-				break
-			endif
-			let l:i += 1
-		endfor
-		let l:boundary = '^--' .. l:boundary .. '$'
-		for l:str in getline(l:i, '$')
-			if match(l:str, l:boundary) != -1
-				break
-			endif
-			let l:i += 1
-		endfor
-		for l:str in getline(l:i, '$')
-			if match(l:str, '^Content-Type: \?multipart\/\c') != -1
-				call s:Close_boundary(a:header_end, a:close_start, l:i)
-				return
-			elseif l:str ==# ''
-				let l:i -= 1
-				execute printf('%d', a:header_end + 1) .. ',' printf('%d', l:i) .. 'fold'
-				execute printf('%d', a:close_start) .. ',' .. printf('%d', l:i) .. 'fold'
-				return
-			endif
-			let l:i += 1
-		endfor
-		break
-	endwhile
-endfunction
+enddef
 
 function Mark_in_thread(args) range abort
 	let l:beg = a:args[0]
@@ -1009,13 +964,13 @@ function Mark_in_thread(args) range abort
 	endif
 endfunction
 
-function Cut_thread(args) abort
+def Cut_thread(args: list<any>): void
 	py3 cut_thread(get_msg_id(), [])
-endfunction
+enddef
 
-function Connect_thread(args) abort
+def Connect_thread(args: list<any>): void
 	py3 connect_thread_tree()
-endfunction
+enddef
 
 function Command_marked(args) abort " マークしたメールに纏めてコマンド実行
 	call remove(a:args, 0, 1)
@@ -1059,7 +1014,7 @@ export function Comp_all_args(ArgLead, CmdLine, CursorPos) abort
 				return s:Is_one_snippet(l:snippet)
 			elseif l:cmd ==# 'set-encrypt'
 				let l:snippet = ['Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP', 'Subject', 'Public-Key']
-			elseif l:cmd ==# 'set-attach' || l:cmd ==# 'mail-import'
+			elseif l:cmd ==# 'set-attach' || l:cmd ==# 'mail-import' || l:cmd ==# 'mail-save'
 				let l:dir = substitute(a:CmdLine, '^Notmuch\s\+' .. l:cmd .. '\s\+', '', '')
 				if l:dir ==# ''
 					let l:snippet = glob(py3eval('os.path.expandvars(''$USERPROFILE\\'') if os.name == ''nt'' else os.path.expandvars(''$HOME/'')') .. '*', 1, 1)
@@ -1094,82 +1049,85 @@ export function Comp_cmd(ArgLead, CmdLine, CursorPos) abort
 	return s:Complete_command(a:CmdLine, a:CursorPos, 0)
 endfunction
 
-function Complete_command(CmdLine, CursorPos, direct_command) abort
-	let l:cmdLine = split(a:CmdLine[0:a:CursorPos-1], ' ')
-	if a:CmdLine[a:CursorPos-1] ==# ' '
-		let l:filter = ''
-		let l:prefix = join(l:cmdLine, ' ')
-	elseif a:CmdLine !=? ''
-		let l:filter = l:cmdLine[-1]
-		let l:prefix = join(l:cmdLine[0:-2], ' ')
+def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): list<string>
+	var l_cmdLine: list<string> = split(CmdLine[0 : CursorPos - 1], ' ')
+	var filter: string
+	var prefix: string
+	if CmdLine[CursorPos-1] ==# ' '
+		filter = ''
+		prefix = join(l_cmdLine, ' ')
+	elseif CmdLine !=? ''
+		filter = l_cmdLine[-1]
+		prefix = join(l_cmdLine[0 : -2], ' ')
 	else
-		let l:filter = ''
-		let l:prefix = ''
+		filter = ''
+		prefix = ''
 	endif
-	if l:prefix !=?  ''
-		let l:prefix = l:prefix .. ' '
+	if prefix !=?  ''
+		prefix = prefix .. ' '
 	endif
-	let l:cmdline = substitute(a:CmdLine, '[\n\r]\+', ' ', 'g')
-	let l:pos = a:CursorPos + 1
-	let l:last = py3eval('get_last_cmd(get_mark_cmd_name(), " ' .. l:cmdline .. '", ' .. l:pos .. ')')
-	if l:last == []
-		let l:list = py3eval('get_mark_cmd_name()')
+	cmdline = substitute(CmdLine, '[\n\r]\+', ' ', 'g')
+	var pos: number = CursorPos + 1
+	var last: list<string> = py3eval('get_last_cmd(get_mark_cmd_name(), " ' .. cmdline .. '", ' .. pos .. ')')
+	var ls: list<string> = py3eval('get_mark_cmd_name()')
+	if last == []
+		ls = py3eval('get_mark_cmd_name()')
 	else
-		let l:cmd = l:last[0]
-		let l:cmds = py3eval('get_command()')
-		if l:cmd ==# 'mail-move'
-			if l:last[1] " 既に引数が有る
-				let l:list = py3eval('get_mark_cmd_name()')
+		cmd = last[0]
+		cmds = py3eval('get_command()')
+		if cmd ==# 'mail-move'
+			if last[1] # 既に引数が有る
+				ls = py3eval('get_mark_cmd_name()')
 			else
-				let l:list = py3eval('get_mail_folders()')
+				ls = py3eval('get_mail_folders()')
 			endif
-		elseif l:cmd ==# 'run' " -complete=shellcmd 相当のことがしたいけどやり方不明
-			" let l:list = []
+		elseif cmd ==# 'run' # -complete=shellcmd 相当のことがしたいけどやり方不明
+			# ls = []
 			return []
-		elseif l:cmds[l:cmd][0] ==# '0' " 引数を必要としないコマンド→次のコマンドを補完対象
-			let l:list = py3eval('get_mark_cmd_name()')
+		elseif cmds[cmd][0] ==# '0' # 引数を必要としないコマンド→次のコマンドを補完対象
+			ls = py3eval('get_mark_cmd_name()')
 		else
-			if l:last[1]
-				let l:list = extend(py3eval('get_msg_all_tags_list("")'), py3eval('get_mark_cmd_name()'))
+			if last[1]
+				ls = extend(py3eval('get_msg_all_tags_list("")'), py3eval('get_mark_cmd_name()'))
 			else
-				let l:list = py3eval('get_msg_all_tags_list("")')
+				ls = py3eval('get_msg_all_tags_list("")')
 			endif
 		endif
 	endif
-	let l:filter = printf('v:val =~ "^%s"', l:filter)
-	let l:snippet_org = filter(l:list, l:filter)
-	if a:direct_command  " input() 関数ではなく、command 直接の補完
-		if len(l:snippet_org) == 1
-			return [ l:snippet_org[0] .. ' ' ]
+	filter = printf('v:val =~ "^%s"', filter)
+	var snippet_org: list<string> = filter(ls, filter)
+	if direct_command  # input() 関数ではなく、command 直接の補完
+		if len(snippet_org) == 1
+			return [ snippet_org[0] .. ' ' ]
 		endif
-			return l:snippet_org
+			return snippet_org
 	endif
-	" 補完候補にカーソル前の文字列を追加
-	let l:snippet = []
-	for l:v in l:snippet_org
-		call add(l:snippet, l:prefix .. l:v)
+	# 補完候補にカーソル前の文字列を追加
+	var snippet: list<string>
+	for v in snippet_org
+		add(snippet, prefix .. v)
 	endfor
-	if len(l:snippet) == 1
-		return [ l:snippet[0] .. ' ' ]
+	if len(snippet) == 1
+		return [ snippet[0] .. ' ' ]
 	endif
-	return l:snippet
-endfunction
+	return snippet
+enddef
 
 function Notmuch_search(args) abort " notmuch search
 	py3 notmuch_search(vim.eval('a:args'))
 endfunction
 
-function Notmuch_thread(args) abort
+def Notmuch_thread(args: list<any>): void
 	py3 notmuch_thread()
-endfunction
+enddef
 
-function Notmuch_address(args) abort
+def Notmuch_address(args: list<any>): void
 	py3 notmuch_address()
-endfunction
+enddef
 
-function Notmuch_duplication(args) abort
+def Notmuch_duplication(args: list<any>): void
 	py3 notmuch_duplication(0)
-endfunction
+enddef
 
 export function Comp_search(ArgLead, CmdLine, CursorPos) abort
 	let l:snippet = s:Get_snippet('get_search_snippet', a:CmdLine, a:CursorPos, v:false)
@@ -1204,38 +1162,35 @@ export function Comp_run(ArgLead, CmdLine, CursorPos) abort
 	" return s:Is_one_snippet(l:snippet)
 endfunction
 
-function Is_one_snippet(snippet) abort  " 補完候補が 1 つの場合を分ける
-	if len(a:snippet) != 1
-		return a:snippet
+def Is_one_snippet(snippet: list<string>): list<string>  # 補完候補が 1 つの場合を分ける
+	if len(snippet) != 1
+		return snippet
 	endif
-	let l:snippet = a:snippet[0]
-	if l:snippet[len(l:snippet)-1] ==# ':'
-		return [l:snippet]
+	var l_snippet = snippet[0]
+	if snippet[len(snippet) - 1] ==# ':'
+		return [l_snippet]
 	else
-		return [ l:snippet .. ' ' ]
+		return [ l_snippet .. ' ' ]
 	endif
-endfunction
+enddef
 
-function Toggle_thread(args) abort
-	let l:seletc_thread = line('.')
-	if foldclosed(l:seletc_thread) == -1
-		let s:seletc_thread = line('.')
+var s_select_thread: number = -1
+def Toggle_thread(args: list<any>): void
+	var select_thread: number = line('.')
+	if foldclosed(select_thread) == -1
+		s_select_thread = line('.')
 		normal! zC
-		if foldclosed(l:seletc_thread) != -1  " 直前で再帰的に閉じたのに -1 なら単一メールのスレッド
-			call cursor(foldclosed(s:seletc_thread), 1)
+		if foldclosed(select_thread) != -1  # 直前で再帰的に閉じたのに -1 なら単一メールのスレッド
+			cursor(foldclosed(s_select_thread), 1)
 		endif
 	else
-		if exists('s:seletc_thread')
-			if s:seletc_thread <= foldclosedend(l:seletc_thread) && s:seletc_thread >= foldclosed(l:seletc_thread)
-				py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.bindeval('s:seletc_thread'))
-			else
-				py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.bindeval('foldclosedend(l:seletc_thread)'))
-			endif
-		endif
+		select_thread = (s_select_thread <= foldclosedend(select_thread)
+									&& s_select_thread >= foldclosed(select_thread)) ? s_select_thread : foldclosedend(select_thread)
+		py3eval('reset_cursor_position(vim.current.buffer, vim.current.window, ' .. select_thread .. ')')
 		normal! zO
-		py3 reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0]) # zO の前だけだと、カーソル上下移動で桁位置が先頭になる
+		py3eval('reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0])') # zO の前だけだと、カーソル上下移動で桁位置が先頭になる
 	endif
-endfunction
+enddef
 
 function Thread_change_sort(args) abort
 	py3 thread_change_sort(vim.eval('a:args'))
@@ -1253,19 +1208,19 @@ function Set_encrypt(s) abort
 	py3 set_encrypt(vim.eval('a:s'))
 endfunction
 
-function Is_sametab_thread() abort
-	let l:type = py3eval('buf_kind()')
-	if l:type ==# 'thread' || l:type ==# 'search'
+def Is_sametab_thread(): bool
+	var type = py3eval('buf_kind()')
+	if type ==# 'thread' || type ==# 'search'
 		return v:true
-	elseif l:type ==# 'folders' ||
-				\ l:type ==# 'show' ||
-				\ l:type ==# 'view'
-		for l:b in tabpagebuflist()
-			if l:b == get(s:buf_num, 'thread', 0)
+	elseif type ==# 'folders' ||
+				\ type ==# 'show' ||
+				\ type ==# 'view'
+		for b in tabpagebuflist()
+			if b == get(buf_num, 'thread', 0)
 				return v:true
 			endif
-			for l:s in values(get(s:buf_num, 'search', {}))
-				if l:b == l:s
+			for s in values(get(buf_num, 'search', {}))
+				if b == s
 					return v:true
 				endif
 			endfor
@@ -1273,26 +1228,26 @@ function Is_sametab_thread() abort
 		return v:false
 	endif
 	return v:false
-endfunction
+enddef
 
 function Notmuch_refine(s) abort
 	py3 notmuch_refine(vim.eval('a:s'))
 endfunction
 
-function Notmuch_down_refine(dummy) abort
+def Notmuch_down_refine(dummy: list<any>): string
 	py3 notmuch_down_refine()
-endfunction
+enddef
 
-function Notmuch_up_refine(dummy) abort
+def Notmuch_up_refine(dummy: list<any>): string
 	py3 notmuch_up_refine()
-endfunction
+enddef
 
-export function Get_highlight(hi) abort
-	return substitute(substitute(substitute(execute('highlight ' .. a:hi),
+export def Get_highlight(hi: string): string
+	return substitute(substitute(substitute(execute('highlight ' .. hi),
 				\ '[\n\r \t]\+', ' ', 'g'),
-				\ ' *' .. a:hi .. '\s\+xxx *', '', ''),
+				\ ' *' .. hi .. '\s\+xxx *', '', ''),
 				\ '\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
-endfunction
+enddef
 
 var fold_highlight: string = notmuch_py#Get_highlight('Folded')
 var specialkey_highlight: string = notmuch_py#Get_highlight('SpecialKey')
@@ -1312,24 +1267,24 @@ else
 	normal_highlight = ''
 endif
 
-function s:Change_fold_highlight() abort " Folded の色変更↑highlight の保存
-	if s:Is_sametab_thread()
+def Change_fold_highlight(): void # Folded の色変更↑highlight の保存
+	if Is_sametab_thread()
 		highlight Folded NONE
-		if s:normal_highlight !=# ''
+		if normal_highlight !=# ''
 			highlight SpecialKey NONE
-			execute 'silent! highlight SpecialKey ' .. s:normal_highlight
+			execute 'silent! highlight SpecialKey ' .. normal_highlight
 		endif
 	else
-		execute 'silent! highlight Folded ' .. s:fold_highlight
-		if s:normal_highlight !=# ''
-			execute 'silent! highlight SpecialKey ' .. s:specialkey_highlight
+		execute 'silent! highlight Folded ' .. fold_highlight
+		if normal_highlight !=# ''
+			execute 'silent! highlight SpecialKey ' .. specialkey_highlight
 		endif
 	endif
-endfunction
+enddef
 
 augroup ChangeFoldHighlight
 	autocmd!
-	autocmd BufEnter,WinEnter * call <SID>Change_fold_highlight()
+	autocmd BufEnter,WinEnter * Change_fold_highlight()
 augroup END
 
 augroup NotmuchFileType
@@ -1338,11 +1293,11 @@ augroup NotmuchFileType
 	# ↑syntax の反映が setlocal filetype=xxx に引きずられる
 augroup END
 
-function FoldThreadText() abort
+export def FoldThreadText(): string
 	return py3eval('get_folded_list(' .. v:foldstart .. ',' .. v:foldend .. ')')
-endfunction
+enddef
 
-function FoldThread(n) abort " スレッド・リストの折畳設定
+export function FoldThread(n) abort " スレッド・リストの折畳設定
 	" a:n Subject が何番目に表示されるのか?
 	" strpart() を使った方法は 全角=2 バイトとは限らないので駄目
 	let l:str = getline(v:lnum)
@@ -1361,33 +1316,35 @@ function FoldThread(n) abort " スレッド・リストの折畳設定
 	endif
 endfunction
 
-function FoldHeaderText() abort " メールでは foldtext を変更する
-	for l:line in getline(v:foldstart, '$')
-		if substitute(l:line, '^[ \t]\+$', '','') !=? ''
+export def FoldHeaderText(): string # メールでは foldtext を変更する
+	var line: string
+	for l in getline(v:foldstart, '$')
+		line = l
+		if substitute(line, '^[ \t]\+$', '','') !=? ''
 			break
 		endif
 	endfor
-	let cnt = printf('[%' .. len(line('$')) .. 's] ', (v:foldend - v:foldstart + 1))
-	let line_width = winwidth(0) - &foldcolumn
+	var cnt: string = printf('[%' .. len(line('$')) .. 's] ', (v:foldend - v:foldstart + 1))
+	var line_width: number = winwidth(0) - &foldcolumn
 
 	if &number
-		let line_width -= max([&numberwidth, len(line('$'))])
-	" sing の表示非表示でずれる分の補正
+		line_width -= max([&numberwidth, len(line('$'))])
+	# sing の表示非表示でずれる分の補正
 	elseif &signcolumn ==# 'number'
-		let cnt = cnt .. '  '
+		cnt = cnt .. '  '
 	endif
 	if &signcolumn ==# 'auto'
-		let cnt = cnt .. '  '
+		cnt = cnt .. '  '
 	endif
-	let line_width -= 2 * (&signcolumn ==# 'yes')
+	line_width -= 2 * (&signcolumn ==# 'yes' ? 1 : 0)
 
-	let l:line = substitute(l:line, '^[\x0C]', '','')
-	let l:line = strcharpart(printf('%s', l:line), 0, l:line_width-len(cnt))
-	" 全角文字を使っていると、幅でカットすると広すぎる
-	" だからといって strcharpart() の代わりに strpart() を使うと、逆に余分にカットするケースが出てくる
-	" ↓末尾を 1 文字づつカットしていく
-	while strdisplaywidth(l:line) > l:line_width-len(cnt)
-		let l:line = slice(l:line, 0, -1)
+	line = substitute(line, '^[\x0C]', '','')
+	line = strcharpart(printf('%s', line), 0, line_width - len(cnt))
+	# 全角文字を使っていると、幅でカットすると広すぎる
+	# だからといって strcharpart() の代わりに strpart() を使うと、逆に余分にカットするケースが出てくる
+	# ↓末尾を 1 文字づつカットしていく
+	while strdisplaywidth(line) > line_width - len(cnt)
+		line = slice(line, 0, -1)
 	endwhile
-	return printf('%s%' .. (l:line_width-strdisplaywidth(l:line)) .. 'S', l:line, cnt)
-endfunction
+	return printf('%s%' .. (line_width - strdisplaywidth(line)) .. 'S', line, cnt)
+enddef
