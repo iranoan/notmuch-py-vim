@@ -3336,7 +3336,8 @@ def open_original(msg_id, search_term, args):
         message = 'Not found file.'
     else:
         # 開く前に呼び出し元となるバッファ変数保存
-        b_v = vim.current.buffer.vars['notmuch']
+        b = vim.current.buffer
+        b_v = b.vars['notmuch']
         subject = b_v['subject']
         date = b_v['date']
         msg_id = b_v['msg_id']
@@ -3367,7 +3368,7 @@ def open_original(msg_id, search_term, args):
         #         break  # 複数の文字コードであっても vim 自体がその様なファイルに対応していないだろうから、最初の文字コードで開く
         if encoding is not None:
             encoding = encoding.lower()
-        active_win = vim.current.buffer.number
+        active_win = b.number
         if encoding == 'quoted-printable' or encoding == 'base64':
             vim.command(vim.vars['notmuch_open_way']['edit'].decode() + ' ' + filename)
             print_warring('The mail is ' + encoding + '.')
@@ -3382,7 +3383,11 @@ def open_original(msg_id, search_term, args):
         b_v['date'] = date
         b_v['msg_id'] = msg_id
         b_v['tags'] = tags
-        vim.command('call s:Au_edit(' + str(active_win) + ', 1)')
+        f_type = buf_kind()
+        if f_type == 'search' or f_type == 'view':
+            vim.command('call s:Au_edit(' + str(active_win) + ', "' + search_term + '", 1)')
+        else:
+            vim.command('call s:Au_edit(' + str(active_win) + ', "", 1)')
         if MAILBOX_TYPE == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
@@ -4581,7 +4586,16 @@ def forward_mail_resent():
 
 def before_make_draft(active_win):
     """ 下書き作成の前処理 """
-    if vim.current.buffer.options['filetype'].decode()[:8] == 'notmuch-' \
+    def get_search_term():  # バッファの種類を調べ、search, view なら search_term を返す
+        f_type = buf_kind()
+        if f_type == 'search' or f_type == 'view':
+            return b.vars['notmuch']['search_term'].decode()
+        else:
+            return ''
+
+    b = vim.current.buffer
+    search_term = get_search_term()
+    if b.options['filetype'].decode()[:8] == 'notmuch-' \
             or vim.bindeval('wordcount()["bytes"]') != 0:
         vim.command(vim.vars['notmuch_open_way']['draft'].decode())
     if MAILBOX_TYPE == 'Maildir':
@@ -4600,9 +4614,9 @@ def before_make_draft(active_win):
         f = draft_dir + os.sep + 'cur' + os.sep + f + ':2,DS'
     else:
         f = draft_dir + os.sep + f
-    vim.current.buffer.name = f
+    b.name = f
     vim.command('setlocal filetype=notmuch-draft')
-    vim.command('call s:Au_edit(' + str(active_win) + ', 0)')
+    vim.command('call s:Au_edit(' + str(active_win) + ', "' + search_term + '", 0)')
 
 
 def after_make_draft(b, msg, add_head):
@@ -4672,14 +4686,13 @@ def set_new_after(n):
 def check_org_mail():
     """ 返信・転送可能か? 今の bufnr() と msg_id を返す """
     b = vim.current.buffer
-    is_search = b.number
+    active_win = b.number
     b_v = b.vars['notmuch']
     # JIS 外漢字が含まれ notmcuh データベースの取得結果とは異なる可能性がある
-    active_win = is_search
     show_win = s_buf_num('show', '')
-    is_search = not(s_buf_num('folders', '') == is_search
-                    or s_buf_num('thread', '') == is_search
-                    or show_win == is_search)
+    is_search = not(s_buf_num('folders', '') == active_win
+                    or s_buf_num('thread', '') == active_win
+                    or show_win == active_win)
     if is_search:
         show_win = s_buf_num('view', b_v['search_term'].decode())
     if vim_goto_bufwinid(show_win) == 0:
