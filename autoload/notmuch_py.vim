@@ -168,7 +168,7 @@ endfunction
 
 def Make_show(): void # メール・バッファを用意するだけ
 	if has_key(buf_num, 'show') # && bufname(buf_num.show) !=? ''
-		py3 reopen('show','')
+		py3 reopen('show', '')
 		return
 	endif
 	call New_buffer('show', '')
@@ -380,38 +380,38 @@ def Get_sort_snippet(cmdLine: string, cursorPos: number, direct_command: bool): 
 	return snippet
 enddef
 
-export function Comp_sort(ArgLead, CmdLine, CursorPos) abort
-	let l:snippet = s:Get_sort_snippet(a:CmdLine, a:CursorPos, v:false)
-	return s:Is_one_snippet(l:snippet)
-endfunction
+export def Comp_sort(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	var snippet: list<any> = Get_sort_snippet(CmdLine, CursorPos, false)
+	return Is_one_snippet(snippet)
+enddef
 
-export function Comp_del_tag(ArgLead, CmdLine, CursorPos) abort
-	return s:Complete_tag_common('get_msg_tags_list', a:CmdLine, a:CursorPos, v:false)
-endfunction
+export def Comp_del_tag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	return Complete_tag_common('get_msg_tags_list', CmdLine, CursorPos, false)
+enddef
 
 function Add_tags(args) abort
 	py3 do_mail(add_tags, vim.eval('a:args'))
 endfunction
 
-export function Comp_add_tag(ArgLead, CmdLine, CursorPos) abort
-	return s:Complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:false)
-endfunction
+export def Comp_add_tag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	return Complete_tag_common('get_msg_tags_diff', CmdLine, CursorPos, false)
+enddef
 
 function Set_tags(args) abort
 	py3 do_mail(set_tags, vim.eval('a:args'))
 endfunction
 
-export function Comp_set_tag(ArgLead, CmdLine, CursorPos) abort
-	return s:Complete_tag_common('get_msg_tags_any_kind', a:CmdLine, a:CursorPos, v:false)
-endfunction
+export def Comp_set_tag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	return Complete_tag_common('get_msg_tags_any_kind', CmdLine, CursorPos, false)
+enddef
 
 function Toggle_tags(args) abort
 	py3 do_mail(toggle_tags, vim.eval('a:args'))
 endfunction
 
-export function Comp_tag(ArgLead, CmdLine, CursorPos) abort
-	return s:Complete_tag_common('get_msg_all_tags_list', a:CmdLine, a:CursorPos, v:false)
-endfunction
+export def Comp_tag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	return Complete_tag_common('get_msg_all_tags_list', CmdLine, CursorPos, false)
+enddef
 
 export def Notmuch_main(...arg: list<any>): void
 	if len(arg) == 2
@@ -638,26 +638,28 @@ def Set_title_etc(): void
 	endif
 enddef
 
-function Make_title() abort
-	let l:tablist = tabpagenr('$')
-	if l:tablist == 1
-		let l:a = ''
+def Make_title(): string
+	var tablist: number = tabpagenr('$')
+	var a: string
+	var title: string
+	if tablist == 1
+		a = ''
 	else
-		let l:a = ' (' .. tabpagenr() .. ' of ' .. l:tablist .. ')'
+		a = ' (' .. tabpagenr() .. ' of ' .. tablist .. ')'
 	endif
 	if &filetype =~# '^notmuch-'
-		let l:title = 'Notmuch-Python-Vim'
+		title = 'Notmuch-Python-Vim'
 	elseif &filetype ==# 'qf'
-		let l:title = '%t'
+		title = '%t'
 	elseif &filetype ==# 'help'
-		let l:title = '%h'
+		title = '%h'
 	elseif bufname('') ==# ''
-		let l:title = '%t %m'
+		title = '%t %m'
 	else
-		let l:title = '%t %m ' .. '(' .. expand('%:~:h') .. ')'
+		title = '%t %m ' .. '(' .. expand('%:~:h') .. ')'
 	endif
-	return l:title .. l:a .. ' - ' .. v:servername
-endfunction
+	return title .. a .. ' - ' .. v:servername
+enddef
 
 def Search_not_notmuch(): number # notmuch-? 以外のリストされていて隠れていない、もしくは隠れていても更新されているバッファを探す
 	var notmuch_kind: list<string> = ['notmuch-folders', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
@@ -810,15 +812,12 @@ function Move_mail(args) abort
 	py3 do_mail(move_mail, vim.eval('a:args'))
 endfunction
 
-export function Comp_dir(ArgLead, CmdLine, CursorPos) abort
-	let l:folders = py3eval('get_mail_folders()')
-	let l:filter_cmd = printf('v:val =~ "^%s"', a:ArgLead)
-	return filter(l:folders, l:filter_cmd)
-endfunction
+export def Comp_dir(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	var folders: list<any> = py3eval('get_mail_folders()')
+	return filter(folders, printf('v:val =~ "^%s"', ArgLead))
+enddef
 
 function Run_shell_program(args) abort
-	if len(args) > 3
-		args = args[:2]
 	py3 do_mail(run_shell_program, vim.eval('a:args'))
 endfunction
 
@@ -960,106 +959,106 @@ function Command_marked(args) abort " マークしたメールに纏めてコマ
 	py3 command_marked(vim.eval('a:args'))
 endfunction
 
-export function Comp_all_args(ArgLead, CmdLine, CursorPos) abort
-	let l:cmdline = substitute(a:CmdLine, '[\n\r]\+', ' ', 'g')
-	let l:last = py3eval('get_last_cmd(get_cmd_name(), "' .. l:cmdline .. '", ' .. a:CursorPos .. ')')
-	if l:last == []
-		let l:snippet = py3eval('get_cmd_name_ftype()')
+export def Comp_all_args(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	var cmdline: string = substitute(CmdLine, '[\n\r]\+', ' ', 'g')
+	var last: list<any> = py3eval('get_last_cmd(get_cmd_name(), "' .. cmdline .. '", ' .. CursorPos .. ')')
+	var snippet: list<string>
+	if last == []
+		snippet = py3eval('get_cmd_name_ftype()')
 	else
-		let l:cmd = l:last[0]
-		" let l:cmds = py3eval('get_command()')
-		if and(g:notmuch_command[l:cmd][1], 0x01) == 0
+		var cmd: string = last[0]
+		# cmds = py3eval('get_command()')
+		if and(g:notmuch_command[cmd][1], 0x01) == 0
 			return []
 		else
-			if match(a:CmdLine, 'Notmuch \+mark-command *') != -1
-				let l:match = matchend(a:CmdLine, '\m\CNotmuch \+mark-command *')
-				return s:Complete_command(strpart(a:CmdLine, l:match), a:CursorPos - l:match, v:true)
-			elseif l:cmd ==# 'run'
-				let l:snippet = py3eval('get_sys_command(''' .. s:Vim_escape(a:CmdLine) .. ''' , ''' .. s:Vim_escape(a:ArgLead) .. ''')')
-			elseif l:cmd ==# 'mail-move' || l:cmd ==# 'set-fcc'
-				if l:last[1] " 既に引数が有る
+			if match(CmdLine, 'Notmuch \+mark-command *') != -1
+				var index: number = matchend(CmdLine, '\m\CNotmuch \+mark-command *')
+				return Complete_command(strpart(CmdLine, index), CursorPos - index, true)
+			elseif cmd ==# 'run'
+				snippet = py3eval('get_sys_command(''' .. Vim_escape(CmdLine) .. ''' , ''' .. Vim_escape(ArgLead) .. ''')')
+			elseif cmd ==# 'mail-move' || cmd ==# 'set-fcc'
+				if last[1] # 既にサブ・コマンドの引数が有る
 					return []
 				endif
-				let l:snippet = py3eval('get_mail_folders()')
-			elseif l:cmd ==# 'tag-add'
-				return s:Complete_tag_common('get_msg_tags_diff', a:CmdLine, a:CursorPos, v:true)
-			elseif l:cmd ==# 'tag-delete'
-				return s:Complete_tag_common('get_msg_tags_list', a:CmdLine, a:CursorPos, v:true)
-			elseif l:cmd ==# 'tag-set'
-				return s:Complete_tag_common('get_msg_tags_any_kind', a:CmdLine, a:CursorPos, v:true)
-			elseif l:cmd ==# 'tag-toggle'
-				return s:Complete_tag_common('get_msg_all_tags_list', a:CmdLine, a:CursorPos, v:true)
-			elseif l:cmd ==# 'search' || l:cmd ==# 'search-refine'
-				let l:snippet = s:Get_snippet('get_search_snippet', a:CmdLine, a:CursorPos, v:true)
-				return s:Is_one_snippet(l:snippet)
-			elseif l:cmd ==# 'thread-sort'
-				let l:snippet = s:Get_sort_snippet(a:CmdLine, a:CursorPos, v:true)
-				return s:Is_one_snippet(l:snippet)
-			elseif l:cmd ==# 'set-encrypt'
-				let l:snippet = ['Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP', 'Subject', 'Public-Key']
-			elseif l:cmd ==# 'set-attach' || l:cmd ==# 'mail-import' || l:cmd ==# 'mail-save'
-				let l:dir = substitute(a:CmdLine, '^Notmuch\s\+' .. l:cmd .. '\s\+', '', '')
-				if l:dir ==# ''
-					let l:snippet = glob(py3eval('os.path.expandvars(''$USERPROFILE\\'') if os.name == ''nt'' else os.path.expandvars(''$HOME/'')') .. '*', 1, 1)
+				snippet = py3eval('get_mail_folders()')
+			elseif cmd ==# 'tag-add'
+				return Complete_tag_common('get_msg_tags_diff', CmdLine, CursorPos, true)
+			elseif cmd ==# 'tag-delete'
+				return Complete_tag_common('get_msg_tags_list', CmdLine, CursorPos, true)
+			elseif cmd ==# 'tag-set'
+				return Complete_tag_common('get_msg_tags_any_kind', CmdLine, CursorPos, true)
+			elseif cmd ==# 'tag-toggle'
+				return Complete_tag_common('get_msg_all_tags_list', CmdLine, CursorPos, true)
+			elseif cmd ==# 'search' || cmd ==# 'search-refine'
+				snippet = Get_snippet('get_search_snippet', CmdLine, CursorPos, true)
+				return Is_one_snippet(snippet)
+			elseif cmd ==# 'thread-sort'
+				snippet = Get_sort_snippet(CmdLine, CursorPos, true)
+				return Is_one_snippet(snippet)
+			elseif cmd ==# 'set-encrypt'
+				snippet = ['Encrypt', 'Signature', 'S/MIME', 'PGP/MIME', 'PGP', 'Subject', 'Public-Key']
+			elseif cmd ==# 'set-attach' || cmd ==# 'mail-import' || cmd ==# 'mail-save'
+				var dir: string = substitute(CmdLine, '^Notmuch\s\+' .. cmd .. '\s\+', '', '')
+				if dir ==# ''
+					snippet = glob(py3eval('os.path.expandvars(''$USERPROFILE\\'') if os.name == ''nt'' else os.path.expandvars(''$HOME/'')') .. '*', 1, 1)
 				else
-					if isdirectory(l:dir)
-						let l:dir = l:dir .. '/*'
+					if isdirectory(dir)
+						dir = dir .. '/*'
 					else
-						let l:dir =  l:dir .. '*'
+						dir =  dir .. '*'
 					endif
-					let l:snippet = glob(l:dir, 1, 1)
+					snippet = glob(dir, 1, 1)
 				endif
-				if len(l:snippet) == 1
-					if isdirectory(l:snippet[0])
-						let l:snippet = glob(l:dir .. '/*', 1, 1)
+				if len(snippet) == 1
+					if isdirectory(snippet[0])
+						snippet = glob(dir .. '/*', 1, 1)
 					endif
 				endif
 			endif
 		endif
 	endif
-	let l:filter_cmd = printf('v:val =~ "^%s"', a:ArgLead)
-	let l:snippet = filter(l:snippet, l:filter_cmd)
-	if len(l:snippet) == 0
+	snippet = filter(snippet, printf('v:val =~ "^%s"', ArgLead))
+	if len(snippet) == 0
 		return []
-	elseif len(l:snippet) == 1
-		return [ l:snippet[0] .. ' ' ]
+	elseif len(snippet) == 1
+		return [ snippet[0] .. ' ' ]
 	else
-		return l:snippet
+		return snippet
 	endif
-endfunction
+enddef
 
-export function Comp_cmd(ArgLead, CmdLine, CursorPos) abort
-	return s:Complete_command(a:CmdLine, a:CursorPos, 0)
-endfunction
+export def Comp_cmd(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	return Complete_command(CmdLine, CursorPos, 0)
+enddef
 
-def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): list<string>
+def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): list<any>
 	var l_cmdLine: list<string> = split(CmdLine[0 : CursorPos - 1], ' ')
-	var filter: string
+	var s_filter: string
 	var prefix: string
-	if CmdLine[CursorPos-1] ==# ' '
-		filter = ''
+	if CmdLine[CursorPos - 1] ==# ' '
+		s_filter = ''
 		prefix = join(l_cmdLine, ' ')
 	elseif CmdLine !=? ''
-		filter = l_cmdLine[-1]
+		s_filter = l_cmdLine[-1]
 		prefix = join(l_cmdLine[0 : -2], ' ')
 	else
-		filter = ''
+		s_filter = ''
 		prefix = ''
 	endif
 	if prefix !=?  ''
 		prefix = prefix .. ' '
 	endif
-	cmdline = substitute(CmdLine, '[\n\r]\+', ' ', 'g')
+	var cmdline: string = substitute(CmdLine, '[\n\r]\+', ' ', 'g')
 	var pos: number = CursorPos + 1
-	var last: list<string> = py3eval('get_last_cmd(get_mark_cmd_name(), " ' .. cmdline .. '", ' .. pos .. ')')
+	var last: list<any> = py3eval('get_last_cmd(get_mark_cmd_name(), " ' .. cmdline .. '", ' .. pos .. ')')
 	var ls: list<string> = py3eval('get_mark_cmd_name()')
 	if last == []
 		ls = py3eval('get_mark_cmd_name()')
 	else
-		cmd = last[0]
-		cmds = py3eval('get_command()')
+		var cmd: string = last[0]
+		var cmds: dict<any> = py3eval('get_command()')
 		if cmd ==# 'mail-move'
-			if last[1] # 既に引数が有る
+			if last[1] !=# '' # 既に引数が有る
 				ls = py3eval('get_mark_cmd_name()')
 			else
 				ls = py3eval('get_mail_folders()')
@@ -1067,18 +1066,18 @@ def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): 
 		elseif cmd ==# 'run' # -complete=shellcmd 相当のことがしたいけどやり方不明
 			# ls = []
 			return []
-		elseif cmds[cmd][0] ==# '0' # 引数を必要としないコマンド→次のコマンドを補完対象
+		elseif !and(cmds[cmd], 0x01) # 引数を必要としないコマンド→次のコマンドを補完対象
 			ls = py3eval('get_mark_cmd_name()')
 		else
-			if last[1]
+			if last[1] !=# ''
 				ls = extend(py3eval('get_msg_all_tags_list("")'), py3eval('get_mark_cmd_name()'))
 			else
 				ls = py3eval('get_msg_all_tags_list("")')
 			endif
 		endif
 	endif
-	filter = printf('v:val =~ "^%s"', filter)
-	var snippet_org: list<string> = filter(ls, filter)
+	s_filter = printf('v:val =~ "^%s"', s_filter)
+	var snippet_org: list<string> = filter(ls, s_filter)
 	if direct_command  # input() 関数ではなく、command 直接の補完
 		if len(snippet_org) == 1
 			return [ snippet_org[0] .. ' ' ]
@@ -1112,38 +1111,38 @@ def Notmuch_duplication(args: list<any>): void
 	py3 notmuch_duplication(0)
 enddef
 
-export function Comp_search(ArgLead, CmdLine, CursorPos) abort
-	let l:snippet = s:Get_snippet('get_search_snippet', a:CmdLine, a:CursorPos, v:false)
-	return s:Is_one_snippet(l:snippet)
-endfunction
+export def Comp_search(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	var snippet: list<any> = Get_snippet('get_search_snippet', CmdLine, CursorPos, false)
+	return Is_one_snippet(snippet)
+enddef
 
-export function Comp_run(ArgLead, CmdLine, CursorPos) abort
-	let l:cmdLine = split(a:CmdLine[0:a:CursorPos-1], ' ')
-	if a:CmdLine[a:CursorPos-1] ==# ' '
-		let l:filter = ''
-		let l:prefix = join(l:cmdLine, ' ')
-	elseif a:CmdLine !=? ''
-		let l:filter = l:cmdLine[-1]
-		let l:prefix = join(l:cmdLine[0:-2], ' ')
+export def Comp_run(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
+	var cmdLine: list<string> = split(CmdLine[0 : CursorPos - 1], ' ')
+	var prefix: string
+	var filter: string
+	if CmdLine[CursorPos - 1] ==# ' '
+		filter = ''
+		prefix = join(cmdLine, ' ')
+	elseif CmdLine !=? ''
+		filter = cmdLine[-1]
+		prefix = join(cmdLine[0 : -2], ' ')
 	else
-		let l:filter = ''
-		let l:prefix = ''
+		filter = ''
+		prefix = ''
 	endif
-	if l:prefix !=?  ''
-		let l:prefix = l:prefix .. ' '
+	if prefix !=?  ''
+		prefix = prefix .. ' '
 	endif
-	let l:list =  py3eval('get_sys_command(''' .. s:Vim_escape('Notmuch run ' .. a:CmdLine) .. ''' , ''' .. s:Vim_escape(l:filter) .. ''')')
-	let l:filter = printf('v:val =~ "^%s"', l:filter)
-	let l:snippet_org = filter(l:list, l:filter)
-	" 補完候補にカーソル前の文字列を追加
-	let l:snippet = []
-	for l:v in l:snippet_org
-		call add(l:snippet, l:prefix .. l:v)
+	var list: list<string> =  py3eval('get_sys_command(''' .. Vim_escape('Notmuch run ' .. CmdLine) .. ''' , ''' .. Vim_escape(filter) .. ''')')
+	filter = printf('v:val =~ "^%s"', filter)
+	var snippet_org: list<any> = filter(list, filter)
+	# 補完候補にカーソル前の文字列を追加
+	var snippet: list<any>
+	for v in snippet_org
+		add(snippet, prefix .. v)
 	endfor
-	return l:snippet
-	" endfunction
-	" return s:Is_one_snippet(l:snippet)
-endfunction
+	return Is_one_snippet(snippet)
+enddef
 
 def Is_one_snippet(snippet: list<string>): list<string>  # 補完候補が 1 つの場合を分ける
 	if len(snippet) != 1
@@ -1194,34 +1193,34 @@ endfunction
 def Is_sametab_thread(): bool
 	var type = py3eval('buf_kind()')
 	if type ==# 'thread' || type ==# 'search'
-		return v:true
+		return true
 	elseif type ==# 'folders' ||
 				\ type ==# 'show' ||
 				\ type ==# 'view'
 		for b in tabpagebuflist()
 			if b == get(buf_num, 'thread', 0)
-				return v:true
+				return true
 			endif
 			for s in values(get(buf_num, 'search', {}))
 				if b == s
-					return v:true
+					return true
 				endif
 			endfor
 		endfor
-		return v:false
+		return false
 	endif
-	return v:false
+	return false
 enddef
 
 function Notmuch_refine(s) abort
 	py3 notmuch_refine(vim.eval('a:s'))
 endfunction
 
-def Notmuch_down_refine(dummy: list<any>): string
+def Notmuch_down_refine(dummy: list<any>): void
 	py3 notmuch_down_refine()
 enddef
 
-def Notmuch_up_refine(dummy: list<any>): string
+def Notmuch_up_refine(dummy: list<any>): void
 	py3 notmuch_up_refine()
 enddef
 
@@ -1303,7 +1302,7 @@ export def FoldHeaderText(): string # メールでは foldtext を変更する
 	var line: string
 	for l in getline(v:foldstart, '$')
 		line = l
-		if substitute(line, '^[ \t]\+$', '','') !=? ''
+		if substitute(line, '^[ \t]\+$', '', '') !=? ''
 			break
 		endif
 	endfor
@@ -1321,7 +1320,7 @@ export def FoldHeaderText(): string # メールでは foldtext を変更する
 	endif
 	line_width -= 2 * (&signcolumn ==# 'yes' ? 1 : 0)
 
-	line = substitute(line, '^[\x0C]', '','')
+	line = substitute(line, '^[\x0C]', '', '')
 	line = strcharpart(printf('%s', line), 0, line_width - len(cnt))
 	# 全角文字を使っていると、幅でカットすると広すぎる
 	# だからといって strcharpart() の代わりに strpart() を使うと、逆に余分にカットするケースが出てくる
