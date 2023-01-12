@@ -70,10 +70,12 @@ NOTE: 以下、Notmuch を用いる検索条件は |search-term| と記載する
 要件~
  >
 Vim~
->
+
+* NeoVim では動作しない
+* Ver. 9.0 以上
+* >
 	$ vim --version | grep +python3
-<
-他には +folding 等も必要だが、調べきれていない
+<  他には +folding 等も必要だが、調べきれていない
 
 Notmuch~
 
@@ -93,6 +95,10 @@ Ubuntu 等の Debian 系なら >
 <
 他では例えば >
 	$ python3 -m pip install notmuch html2text
+
+MTA~
+
+メール送信には、別途 sendmail 等の MTA と |g:notmuch_send_param| の設定が必要
 
 ------------------------------------------------------------------------------
                                                         *notmuch-python-vim-add*
@@ -232,7 +238,7 @@ Vim packadd~
 <leader>h
 <Space>		未読ページダウン                |notmuch-python-vim-view-unread-page|
 <BS>			メールのページアップ            |notmuch-python-vim-view-previous|
-o					カーソル位置に応じて開く (Open) |notmuch-python-vim-open|
+o					カーソル位置に応じて開く (Open)             *notmuch-python-vim-open*
 					|{F-WIN}|	|{T-WIN}| を開く
 					|{T-WIN}|	* |notmuch-python-vim-open| ではなくスレッド・ツリーの開
 											閉状態をトグル                              |zA|
@@ -263,7 +269,7 @@ I					メール・エクスポート (import の逆) |notmuch-python-vim-mail-ex
 p					|search-term| やメールの各種情報や OpenPGP, S/MIME 処理の詳細情報を
 					ポップアップやコマンド・ラインで表示 (Popup information)
 					                                |notmuch-python-vim-mail-info|
-					ポップアップ表示は、カーソル移動や C/c/X/x/Q/q/P/p/<Esc> で閉じる
+					表示されたポップアップはカーソル移動や C/c/X/x/Q/q/P/p/<Esc> で閉じる
 s					|{F-WIN}|/|{T-WIN}|  検索一覧 (Search)
 					                                |notmuch-python-vim-search|
 					|{S-WIN}|  添付ファイルを保存 (Save attach)
@@ -310,7 +316,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 											S/MIME
 											OpenPGP/MIME
 											inline
-		Not-Decrypted:		暗号化メールの復号化していない時の上記情報
+		Not-Decrypted:		暗号化メールを復号していない時の上記情報
 		Encrypt:					暗号化メールを復号していない時、そのファイル名
 		PGP-Public-Key: 	添付された公開鍵
 		Good-Signature:		正しい署名と検証された時、そのファイル名
@@ -363,7 +369,8 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 		Encrypt:						暗号化の方法指定   |notmuch-python-vim-encrypt|
 		Signature:					電子署名の方法指定 |notmuch-python-vim-encrypt|
 	* Attach は <leader>c でも指定可能    |notmuch-python-vim-set-attach|
-	* Fcc の指定がなければ |g:notmuch_save_sent_mailbox| に従う
+	* Fcc の指定がなければ、送信済みメールは |g:notmuch_save_sent_mailbox| に従い保
+		存される
 		- <leader>f でも指定可能            |notmuch-python-vim-set-fcc|
 	* Encrypt/Signature は <leader>e でも設定可能 |notmuch-python-vim-set-encrypt|
 
@@ -375,6 +382,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 実際の送信は <leader>s                  |notmuch-python-vim-mail-send|
 	* 送信時は必須でないヘッダは「:」以降の内容がなければそのヘッダ自身がないもの
 	  として処理する
+	* メール送信には、別途 sendmail 等の MTA と |g:notmuch_send_param| の設定が必要
 
 下書きの保存は普通に >
 	:w
@@ -383,32 +391,12 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
                                                     *notmuch-python-vim-encrypt*
 暗号化・電子署名の指定方法~
 
-* Encrypt, Signature ヘッダで直接編集する時に指定できる値は次の通り
-		暗号化・電子署名の方法		Encrypt, Signature で意味を持つ指定方法~
-		(複数指定時の優先順)			(大文字・小文字の区別はなし)~
-		S/MIME										S/MIME
-															SMIME
-															S-MIME
-		PGP/MIME									PGP/MIME
-															PGPMIME
-															PGP-MIME
-		PGP												PGP
-
-			Encrypt ヘッダで PGP/MIME 指定時、追加指定できる値~
-		(大文字・小文字の区別はなく、PGP/MIME 以外では無視される)~
-		Subject				Subject も暗号化
-		Public-Key		From ヘッダのアドレスの PGP公開鍵を添付
-		PublicKey
+* 予め GunPG などのツールの導入と準備を済ませておく必要がある
 * <leader>e で設定可能                  |notmuch-python-vim-set-encrypt|
+	- Encrypt, Signature ヘッダでを直接編集して暗号化・電子署名方法を S/MIME,
+		PGP/MIME, PGP 等で指定する (詳細は |notmuch-python-vim-set-encrypt|)
 * Encrypt, Signature 両方の指定があれば暗号化+電子署名の両方を行う
 	- Encrypt, Signature の指定が異なっていれば、Encrypt の指定方法を用いる
-* PGP/MIME でない PGP は注意が必要
-	- 対応しているアプリが少ない
-	- 通常の text/plain として暗号化・電子署名済みの内容が書き込むだけ
-	- 非対応アプリでは
-		+ 電子署名の検証は自動で行われない
-		+ 暗号化された内容がそのまま表示される
-	- 添付ファイルは暗号化・電子署名の対象にならない
 
 ------------------------------------------------------------------------------
                                                   *notmuch-python-vim-associate*
@@ -422,7 +410,8 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 	$ vim +'Notmuch mail-new mailto:vim-jp@user.com'
 <とメールアドレス付きで起動すれば、To ヘッダに指定される
 
-よってコマンド・オプション付きで、それぞれの環境に応じて関連付ければ良い
+よってコマンド・オプション付きで、それぞれの環境に応じて関連付ければ、メール・
+アドレスのダブル・クリックなどで送信メール・バッファが開かれる
 
 ==============================================================================
                                                      *notmuch-python-vim-custom*
@@ -478,10 +467,11 @@ g:notmuch_date_format                                *g:notmuch_date_format*
 	* 次で表示する日時情報の書式
 		- |{T-WIN}| の Date ヘッダ
 		- |{S-WIN}| のステータス・バーに表示する Date ヘッダ
-		- attach-delete (|notmuch-python-vim-attach-delete|), mail-export
-			(|notmuch-python-vim-mail-export|), mail-info
-			(|notmuch-python-vim-mail-info|) 使用時のメール・ファイルの更新日時
-	* Python strftime() メソッドを用いている
+		- attach-delete (|notmuch-python-vim-attach-delete|),
+			mail-export (|notmuch-python-vim-mail-export|),
+			mail-info (|notmuch-python-vim-mail-info|)
+			使用時のメール・ファイルの更新日時
+	* Python strftime() メソッドを用いている (次が代表的な書式)
 			%a: ローケルの曜日短縮表記
 			%A: ローケルの曜日
 			%b: ローケルの月短縮表記
@@ -494,7 +484,6 @@ g:notmuch_date_format                                *g:notmuch_date_format*
 			%p: AM/PM と等価なロケール表記
 			%M: 2桁表記の分
 			%S: 2桁表記の秒
-
 	NOTE:
 	https://docs.python.org/3/library/datetime.html?highlight=strftime#strftime-strptime-behavior
 	https://docs.python.org/ja/3/library/datetime.html?highlight=strftime#strftime-strptime-behavior
@@ -540,10 +529,10 @@ g:notmuch_folder_format                               *g:notmuch_folder_format*
 				    4     		|g:notmuch_folders| の |search-term|
 
 				   {} 内の残りの部分~
-				      値    		  意味~
-				:<          		左詰め
-				:>          		右詰め
-				上記に続く数		文字の桁数
+				      値            		  意味~
+				:<                  		左詰め
+				:>                  		右詰め
+				上の <, > に続く数値		文字の桁数
 	* Default で示している `'{0:<??}{1:>??}/{2:>??}|{3:>??} [{4}]'` の ?? の部
 		分は、|g:notmuch_folders| の見出し部分の設定や個々の環境のメール数を元に
 		計算される
@@ -575,13 +564,13 @@ g:notmuch_folders                                    *g:notmuch_folders*
 			['見出し', search-term]
 <		をペアとする |List| で指定する
 	* |search-term| は、Notmuch の検索方法
-	* デフォルト・レイアウト (|notmuch-python-vim-layout|) では、|{F-WIN}| バッファ
-		に見出しだけを見せ、|search-term| が隠れるようにウィンドウを分割する
+	* デフォルト・レイアウト (|notmuch-python-vim-layout|) では、|{F-WIN}| バッファに
+		見出しだけを見せ、|search-term| が隠れるようにウィンドウを分割する
 	NOTE: >
 		$ man notmuch-search-terms
-<	* 見出し、|search-term| の両方が `''` だと空行に変換されを、|search-term| だけ
-		`''` だと、|{F-WIN}| の open (|notmuch-python-vim-open|) が search
-		(|notmuch-python-vim-search|) 置き換わる
+<	* 見出し、|search-term| の両方が `''` だと空行に変換
+	* Default の [ 'New Search','' ] の様に `|search-term| だけ `''` だと、|{F-WIN}| の
+		open (|notmuch-python-vim-open|) が search (|notmuch-python-vim-search|) 置き換わる
 
 g:notmuch_from                                       *g:notmuch_from*
 	Type: |List|
@@ -597,36 +586,27 @@ g:notmuch_from                                       *g:notmuch_from*
 <	* リスト内の指定の一つ一つは |Dictionary| で
 		{'id': 'ニックネーム', 'address': 'From ヘッダへの入力内容', 'To', '検索条件'}
 
-	Example >
-		let g:notmuch_from = [
-			\ {
-			\     'id': 'Vim',
-			\     'address' : 'Vim User <vim@user.com>',
-			\     'To' : '',
-			\ },
-		\ ]
-<
-	* 'id', 'To' は、複数指定したときだけ意味が有る
-	* To ヘッダが検索条件に一致すれば、それが使われる
-	* 一致する条件がなければ、'To':'*' を指定した要素が使われる
-		Example >
-			let g:notmuch_from = [
-				\ {
-				\     'id': 'Vim',
-				\     'address' : 'Vim User <vim@user.com>',
-				\     'To' : '',
-				\ },
-				\ {
-				\     'id': 'Vim-JP',
-				\     'address' : 'Vim User <vim-jp@user.com>',
-				\     'To' : '',
-				\ },
-			\ ]
-<		のように、それもなければ、次のような選択になる >
-			Select using From:.  When only [Enter], use default (vim@user.com).
-			1. Vim: Vim User <vim@user.com>
-			2. Vim-JP: Vim User <vim-jp@user.com>
-<	* 'id' はこの選択時に区別しやすくする見出し
+		- To ヘッダが検索条件に一致すれば、それが使われる
+		- 一致する条件がなければ、'To':'*' を指定した要素が使われる
+			Example >
+				let g:notmuch_from = [
+					\ {
+					\     'id': 'Vim',
+					\     'address' : 'Vim User <vim@user.com>',
+					\     'To' : '',
+					\ },
+					\ {
+					\     'id': 'Vim-JP',
+					\     'address' : 'Vim User <vim-jp@user.com>',
+					\     'To' : '',
+					\ },
+				\ ]
+<			のような設定で 'To':'*' もなく、From ヘッダが空のまま本文にカーソル移動すると、
+			次の選択に移行する >
+				Select using From:.  When only [Enter], use default (vim@user.com).
+				1. Vim: Vim User <vim@user.com>
+				2. Vim-JP: Vim User <vim-jp@user.com>
+<		- 'id' はこの選択時に区別しやすくする見出しで複数指定したときだけ意味が有る
 
 g:notmuch_from_length                                *g:notmuch_from_length*
 	Type: |Number|
@@ -709,9 +689,11 @@ g:notmuch_save_dir                                   *g:notmuch_save_dir*
 	Type: |String|
 	Default: `''`
 
-	* メール保存 (mail-save: |notmuch-python-vim-mail-save|)、エクスポート
-		(mail-export: |notmuch-python-vim-mail-export|)、添付ファイルの保存
-		(attach-save: |notmuch-python-vim-attach-save|) 時のデフォルト保存先
+	* 次の操作時のデフォルト保存/選択先
+		- メール保存 (mail-save: |notmuch-python-vim-mail-save|)、
+		- エクスポート (mail-export: |notmuch-python-vim-mail-export|)、
+		- 添付ファイルの保存 (attach-save: |notmuch-python-vim-attach-save|)
+		- 添付ファイルの追加 (set-attach: |notmuch-python-vim-set-attach|)
 	* `''` の場合はカレント・フォルダ
 
 g:notmuch_save_draft                                 *g:notmuch_save_draft*
@@ -774,7 +756,7 @@ g:notmuch_show_headers                               *g:notmuch_show_headers*
 		`'To', 'Resent-To', 'Cc', 'Resent-Cc', 'Bcc', 'Resent-Bcc',]`
 
 	* |{S-WIN}| に表示するヘッダとその順序
-	* これに続いて |g:notmuch_show_hide_headers| に従いヘッダを折り畳んで表示し、更に
+	* これに続いて |g:notmuch_show_hide_headers| の指定ヘッダを折り畳んで表示し、更に
 		- HTMLパートがあれば HTML ヘッダ
 		- 添付ファイルの数だけ Attach ヘッダ
 		などの仮想ヘッダ (|notmuch_virtual_header|) を表示
@@ -784,7 +766,7 @@ g:notmuch_show_hide_headers                          *g:notmuch_show_hide_header
 	Default: `['Return-Path', 'Reply-To', 'Message-ID', 'Resent-Message-ID',`
 		`'In-Reply-To', 'References', 'Errors-To',]`
 
-	* |{S-WIN}| に表示されたとき、折りたたみ表示されるヘッダとその順序
+	* |{S-WIN}| に折りたたみ表示されるヘッダとその順序
 	* これに続いて
 		- HTMLパートがあれば HTML ヘッダ
 		- 添付ファイルの数だけ Attach ヘッダ
@@ -849,7 +831,7 @@ g:notmuch_to                                         *g:notmuch_to*
 	* |search-term| が `'*'` 場合はデフォルト送信先
 	* |{F-WIN}| では「|g:notmuch_folders| の |search-term| と意味的に同じか?」ではなく、
 		「単純に文字列として部分一致するか?」で判定
-	* 他のバッファでは「メールが |search-term| でヒットするか?」で判定
+	* 他のバッファでは「選択/表示メールが |search-term| でヒットするか?」で判定
 
 	Example >
 		let g:notmuch_to = [
@@ -892,7 +874,7 @@ g:notmuch_visible_line                                 *g:notmuch_visible_line*
                                                     *notmuch-python-vim-command*
 コマンド~
                                                                        *Notmuch*
-:Notmuch {subcommand} [{arglist}]
+:Notmuch {subcommand} [{args}]
 	サブコマンドがなければ、ヘルプ (ここ) を開く
 
 ------------------------------------------------------------------------------
@@ -913,8 +895,8 @@ attach-delete
                                                 *notmuch-python-vim-attach-save*
 attach-save
 	* |{S-WIN}| でカーソル位置、もしくは選択している添付ファイルを保存
-	* |{T-WIN}| では「どういった動作が好ましいのか?」の判断が付きかね
-		未対応 (特にファイル名が被った時)
+	* |{T-WIN}| では「どういった動作が好ましいのか?」の判断が付きかね未対応
+		- 特にファイル名が被った時
 
                                                       *notmuch-python-vim-close*
 close
@@ -933,16 +915,16 @@ mail-delete
 	* |{T-WIN}| ではカーソル位置、もしくは選択しているメールの元となるメール・
 		ファイルを削除
 	* |{S-WIN}| では表示しているメール元となるメール・ファイルを削除
-	* 実行しても |{T-WIN}| のリストは更新されない
-		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 	* 複数のメール・ファイルがある場合は、          *notmuch-python-vim-select-file*
 		- 更新日時
 		- HTMLパートの有無 (🌐) と添付ファイルについての情報
 			+ 添付ファイルについての情報は暗号化されていれば🔑そうでなければ📎とその数
 		- ファイル・サイズ
 		- パス
-		の表示とともに選択
+		の表示する選択に移行し、選択したメールを残す
 	* メール・ファイルが一つの時は、確認メッセージを表示
+		- 削除を実行しても |{T-WIN}| のリストは更新されない
+		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 
                                                   *notmuch-python-vim-mail-edit*
 mail-edit
@@ -952,7 +934,7 @@ mail-edit
 mail-export
 	* メール・ファイルを別ファイルにエクスポート
 	* メール・ファイルをコピーするだけなので、ファイルの中身はデコード前の状態
-	* 複数のメール・ファイルがある場合は mail-delete と同じ
+	* 複数のメール・ファイルがある時の動作は mail-delete と同じ
 	                                              |notmuch-python-vim-select-file|
 
                                                *notmuch-python-vim-mail-forward*
@@ -1000,7 +982,7 @@ mail-move [{mailbox}]
 	* メール・ファイルを別のメール・フォルダ {mailbox} に移動
 	* {mailbox} が無ければコマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
-	* 複数指定は最初以外を無視する
+	* {mailbox} を複数指定しても最初以外は無視
 	* |{T-WIN}| では、カーソル位置、もしくは選択メールの移動
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
@@ -1009,7 +991,6 @@ mail-move [{mailbox}]
 mail-new
 	* 新規メールの編集バッファを開く
 	* start (|notmuch-python-vim-start|) 未使用でも呼び出し可能
-		- mail-send (|notmuch-python-vim-mail-send|) を呼び出し可能にする
 	* ヘッダの意味などは |notmuch-python-vim-sendmail| 参照
 
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
@@ -1030,7 +1011,7 @@ mail-resent-forward
 	* そのまま転送するメールの編集バッファを開く
 	* Resent-From, Resent-Sender, Resent-To, Resent-Cc, Resent-Bcc 以外のヘッダ
 	  及び本文は送信時には無視される
-	* Resent-From ヘッダが無いとそのまま転送としては扱わななくなる
+	* Resent-From ヘッダが無いとそのまま転送としては扱わなくなる
 	* 送信先が指定されて本文部分にカーソル移動すると送信、保存の選択
 	* 送信済みメールは、送信したデータそのものではなく、必ずメールを作成のバッ
 	  ファの内容をそのまま保存する
@@ -1048,8 +1029,9 @@ mail-save [{path}]
 		付いていたのかに関係なく、|{S-WIN}| で表示されている内容のみを保存
 	* {path} が無ければファイル選択になる
 		- この指定でも空入力や <Esc> だとキャンセル
-	* |{T-WIN}| で複数メールを選択している場合は連番付きで、既存ファイルが有っても、
-		そのまま上書き保存する
+	* |{T-WIN}| で複数メールを選択している場合
+		- ファイル名は name-1.txt, name-2.txt, ... の要領で連番付きになる
+		- 既存ファイルが有っても、そのまま上書き保存する
 
                                                   *notmuch-python-vim-mail-send*
 mail-send
@@ -1075,34 +1057,25 @@ mail-send
                                                        *notmuch-python-vim-mark*
 mark
 	* Vim の |mark| (|:mark|, m{a-zA-Z}) とは関係がない
-	* |{T-WIN}| にてカーソル位置、もしくは選択メールのマーク * をトグル
-		mark-command (|notmuch-python-vim-mark-command|) や thread-connect
-		(|notmuch-python-vim-thread-connect|) の実行や他の |search-term| で
-		|{T-WIN}|を開くとクリアされる
+	* |{T-WIN}| にてカーソル位置、もしくは選択メールを次のコマンドの操作対象にする
+		マークをトグル
+		- mark-command (|notmuch-python-vim-mark-command|)
+		- thread-connect (|notmuch-python-vim-thread-connect|)
 	* 複数選択時、マーク * の ON/OFF の基準はカーソル位置に関係なく選択開始行の
 		ON/OFF の状態に従い、ここのメールのマークの ON/OFF 状態は無視される
+	* 今の |{T-WIN}| の |search-term| とは別の search-term で |{T-WIN}| を開いても全て
+		クリアされる
 
                                                *notmuch-python-vim-mark-command*
 mark-command
-	* マークを付けたメールに対して、纏めてサブコマンドを実行する
-	* マークはクリアされる
+	* mark (|notmuch-python-vim-mark|) されたメールに対して纏めてサブコマンドを実行
+	* 実行後マークはクリアされる
 	* 複数のサブコマンドを実行する時の区切り文字は |\r| (<C-V><Enter>:|c_CTRL-v|)
 		もしくは <NL> (<C-V><C-J>:|c_CTRL-v|)
 
-                                                       *notmuch-python-vim-open*
+
 open
-	各種バッファや添付ファイルを開く
-		|{F-WIN}|	カーソル位置の条件で |{T-WIN}| を開きアクティブにする
-		|{T-WIN}|	カーソル位置のメールを |{S-WIN}| で開きアクティブにする
-							新たなメールが開かれた時にメール末尾まで表示されていれば、
-							メールを既読に (unread タグを削除) する
-		|{S-WIN}|	カーソル位置次第で次の順序で試みる
-								(1) 閉じていたら開く
-								(2) Attach 等のヘッダ (|notmuch_virtual_header|) なら、その添付
-										ファイルを開く
-								(3) ヘッダでない本文部分で添付ファイル名ならそれを開く
-								(4) 一部のヘッダや HTML パート等の開閉
-								(5) |g:notmuch_open_way| の open キーに設定があれば、それを実行
+	各種バッファや添付ファイルを開く (|notmuch-python-vim-open|)
 
                                                      *notmuch-python-vim-reload*
 reload
@@ -1114,16 +1087,16 @@ reload
 		取り消しづらいのでこのような仕様にしている
 
                                                         *notmuch-python-vim-run*
-run [{arglist}]
+run [{args}]
 	* シェル・プログラムを実行する
 	* | をパイプとして使用できない
-	* {arglist} に <path:>, <id:> が有ればそれぞれ次に置き換わる
-			<path:>	メール・ファイルのフル・パス
-			<id:>		メールの Message-ID
-		- このためプログラムに <path:>, <id:> の文字列それ自体は渡せない
-			+ リダイレクトを使いたければ、>, < 前後にスペースを入れれば良い
-	* {arglist} に <path:>, <id:> 両方無ければ、省略扱いとして {arglist} の最後
-	  にメール・ファイルのフル・パス追加
+	* {args} に <path:>, <id:> が有ればそれぞれ次に置き換わる
+		- <path:>	メール・ファイルのフル・パス
+		- <id:>		メールの Message-ID
+			+ このためプログラムに <path:>, <id:> の文字列それ自体は渡せない
+				* リダイレクトを使いたければ、>, < 前後にスペースを入れれば良い
+	* {args} に <path:>, <id:> 両方無ければ、省略扱いとして {args} の最後
+	  にメール・ファイルのフル・パス追加して処理
 
                                                      *notmuch-python-vim-search*
 search [|search-term|]
@@ -1153,7 +1126,7 @@ search-duplication
                                               *notmuch-python-vim-search-refine*
 search-refine
 	* |{T-WIN}| 中のメールから |search-term| で絞り込んで検索
-	* vim 自身の |/| に近いが notmuch による検索にマッチするメールを探す
+	* vim 自身の |/| に近いが Notmuch による検索にマッチするメールを探す
 
                                          *notmuch-python-vim-search-down-refine*
 search-down-refine
@@ -1173,14 +1146,15 @@ set-attach [{attachment}]
 	  て {attachment} に変更/追加
 	* {attachment} が無ければファイル選択になる
 		- この指定でも <Esc> だとキャンセル
-			o コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
+			+ コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
 	* カーソル位置が Attach: (|notmuch-python-vim-attach|) ヘッダなら変更
 
                                                 *notmuch-python-vim-set-encrypt*
 set-encrypt [{encrypt/signature}]
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
 	  方法 を {encrypt/signature} で設定
-	* {encrypt/signature} に指定できるのは大文字小文字の区別なしで次の通り
+	* {encrypt/signature} に指定できるのは、Encrypt, Signature ヘッダの直接編集
+		時と同じで、大文字小文字の区別もなく次の通り
 				指定できる文字列				意味~
 					Encrypt							暗号化する
 					Signature						電子署名をつける
@@ -1197,6 +1171,13 @@ set-encrypt [{encrypt/signature}]
 		- 少なくとも Encrypt, Signature どちらか一方が必要
 			+ 両方なければ全て無視される
 		- 暗号化/電子署名の方法が未指定の場合 S/MIME を用いる
+		- PGP/MIME でない PGP は注意が必要
+			+ 通常の text/plain として暗号化・電子署名済みの内容が書き込むだけ
+			+ 対応しているアプリが少ない
+			+ 非対応アプリでは
+				* 電子署名の検証は自動で行われない
+				* 暗号化された内容がそのまま表示される
+			+ 添付ファイルは暗号化・電子署名の対象にならない
 	* {encrypt/signature} が無ければダイアログ・ボックスやコマンドラインモード
 	  (|CmdLine|) の指定になる
 		- E/e:   暗号化 (Encrypt) ON/OFF
@@ -1220,7 +1201,7 @@ start
 	* |{F-WIN}| を開き、|g:notmuch_open_way| で |{T-WIN}| を分割して開く設定ならそ
 		れを開く
 	* |{T-WIN}| を開いた時 |{S-WIN}| を分割して開く設定ならそれも開く
-	* これの実行がなければ、mail-new (|notmuch-python-vim-mail-new|) 以外のサブ
+	* この実行がなければ、mail-new (|notmuch-python-vim-mail-new|) 以外のサブ
 		コマンドは呼び出せない
 	* 既に実行済みの時はレイアウトをやり直す
 
@@ -1231,7 +1212,7 @@ tag-add [{tags}]
 		- この指定でも空だとキャンセルになる
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、Notmuch
 	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
@@ -1243,7 +1224,7 @@ tag-delete [{tags}]
 		- この指定でも空だとキャンセルになる
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、Notmuch
 	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
@@ -1261,7 +1242,7 @@ tag-set [{tags}]
 		- この指定でも空だとキャンセルになる
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、Notmuch
 	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
@@ -1273,7 +1254,7 @@ tag-toggle [{tags}]
 		- この指定でも空だとキャンセルになる
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
-	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、notmuch
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) は、Notmuch
 	  database は直ちに反映されず、保存・送信時に反映される
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
@@ -1282,14 +1263,14 @@ tag-toggle [{tags}]
 thread-connect
 	* mark (|notmuch-python-vim-mark|) されたメールをカーソル位置のメールにスレッ
 		ドを繋げる
-	* In-Reply-To, Reference ヘッダを編集している
+		- In-Reply-To, Reference ヘッダを編集している
 	* mail-reindex (|notmuch-python-vim-mail-reindex|) と reload
 		(|notmuch-python-vim-reload|) が行われる
 
                                                  *notmuch-python-vim-thread-cut*
 thread-cut
 	* メールのスレッド切断
-	* In-Reply-To, Reference ヘッダを編集している
+		- In-Reply-To, Reference ヘッダを編集している
 	* mail-reindex (|notmuch-python-vim-mail-reindex|) と reload
 		(|notmuch-python-vim-reload|) が行われる
 
@@ -1328,8 +1309,8 @@ thread-sort [{list}/{tree} {sorting-way}]
 thread-toggle
 	* メールのスレッドを開閉する
 	* 閉じた時はスレッドの先頭選択
-	* 開いた時はできるだけ直前のメールを選択、適当なメールがない時は、同一スレッ
-		ド内の最後のメールを選択
+	* 開いた時はできるだけ直前のメールを選択
+		- 適当なメールがない時は、同一スレッド内の最後のメールを選択
 
                                               *notmuch-python-vim-view-previous*
 view-previous
