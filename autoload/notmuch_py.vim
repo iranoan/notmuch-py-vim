@@ -309,7 +309,7 @@ def Complete_tag_common(func: string, cmdLine: string, cursorPos: number, direct
 	var tags: list<string> = Get_snippet(func, cmdLine, cursorPos, direct_command)
 	var filter: string
 	for t in split(cmdLine)[2 : ]
-		filter = printf('v:val !~ "^%s\\>"', t)
+		filter = printf('v:val !~? "^%s\\>"', t)
 		tags = filter(tags, filter)
 	endfor
 	if len(tags) != 1
@@ -336,7 +336,7 @@ def Get_snippet(func: string, cmdLine: string, cursorPos: number, direct_command
 		prefix = prefix .. ' '
 	endif
 	var ls: list<string> = py3eval(func .. '("' .. escape(filter, '"') .. '")')
-	filter = printf('v:val =~ "^%s"', filter)
+	filter = printf('v:val =~? "^%s"', filter)
 	var snippet_org: list<string> = filter(ls, filter)
 	if direct_command  # input() 関数ではなく、command 直接の補完
 		return snippet_org
@@ -814,7 +814,7 @@ endfunction
 
 export def Comp_dir(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
 	var folders: list<any> = py3eval('get_mail_folders()')
-	return filter(folders, printf('v:val =~ "^%s"', ArgLead))
+	return filter(folders, printf('v:val =~? "^%s"', ArgLead))
 enddef
 
 function Run_shell_program(args) abort
@@ -854,13 +854,14 @@ def Close(args: list<any>): void # notmuch-* を閉じる (基本 close なの�
 	endif
 enddef
 
-def Au_edit(win: number, reload: bool): void # 閉じた時の処理 (呼び出し元に戻り reload == true で notmuch-show が同じタブページに有れば再読込)
+def Au_edit(win: number, search_term: string, reload: bool): void # 閉じた時の処理 (呼び出し元に戻り reload == true で notmuch-show, notmuch-view が同じタブページに有れば再読込)
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchEdit' .. l_bufnr
 		autocmd!
 		execute 'autocmd BufWinLeave <buffer> Change_exist_tabpage_core(' .. win .. ') |' ..
 					(reload ?
-							'if py3eval(''is_same_tabpage("show", "")'') |' ..
+						(search_term ==# '' ?  'if py3eval(''is_same_tabpage("show", "")'') |'
+						: 'if py3eval(''is_same_tabpage("view", "' .. escape(search_term, '"') .. '")'') |') ..
 								'win_gotoid(bufwinid(buf_num["show"])) | ' ..
 								'Reload([]) |' ..
 							'endif | '
@@ -1013,7 +1014,7 @@ export def Comp_all_args(ArgLead: string, CmdLine: string, CursorPos: number): l
 			endif
 		endif
 	endif
-	snippet = filter(snippet, printf('v:val =~ "^%s"', ArgLead))
+	snippet = filter(snippet, printf('v:val =~? "^%s"', ArgLead))
 	if len(snippet) == 0
 		return []
 	elseif len(snippet) == 1
@@ -1072,7 +1073,7 @@ def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): 
 			endif
 		endif
 	endif
-	s_filter = printf('v:val =~ "^%s"', s_filter)
+	s_filter = printf('v:val =~? "^%s"', s_filter)
 	var snippet_org: list<string> = filter(ls, s_filter)
 	if direct_command  # input() 関数ではなく、command 直接の補完
 		if len(snippet_org) == 1
@@ -1130,7 +1131,7 @@ export def Comp_run(ArgLead: string, CmdLine: string, CursorPos: number): list<a
 		prefix = prefix .. ' '
 	endif
 	var list: list<string> =  py3eval('get_sys_command(''' .. Vim_escape('Notmuch run ' .. CmdLine) .. ''' , ''' .. Vim_escape(filter) .. ''')')
-	filter = printf('v:val =~ "^%s"', filter)
+	filter = printf('v:val =~? "^%s"', filter)
 	var snippet_org: list<any> = filter(list, filter)
 	# 補完候補にカーソル前の文字列を追加
 	var snippet: list<any>
