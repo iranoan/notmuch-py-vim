@@ -3382,7 +3382,7 @@ def open_original(msg_id, search_term, args):
         b_v['date'] = date
         b_v['msg_id'] = msg_id
         b_v['tags'] = tags
-        vim.command('call s:Augroup_notmuch_select(' + str(active_win) + ', 1)')
+        vim.command('call s:Au_edit(' + str(active_win) + ', 1)')
         if MAILBOX_TYPE == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
@@ -4602,7 +4602,7 @@ def before_make_draft(active_win):
         f = draft_dir + os.sep + f
     vim.current.buffer.name = f
     vim.command('setlocal filetype=notmuch-draft')
-    vim.command('call s:Augroup_notmuch_select(' + str(active_win) + ', 0)')
+    vim.command('call s:Au_edit(' + str(active_win) + ', 0)')
 
 
 def after_make_draft(b, msg, add_head):
@@ -4987,10 +4987,10 @@ def save_mail(msg_id, s, args):
             if save_file == '':
                 return ''
             args.extend(['', 2, ''])
+            (args[2], args[4]) = os.path.splitext(save_file)
         else:
-            save_file = args[2]
             args.extend([2, ''])
-        (args[2], args[4]) = os.path.splitext(save_file)
+            (args[2], args[4]) = os.path.splitext(args[2])
         return args[2] + '-1' + args[4]
 
     type = buf_kind()

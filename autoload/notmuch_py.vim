@@ -81,7 +81,7 @@ enddef
 def Change_exist_tabpage_core(bufnum: number): void
 	var tabpage: number = 0
 	for i in range(tabpagenr('$'))
-		if match(tabpagebuflist(i + 1), '' .. bufnum) != -1
+		if index(tabpagebuflist(i + 1), bufnum) != -1
 			tabpage = i + 1
 			break
 		endif
@@ -854,25 +854,21 @@ def Close(args: list<any>): void # notmuch-* を閉じる (基本 close なの�
 	endif
 enddef
 
-def Augroup_notmuch_select(win: number, reload: bool): void # notmuch-edit 閉じた時の処理(呼び出し元に戻り notmuch-show が同じタブページに有れば再読込)
+def Au_edit(win: number, reload: bool): void # 閉じた時の処理 (呼び出し元に戻り reload == true で notmuch-show が同じタブページに有れば再読込)
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchEdit' .. l_bufnr
 		autocmd!
 		execute 'autocmd BufWinLeave <buffer> Change_exist_tabpage_core(' .. win .. ') |' ..
-					'    if py3eval(''is_same_tabpage("show", "")'') |' ..
-					'      if ' .. reload .. ' |'
-					'        win_gotoid(bufwinid(buf_num["show"])) |' ..
-					'        Reload([]) |' ..
-					'      endif |'
-					'      win_gotoid(bufwinid(' .. win .. ')) |' ..
-					'      autocmd! NotmuchEdit' .. l_bufnr .. ' |' ..
-					'      augroup! NotmuchEdit' .. l_bufnr .. ' |' ..
-					'    endif'
+					(reload ?
+							'if py3eval(''is_same_tabpage("show", "")'') |' ..
+								'win_gotoid(bufwinid(buf_num["show"])) | ' ..
+								'Reload([]) |' ..
+							'endif | '
+					: '') ..
+							'win_gotoid(bufwinid(' .. win .. ')) |' ..
+							'autocmd! NotmuchEdit' .. l_bufnr .. ' |' ..
+							'augroup! NotmuchEdit' .. l_bufnr
 	augroup END
-	# win に戻れない時は、そのバッファを読み込みたいが以下の方法でも駄目
-					# \ '    if win_gotoid(bufwinid(' .. win .. ')) == 0 |' ..
-					# \ '      buffer ' .. win .. '|' ..
-					# \ '    endif | ' ..
 enddef
 
 def Au_new_mail(): void # 新規/添付転送メールでファイル末尾移動時に From 設定や署名の挿入
