@@ -1260,7 +1260,6 @@ def open_mail_by_index(search_term, index, active_win):
 
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     """ open mail by Message-ID (not threader order)
-
     save caller buffer variable before open
     """
     class Output:
@@ -4959,15 +4958,11 @@ def save_mail(msg_id, s, args):
     メール本文をテキスト・ファイルとして保存
     msg_id, s は使用しない
     thread で複数選択時
-        * 元は
-            - args[0] 選択した先頭行
-            - args[1] 選択した最終行
-        * 一度処理すると
-            - args[0] 処理するファイルのインデックス (ファイル名なしでキャンセルすると -1)
-            - args[1] 選択した最終行←変わらない
-            - args[2] 保存ファイルのベース名
-            - args[3] 連番のためのカウンタ
-            - args[4] 保存ファイルの拡張子
+        * do_mail() の繰り返しで一度処理すると
+            - args[0], args[1] -1 としてファイル名未入力でキャンセル扱いの判定に使う
+            - args[2]          保存ファイルのベース名
+            - args[3]          連番のためのカウンタ
+            - args[4]          保存ファイルの拡張子
     '''
     def single_file():
         if len(args) >= 3:
@@ -5007,7 +5002,6 @@ def save_mail(msg_id, s, args):
     else:
         if len(args) == 5:
             save_file = args[2] + '-' + str(args[3]) + args[4]
-            args[0] += 1
             args[3] += 1
         elif args[0] == args[1]:
             save_file = single_file()
@@ -5023,9 +5017,9 @@ def save_mail(msg_id, s, args):
             buf_num = s_buf_num('show', '')
         elif type == 'search':
             buf_num = s_buf_num('view', b.vars.search_term)
-        if not vim_goto_bufwinid(buf_num):
-            return [-1, -1]
-        open_mail_by_index(s, args[0] - 1, buf_num)
+        DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+        open_mail_by_msgid(s, msg_id, buf_num, False)
+        DBASE.close()
     with open(save_file, 'w') as fp:
         fp.write('\n'.join(vim.current.buffer[:]))
     vim_goto_bufwinid(b.number)
