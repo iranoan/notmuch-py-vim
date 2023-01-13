@@ -49,6 +49,7 @@ vim_popup_atcursor = vim.Function('popup_atcursor')
 win_id2tabwin = vim.Function('win_id2tabwin')
 bufwinnr = vim.Function('bufwinnr')
 sign_unplace = vim.Function('sign_unplace')
+strdisplaywidth = vim.Function('strdisplaywidth')
 
 
 def vim_input(p, *s):
@@ -3701,7 +3702,7 @@ def send_str(msg_data, msgid):
         for h in headers.split('\n'):
             match = re.match(r'^[A-Za-z-]+:\s*', h)
             if match is None:
-                match = re.match(r'^\s+', h)
+                match = RE_TOP_SPACE.match(h)
                 if match is None:
                     print_error('Illegal header:' + h)
                     return None, None, None
@@ -5481,7 +5482,7 @@ def get_last_cmd(cmds, cmdline, pos):
     result = result[-1]
     last_str = cmdline[result.span()[1]:]
     # last_str = re.sub(r'^\s+', '', last_str)
-    last_str = re.sub(r'^\s+', '', re.sub(r'\s+', ' ', last_str, flags=re.MULTILINE))
+    last_str = RE_TOP_SPACE.sub('', re.sub(r'\s+', ' ', last_str, flags=re.MULTILINE))
     return [result.group(1), ' ' in last_str]
     # 最後のコマンドより後ろで、それに続く空白を削除してなおどこかに空白が有れば引数を指定済み
 
