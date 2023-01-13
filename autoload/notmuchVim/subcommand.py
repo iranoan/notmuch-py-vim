@@ -33,11 +33,7 @@ from urllib.parse import unquote  # URL の %xx を変換
 
 from html2text import HTML2Text   # HTML メールの整形
 import notmuch                    # API で出来ないことは notmuch コマンド (subprocess)
-try:
-    import vim
-    VIM_MODULE = True             # vim から読み込まれたか?
-except ModuleNotFoundError:
-    VIM_MODULE = False
+import vim
 
 
 # vim funtion
@@ -106,29 +102,19 @@ def is_gtk():
 
 def print_warring(msg):
     """ display Warning."""
-    if VIM_MODULE:
-        msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
-        vim.command('redraw | echohl WarningMsg | echomsg "' + msg + '" | echohl None')
-    else:
-        sys.stderr.write(msg)
+    msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
+    vim.command('redraw | echohl WarningMsg | echomsg "' + msg + '" | echohl None')
 
 
 def print_err(msg):
     """ display Error and exit."""
-    if VIM_MODULE:
-        msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
-        vim.command('echohl ErrorMsg | echomsg "' + msg + '" | echohl None')
-    else:
-        sys.stderr.write(msg)
-        sys.exit()
+    msg = msg.replace('"', '\\"').replace('\n', '" | echomsg "')
+    vim.command('echohl ErrorMsg | echomsg "' + msg + '" | echohl None')
 
 
 def print_error(msg):
     """ display Error."""
-    if VIM_MODULE:
-        vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
-    else:
-        sys.stderr.write(msg)
+    vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
 
 
 def set_subject_length():
@@ -191,15 +177,12 @@ def email2only_address(mail_address):
 def str_just_length(string, length):
     # 全角/半角どちらも桁数ではなくで幅に揃える (足りなければ空白を埋める)
     # →http://nemupm.hatenablog.com/entry/2015/11/25/202936 参考
-    if VIM_MODULE:
-        count_widht = strdisplaywidth(string)
-        if count_widht == length:
-            return string
-        elif count_widht < length:
-            return string + ' ' * (length - count_widht)
-        ambiwidth = (vim.options['ambiwidth'] == b'double')
-    else:
-        ambiwidth = 1
+    count_widht = strdisplaywidth(string)
+    if count_widht == length:
+        return string
+    elif count_widht < length:
+        return string + ' ' * (length - count_widht)
+    ambiwidth = (vim.options['ambiwidth'] == b'double')
     if ambiwidth:
         symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' \
             + '±µ¶×ø■□▲△▶▷▼▽◀◁◆◇◈○◎●◢◣◤◥◯◽◾' \
@@ -420,11 +403,10 @@ def notmuch_new(open_check):
             True: success
             False: fail
     """
-    if VIM_MODULE and open_check:
+    if open_check:
         if opened_mail(False):
             print_warring('Can\'t remake database.\nBecase open the file.')
             return False
-        # return True
     return shellcmd_popen(['notmuch', 'new'])
 
 
@@ -479,11 +461,8 @@ def make_thread_core(search_term):
     except notmuch.errors.NullPointerError:
         print_err('Error: Search thread')
         return False
-    if VIM_MODULE:
-        reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
-        print('Making cache data:' + search_term)
-    else:  # vim 以外では途中経過の表示なので標準出力ではなくエラー出力に
-        sys.stderr.write('Making cache data: ' + search_term + '\n')
+    reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
+    print('Making cache data:' + search_term)
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
     ls = []
@@ -493,8 +472,7 @@ def make_thread_core(search_term):
             ls += r.result()
     ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
     THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
-    if VIM_MODULE:
-        vim.command('redraw')
+    vim.command('redraw')
     return True
 
 
@@ -2371,8 +2349,6 @@ def change_tags_after_core(msg, change_b_tags):
     msg.thaw()
     msg.tags_to_maildir_flags()
     msg_id = msg.get_message_id()
-    if not VIM_MODULE:
-        return
     if change_b_tags:
         tags = get_msg_tags(msg)
         ls_tags = list(msg.get_tags())
@@ -3409,12 +3385,11 @@ def send_mail(filename):
     ファイルをメールとして送信←元のファイルは削除
     添付ファイルのエンコードなどの変換済みデータを送信済み保存
     """
-    if VIM_MODULE:
-        for b in vim.buffers:
-            if b.name == filename:  # Vim で開いている
-                if b.options['modified'] or b.options['bufhidden'] != b'':
-                    # 更新もしくは隠れバッファ等でもない普通に開いているバッファなので送信しない
-                    return
+    for b in vim.buffers:
+        if b.name == filename:  # Vim で開いている
+            if b.options['modified'] or b.options['bufhidden'] != b'':
+                # 更新もしくは隠れバッファ等でもない普通に開いているバッファなので送信しない
+                return
     with open(filename, 'r') as fp:
         msg_data = fp.read()
         # msg_file = email.message_from_file(fp) を用いるとヘッダがエンコードされる+不正なヘッダ書式をチェック出来ない
@@ -3640,11 +3615,8 @@ def send_str(msg_data, msgid):
         msg[header] = pair[2:]
 
     def get_user():  # get User ID and domain from mail address setting
-        if VIM_MODULE:
-            if 'notmuch_from' in vim.vars:
-                mail_address = vim.vars['notmuch_from'][0]['address'].decode()
-        else:
-            mail_address = None
+        if 'notmuch_from' in vim.vars:
+            mail_address = vim.vars['notmuch_from'][0]['address'].decode()
         if mail_address is None:
             return get_config('user.primary_email')
         return mail_address
@@ -3895,10 +3867,7 @@ def send_str(msg_data, msgid):
         def get_draft_dir():  # 保存先メール・フォルダ取得
             if fcc_mailbox != '' and os.path.isdir(PATH + os.sep + fcc_mailbox):
                 return fcc_mailbox
-            elif VIM_MODULE:
-                return vim.vars.get('notmuch_save_sent_mailbox', 'sent').decode()
-            else:
-                return SENT_TAG
+            return vim.vars.get('notmuch_save_sent_mailbox', 'sent').decode()
 
         sent_dir = get_draft_dir()
         if sent_dir == '':
@@ -4238,7 +4207,7 @@ def send_str(msg_data, msgid):
         if not send(msg_send):
             return False
         save_draft(msg_send, msg_data, msg_id, msg_date,
-                   (vim.vars.get('notmuch_save_draft', 0) if VIM_MODULE else 0))
+                   vim.vars.get('notmuch_save_draft', 0))
     return True
 
 
@@ -5096,7 +5065,7 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
     mbox.flush()
     mbox.unlock()
     # タグの付け直し
-    if VIM_MODULE and opened_mail(draft):
+    if opened_mail(draft):
         print_warring('Can not update Notmuch database.\nPlease save and close mail.')
         return
     notmuch_new(False)
@@ -5106,18 +5075,14 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
     add_msg_tags(msg, add_tag)  # 元々未読かもしれないので、追加を後に
     change_tags_after(msg, False)
     notmuch_new(False)
-    if VIM_MODULE:
-        # print_folder()
-        vim.command('redraw')
+    vim.command('redraw')
 
 
 def import_mail(args):
     if opened_mail(False):
         print_warring('Please save and close mail.')
         return
-    # import path setting
-    if VIM_MODULE:
-        import_dir = vim.vars.get('notmuch_import_mailbox', b'').decode()
+    import_dir = vim.vars.get('notmuch_import_mailbox', b'').decode()
     if import_dir == '':
         import_dir = PATH
     elif MAILBOX_TYPE == 'Maildir':
@@ -5187,9 +5152,8 @@ def import_mail(args):
     #     add_msg_tags(msg, ['inbox'])
     #     change_tags_after_core(msg, True)
     # DBASE.close()
-    if VIM_MODULE:
-        print_folder()
-        vim.command('redraw')
+    print_folder()
+    vim.command('redraw')
 
 
 def select_file(msg_id, question, s):
@@ -6462,66 +6426,52 @@ if not os.path.isdir(PATH):
     raise notmuchVimError('\'' + PATH + '\' don\'t exist.')
 if not notmuch_new(True):
     raise notmuchVimError('Can\'t update database.')
-elif VIM_MODULE:  # notmuch new の結果をクリア←redraw しないとメッセージが表示されるので、続けるためにリターンが必要
-    vim.command('redraw')
+    vim.command('redraw')  # notmuch new の結果をクリア←redraw しないとメッセージが表示されるので、続けるためにリターンが必要
 DBASE = notmuch.Database()
 DBASE.close()
-if VIM_MODULE:
-    if 'notmuch_delete_top_subject' in vim.vars:  # Subject の先頭から削除する正規表現文字列
-        DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
-    if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
-        FROM_LENGTH = vim.vars['notmuch_from_length']
-    else:
-        FROM_LENGTH = 21
-    if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
-        DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
-    else:
-        DATE_FORMAT = '%Y-%m-%d %H:%M'
-    if 'notmuch_sent_tag' in vim.vars:  # 送信済みを表すタグ
-        SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
-    if 'notmuch_send_encode' in vim.vars:  # 送信文字コード
-        SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
-    if 'notmuch_send_param' in vim.vars:   # 送信プログラムやそのパラメータ
-        SEND_PARAM = vim.eval('g:notmuch_send_param')
-    if 'notmuch_attachment_tmpdir' in vim.vars:
-        ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
-    else:
-        ATTACH_DIR = vim.bindeval('script_root').decode() + os.sep + 'attach' + os.sep
-    if 'notmuch_tmpdir' in vim.vars:
-        # 添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリに作成
-        TEMP_DIR = vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
-    else:
-        TEMP_DIR = vim.bindeval('script_root').decode() + os.sep + '.temp' + os.sep
-    if 'notmuch_mailbox_type' in vim.vars:   # Mailbox の種類
-        MAILBOX_TYPE = vim.vars['notmuch_mailbox_type'].decode()
-    set_display_item()
-    set_folder_format()
-    set_display_format()
-    set_subject_length()
-    # Vim の関数
-    strdisplaywidth = vim.Function('strdisplaywidth')
+if 'notmuch_delete_top_subject' in vim.vars:  # Subject の先頭から削除する正規表現文字列
+    DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
 else:
-    TEMP_DIR = os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))).replace('/', os.sep) + os.sep
-    ATTACH_DIR = TEMP_DIR + 'attach' + os.sep
-    TEMP_DIR += '.temp' + os.sep
-    if not ('DISPLAY_ITEM' in globals()):
-        DISPLAY_ITEM = ('subject', 'from', 'date')
-    if not ('FOLDER_FORMAT' in globals()):  # フォルダー・リストのフォーマット
-        FOLDER_FORMAT = '{0:<14} {1:>3}/{2:>5}|{3:>3} [{4}]'
-    if not ('DISPLAY_FORMAT' in globals()):  # スレッドに表示する順序
-        DISPLAY_FORMAT = '{0}\t{1}\t{2}\t{3}'
-        DISPLAY_FORMAT2 = '{0}\t{1}\t{2}'
-    if not ('FROM_LENGTH' in globals()):
-        FROM_LENGTH = 21
-    if not ('SUBJECT_LENGTH' in globals()):  # スレッドの各行に表示する Subject の長さ
-        SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
-    if not ('DATE_FORMAT' in globals()):
-        DATE_FORMAT = '%Y-%m-%d %H:%M'
-if not ('DELETE_TOP_SUBJECT' in globals()):
     DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' \
         + r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' \
         + r'|R[Ee][: ]+)*[　 ]*'
+if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
+    FROM_LENGTH = vim.vars['notmuch_from_length']
+else:
+    FROM_LENGTH = 21
+if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
+    DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
+else:
+    DATE_FORMAT = '%Y-%m-%d %H:%M'
+if 'notmuch_sent_tag' in vim.vars:  # 送信済みを表すタグ
+    SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
+else:
+    SENT_TAG = 'sent'
+if 'notmuch_send_encode' in vim.vars:  # 送信文字コード
+    SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
+else:
+    SENT_CHARSET = ['us-ascii', 'iso-2022-jp', 'utf-8']
+if 'notmuch_send_param' in vim.vars:   # 送信プログラムやそのパラメータ
+    SEND_PARAM = vim.eval('g:notmuch_send_param')
+else:
+    SEND_PARAM = ['sendmail', '-t', '-oi']
+if 'notmuch_attachment_tmpdir' in vim.vars:
+    ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
+else:
+    ATTACH_DIR = vim.bindeval('script_root').decode() + os.sep + 'attach' + os.sep
+if 'notmuch_tmpdir' in vim.vars:
+    # 添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリに作成
+    TEMP_DIR = vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
+else:
+    TEMP_DIR = vim.bindeval('script_root').decode() + os.sep + '.temp' + os.sep
+if 'notmuch_mailbox_type' in vim.vars:   # Mailbox の種類
+    MAILBOX_TYPE = vim.vars['notmuch_mailbox_type'].decode()
+else:
+    MAILBOX_TYPE = 'Maildir'
+set_display_item()
+set_folder_format()
+set_display_format()
+set_subject_length()
 RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
 RE_END_SPACE = re.compile(r'\s*$')  # 行末空白削除
 RE_TAB2SPACE = re.compile('[　\t]+')  # タブと全角空白→スペース←スレッド・リストではできるだけ短く、タブはデリミタに使用予定
@@ -6539,15 +6489,6 @@ except re.error:
         RE_SUBJECT = re.compile(DELETE_TOP_SUBJECT)
     except re.error:
         print_err('Error: Regurlar Expression')
-RE_TOP_SPACE = re.compile(r'^\s+')
-if not ('SENT_TAG' in globals()):
-    SENT_TAG = 'sent'
-if not ('SEND_PARAM' in globals()):
-    SEND_PARAM = ['sendmail', '-t', '-oi']
-if not ('SENT_CHARSET' in globals()):
-    SENT_CHARSET = ['us-ascii', 'iso-2022-jp', 'utf-8']
-if not ('MAILBOX_TYPE' in globals()):
-    MAILBOX_TYPE = 'Maildir'
 THREAD_LISTS = {}
 """ スレッド・リスト・データの辞書
 
