@@ -1276,24 +1276,25 @@ export def FoldThreadText(): string
 	return py3eval('get_folded_list(' .. v:foldstart .. ',' .. v:foldend .. ')')
 enddef
 
-export function FoldThread(n) abort " スレッド・リストの折畳設定
-	" a:n Subject が何番目に表示されるのか?
-	" strpart() を使った方法は 全角=2 バイトとは限らないので駄目
-	let l:str = getline(v:lnum)
-	if a:n == 0
-		let l:str = substitute(l:str, '^[^\t]\+\t  ', '', 'g')
-	elseif a:n == 1
-		let l:str = substitute(l:str, '^[^\t]\+\t[^\t]\+\t  ', '', 'g')
-	elseif a:n == 2
-		let l:str = substitute(l:str, '^[^\t]\+\t[^\t]\+\t[^\t]\+\t  ', '', 'g')
+export def FoldThread(n: number): any # スレッド・リストの折畳設定
+	# n Subject が何番目に表示されるのか?
+	# strpart() を使った方法は 全角=2 バイトとは限らないので駄目
+	var str: string = getline(v:lnum)
+	var depth: number
+	if n == 0
+		str = substitute(str, '^[^\t]\+\t  ', '', 'g')
+	elseif n == 1
+		str = substitute(str, '^[^\t]\+\t[^\t]\+\t  ', '', 'g')
+	elseif n == 2
+		str = substitute(str, '^[^\t]\+\t[^\t]\+\t[^\t]\+\t  ', '', 'g')
 	endif
-	let l:depth = strlen(matchstr(l:str, '\m^ \+')) / 2
-	if l:depth
-		return l:depth + 1
+	depth = strlen(matchstr(str, '\m^ \+')) / 2
+	if depth != 0
+		return depth + 1
 	else
 		return '>1'
 	endif
-endfunction
+enddef
 
 export def FoldHeaderText(): string # メールでは foldtext を変更する
 	var line: string
