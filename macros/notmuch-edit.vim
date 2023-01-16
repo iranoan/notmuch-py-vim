@@ -6,7 +6,7 @@ scriptencoding utf-8
 
 setlocal expandtab autoindent nosmartindent nocindent indentexpr=
 setlocal formatoptions+=ql comments=n:>
-setlocal foldtext=FoldHeaderText()
+setlocal foldtext=notmuch_py#FoldHeaderText()
 
 " keymap
 nnoremap <buffer><silent><leader>q : if len(getbufinfo()) == 1 \| quit!  \|else \| bwipeout!  \|endif<CR>
