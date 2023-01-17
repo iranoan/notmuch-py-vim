@@ -761,7 +761,6 @@ def reload():
     v = v.buffer.vars['notmuch']
     if type == 'show' or type == 'view':
         if ('search_term' in v) and ('msg_id' in v):
-            print(1)
             reload_show()
         return
     if type == 'folders':
@@ -4253,7 +4252,7 @@ def send_vim():
                 if msg_id == '':
                     return
                 send_search('id:' + msg_id + sent_tag)
-    if 'folders' in vim.bindeval('s:buf_num'):
+    if 'folders' in s_buf_num_dic():
         reprint_folder2()
 
 
