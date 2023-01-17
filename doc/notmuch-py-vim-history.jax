@@ -11,6 +11,10 @@ License: GPL Ver.3.
 
 2023/01/17 Ver.1.47~
 * バグ修正
+	- 送信時にエラーが発生する
+	- search-refine (|notmuch-python-vim-search-refine|),
+		search-down-refine (|notmuch-python-vim-search-down-refine|),
+		search-up-refine (|notmuch-python-vim-search-up-refine|) が使えない
 
 2023/01/16 Ver.1.46~
 * vim9script (|Vim9-script|) 化

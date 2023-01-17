@@ -88,6 +88,12 @@ def s_buf_num_dic():
         return vim.bindeval('s:buf_num')
 
 
+def refined_search_term():
+    try:
+        return vim.bindeval('refined_search_term').decode()
+    except vim.error:
+        return vim.bindeval('s:refined_search_term').decode()
+
 def s_buf_num(k, s):
     if s != '':
         return s_buf_num_dic()[k][s]
@@ -6020,14 +6026,14 @@ def get_refine_index():
         and not (search_term in s_buf_num('view', '')
                  and b_num != s_buf_num('view', search_term)):
         return -1, '', []
-    if not ('refined_search_term' in vim.bindeval('s:')):
+    if refined_search_term() == '':
         print_warring('Do not execute \'search-refine\'')
         return -1, '', []
     msg_id = get_msg_id()
     DBASE.open(PATH)
     index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
              if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and ('
-                              + vim.bindeval('s:refined_search_term').decode() + ')'
+                              + refined_search_term() + ')'
                               ).count_messages()]
     if not index:
         return -1, '', []

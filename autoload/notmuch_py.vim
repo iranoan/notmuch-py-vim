@@ -1209,6 +1209,7 @@ def Is_sametab_thread(): bool
 	return false
 enddef
 
+var refined_search_term: string
 function Notmuch_refine(s) abort
 	py3 notmuch_refine(vim.eval('a:s'))
 endfunction
