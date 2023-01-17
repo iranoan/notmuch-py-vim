@@ -88,12 +88,6 @@ def s_buf_num_dic():
         return vim.bindeval('s:buf_num')
 
 
-def refined_search_term():
-    try:
-        return vim.bindeval('refined_search_term').decode()
-    except vim.error:
-        return vim.bindeval('s:refined_search_term').decode()
-
 def s_buf_num(k, s):
     if s != '':
         return s_buf_num_dic()[k][s]
@@ -5995,16 +5989,13 @@ def notmuch_refine(args):
     search_term = b_v['search_term'].decode()
     if search_term == '':
         return
-    args = args[2:]
-    if args == []:  # コマンド空
+    if args == '':  # コマンド空
         args = vim_input('search term: ', '', 'customlist,notmuch_py#Comp_search')
         if args == '':
             return
-    elif type(args) == list:
-        args = ' '.join(args)
     if not check_search_term(args):
         return
-    vim.command('let s:refined_search_term = \'' + vim_escape(args) + '\'')
+    vim.command('refined_search_term = \'' + vim_escape(args) + '\'')
     notmuch_down_refine()
 
 
@@ -6026,14 +6017,14 @@ def get_refine_index():
         and not (search_term in s_buf_num('view', '')
                  and b_num != s_buf_num('view', search_term)):
         return -1, '', []
-    if refined_search_term() == '':
+    if vim.bindeval('refined_search_term') == b'':
         print_warring('Do not execute \'search-refine\'')
         return -1, '', []
     msg_id = get_msg_id()
     DBASE.open(PATH)
     index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
              if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and ('
-                              + refined_search_term() + ')'
+                              + vim.bindeval('refined_search_term').decode() + ')'
                               ).count_messages()]
     if not index:
         return -1, '', []

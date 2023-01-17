@@ -1192,8 +1192,8 @@ def Is_sametab_thread(): bool
 	if type ==# 'thread' || type ==# 'search'
 		return true
 	elseif type ==# 'folders' ||
-				\ type ==# 'show' ||
-				\ type ==# 'view'
+				type ==# 'show' ||
+				type ==# 'view'
 		for b in tabpagebuflist()
 			if b == get(buf_num, 'thread', 0)
 				return true
@@ -1210,9 +1210,9 @@ def Is_sametab_thread(): bool
 enddef
 
 var refined_search_term: string
-function Notmuch_refine(s) abort
-	py3 notmuch_refine(vim.eval('a:s'))
-endfunction
+def Notmuch_refine(s: list<any>): void
+	py3eval('notmuch_refine("' .. escape(join(s[2 : ], ' '), '"') .. '")')
+enddef
 
 def Notmuch_down_refine(dummy: list<any>): void
 	py3 notmuch_down_refine()
@@ -1224,9 +1224,9 @@ enddef
 
 export def Get_highlight(hi: string): string
 	return substitute(substitute(substitute(execute('highlight ' .. hi),
-				\ '[\n\r \t]\+', ' ', 'g'),
-				\ ' *' .. hi .. '\s\+xxx *', '', ''),
-				\ '\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
+				'[\n\r \t]\+', ' ', 'g'),
+				' *' .. hi .. '\s\+xxx *', '', ''),
+				'\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
 enddef
 
 var fold_highlight: string = notmuch_py#Get_highlight('Folded')
