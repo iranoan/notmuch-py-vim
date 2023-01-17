@@ -706,8 +706,6 @@ def print_folder():
 def reprint_folder():
     # フォルダ・リストの再描画 (print_folder() の処理と似ているが、b[:] = None して書き直すとカーソル位置が変わる)
     # s:Start_notmuch() が呼ぼれずに mail-new がされていると buf_num が未定義なので直ちに処理を返す
-    # if not ('buf_num' in vim.bindeval('s:')):
-    #     return
     if not ('folders' in s_buf_num_dic()):
         return
     b = vim.buffers[s_buf_num('folders', '')]
@@ -1084,8 +1082,6 @@ def vim_escape(s):
 
 def is_same_tabpage(kind, search_term):
     # おそらく vim.current.tabpage.number と比較する必要はないけど win_id2tabwin() の仕様変更などが起きた時用に念の為
-    # if not ('buf_num' in vim.bindeval('s:')):
-    #     return False
     if not (kind in s_buf_num_dic()):
         return False
     if kind == 'folders' or kind == 'thread' or kind == 'show':
