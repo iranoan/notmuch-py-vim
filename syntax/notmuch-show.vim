@@ -19,7 +19,6 @@ syntax region  mailNewPart      contains=mailNewPartHead,@markdownBlock,@mailHea
 
 " Usenet headers
 syntax match   mailHeaderKey    contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
-" syntax region  mailHeader       contains=@mailHeaderFields,@NoSpell start='^[a-z-]\+:.\+[\u200B]' skip='^\s' end='^[^:]*\n' fold
 syntax region mailHeader                 contains=mailHideHeader,@mailHeaderFields,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
 
 execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
@@ -27,10 +26,8 @@ execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
  " marddown
 syntax cluster markdownInline contains=markdownLinkText,markdownItalic,markdownBold
 syntax cluster markdownBlock contains=markdownH1,markdownH2,markdownH3,markdownH4,markdownH5,markdownH6
-" syntax region markdownItalic matchgroup=markdownItalicDelimiter start="\S\@<=\*\|\*\S\@=" end="\S\@<=\*\|\*\S\@=" skip="\\\*" contains=markdownLineStart,@Spell concealends
 syntax region markdownItalic matchgroup=markdownItalicDelimiter start=" _\S\@=" end="\S\@<=_ " skip="\\_" contains=markdownLineStart,@Spell concealends oneline
-syntax region markdownBold matchgroup=markdownBoldDelimiter start=" \*\*\S\@=" end="\S\@<=\*\* " skip="\\\*" contains=markdownLineStart,markdownItalic,@Spell concealends oneline
-" syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start="\S\@<=\*\*\*\|\*\*\*\S\@=" end="\S\@<=\*\*\*\|\*\*\*\S\@=" skip="\\\*" contains=markdownLineStart,@Spell concealends oneline
+syntax region markdownBold matchgroup=markdownBoldDelimiter start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*" contains=markdownLineStart,markdownItalic,@Spell concealends oneline
 syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start=" _ \*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*" contains=markdownLineStart,@Spell concealends oneline
 syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start='\*\*_\S\@=' end='\S\@<=_\*\*\s\s' skip="\\_\|\\\*" contains=markdownLineStart,markdownItalic,@Spell concealends oneline
 
