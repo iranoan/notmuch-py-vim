@@ -1080,6 +1080,20 @@ def vim_escape(s):
     return s.replace("'", "''")
 
 
+def replace_charset(s):  # 日本/中国語で上位互換の文字コードに置き換える
+    if s == 'iso-2022-jp':
+        return 'iso-2022-jp-3'
+    elif s == 'gb2312' or s == 'gbk':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
+        # Content-Type: text/plain; charset='gb2312'
+        # で送られることに対する対策
+        # https://ifritjp.github.io/blog/site/2019/02/07/outlook.html
+        # http://sylpheed-support.good-day.net/bbs_article.php?pthread_id=744
+        # 何故か日本語メールもこの gb2312 として送られてくるケースも多い
+        return 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
+    else:
+        return s
+
+
 def is_same_tabpage(kind, search_term):
     # おそらく vim.current.tabpage.number と比較する必要はないけど win_id2tabwin() の仕様変更などが起きた時用に念の為
     if not (kind in s_buf_num_dic()):
@@ -1433,16 +1447,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             b_w.cursor = (header_line, 0)  # カーソルを添付ファイルや本文位置にセット
 
     def get_mail_context(part, charset, encoding):  # メールの本文をデコードして取り出す
-        if charset == 'gb2312' or charset == 'gbk':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
-            # Content-Type: text/plain; charset='gb2312'
-            # で送られることに対する対策
-            # https://ifritjp.github.io/blog/site/2019/02/07/outlook.html
-            # http://sylpheed-support.good-day.net/bbs_article.php?pthread_id=744
-            # 何故か日本語メールもこの gb2312 として送られてくるケースも多い
-            charset = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
-        # elif charset == 'iso-2022-jp':
-        #     charset = 'iso-2022-jp-3'
-        # 他には iso-2022-jp-2004, iso-2022-jp-ext があるがどれもだめなので nkf を使う
+        charset = replace_charset(charset)
         if encoding == '8bit' \
                 or (charset == 'utf-8' and encoding is None):  # draft メールで encoding 情報がない場合
             payload = part.get_payload()
@@ -2796,20 +2801,13 @@ def write_file(part, decode, save_path):
         with open(save_path, 'w') as fp:
             fp.write(s)
     elif html != '':
-        charset = part.get_content_charset('utf-8')
+        charset = replace_charset(part.get_content_charset('utf-8'))
         # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
         # * BASE64 エンコードで情報がなかった時
         # したときのため、仮の値として指定しておく
-        if charset == 'iso-2022-jp':
-            charset = 'iso-2022-jp-3'  # 一律最上位互換の文字コード扱いにする
-        elif charset == 'gb2312':
-            charset = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
         try:
             part = codecs.decode(part.get_payload(decode=True), encoding=charset)
-            if html == 'iso-2022-jp':
-                html = 'iso-2022-jp-3'  # 一律最上位互換の文字コード扱いにする
-            elif html == 'gb2312':
-                html = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
+            html = replace_charset(html)
             with open(save_path, 'wb') as fp:
                 fp.write(codecs.encode(part, encoding=html))
         except UnicodeDecodeError:  # iso-2022-jp で JIS 外文字が使われていた時
@@ -3328,7 +3326,7 @@ def open_original(msg_id, search_term, args):
                     break
             else:
                 content_type = part.get_content_type()
-                charset = part.get_content_charset('utf-8')
+                charset = replace_charset(part.get_content_charset('utf-8'))
                 # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
                 # * BASE64 エンコードで情報がなかった時
                 # したときのため、仮の値として指定しておく
