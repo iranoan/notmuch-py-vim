@@ -1246,6 +1246,21 @@ def open_mail_by_index(search_term, index, active_win):
     DBASE.close()
 
 
+def decode_string(s, charset, error):
+    if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
+        ret = run(['nkf', '-w', '-J'], input=s, stdout=PIPE)
+        return ret.stdout.decode()
+    elif shutil.which('iconv') is not None:
+        ret = run(['iconv', '-f', charset, '-t', 'utf-8'], input=s, stdout=PIPE)
+        if ret.returncode:
+            return s.decode(charset, 'replace')
+        return ret.stdout.decode()
+    elif vim_has('iconv'):
+        return vim.Function('iconv')(s, charset, 'utf-8').decode()
+    else:
+        return s.decode(charset, 'replace')
+
+
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     """ open mail by Message-ID (not threader order)
     save caller buffer variable before open
@@ -1478,16 +1493,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             try:
                 return payload.decode(charset), decode_payload
             except UnicodeDecodeError:
-                if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
-                    ret = run(['nkf', '-w', '-J'], input=payload, stdout=PIPE)
-                    return ret.stdout.decode(), decode_payload
-                elif shutil.which('iconv') is not None:
-                    ret = run(['iconv', '-f', charset, '-t', 'utf-8'], input=payload, stdout=PIPE)
-                    if ret.returncode:
-                        return payload.decode(charset, 'replace'), decode_payload
-                    return ret.stdout.decode(), decode_payload
-                else:
-                    return payload.decode(charset, 'replace'), decode_payload
+                return decode_string(payload, charset, 'replace'), decode_payload
             except LookupError:
                 print_warring('unknown encoding ' + charset + '.')
                 payload = part.get_payload()
@@ -2557,16 +2563,7 @@ def decode_header(f):
                 name += string.decode(charset)
             except UnicodeDecodeError:  # コード外範囲の文字が有る時のエラー
                 print_warring('File name has out-of-code range characters.')
-                if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
-                    ret = run(['nkf', '-w', '-J'], input=string, stdout=PIPE)
-                    name += ret.stdout.decode()
-                elif shutil.which('iconv') is not None:
-                    ret = run(['iconv', '-f', charset, '-t', 'utf-8'], input=string, stdout=PIPE)
-                    if ret.returncode:
-                        name += string.decode(charset, 'backslashreplace')
-                    name += ret.stdout.decode()
-                else:
-                    name += string.decode(charset, 'backslashreplace')
+                name += decode_string(string, charset, 'backslashreplace')
             except Exception:
                 name += string.decode('raw_unicode_escape')
     return re.sub('[\u200B-\u200D\uFEFF]', '', name.replace('\n', ' '))  # ゼロ幅文字削除
