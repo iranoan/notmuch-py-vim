@@ -1247,6 +1247,7 @@ def open_mail_by_index(search_term, index, active_win):
 
 
 def decode_string(s, charset, error):
+    ''' 呼び出し元で Python でデコード失敗した時に、nkf や iconv でデコード '''
     if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
         ret = run(['nkf', '-w', '-J'], input=s, stdout=PIPE)
         return ret.stdout.decode()
