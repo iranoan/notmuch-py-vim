@@ -1478,11 +1478,16 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             try:
                 return payload.decode(charset), decode_payload
             except UnicodeDecodeError:
-                if shutil.which('nkf') is None or charset != 'iso-2022-jp':
-                    return payload.decode(charset, 'replace'), decode_payload
-                else:
+                if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
                     ret = run(['nkf', '-w', '-J'], input=payload, stdout=PIPE)
                     return ret.stdout.decode(), decode_payload
+                elif shutil.which('iconv') is not None:
+                    ret = run(['iconv', '-f', charset, '-t', 'utf-8'], input=payload, stdout=PIPE)
+                    if ret.returncode:
+                        return payload.decode(charset, 'replace'), decode_payload
+                    return ret.stdout.decode(), decode_payload
+                else:
+                    return payload.decode(charset, 'replace'), decode_payload
             except LookupError:
                 print_warring('unknown encoding ' + charset + '.')
                 payload = part.get_payload()
@@ -2544,23 +2549,24 @@ def decode_header(f):
                 name += string.decode('raw_unicode_escape')
             else:  # デコードされず bytes 型でないのでそのまま
                 name += string
-        elif charset == 'gb2312':  # Outlook からのメールで実際には拡張された GBK や GB 1830 を使っているのに
-            # Content-Type: text/plain; charset='gb2312'
-            # で送ってくるのに対する対策
-            # filename にも該当するか不明だが、念の為
-            charset = 'gb18030'  # 一律最上位互換の文字コード GB 1830 扱いにする
         elif charset == 'unknown-8bit':
             name += string.decode('utf-8')
         else:
+            charset = replace_charset(charset)
             try:
                 name += string.decode(charset)
             except UnicodeDecodeError:  # コード外範囲の文字が有る時のエラー
                 print_warring('File name has out-of-code range characters.')
-                if shutil.which('nkf') is None or charset != 'iso-2022-jp':
-                    name += string.decode(charset, 'backslashreplace')
-                else:
+                if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
                     ret = run(['nkf', '-w', '-J'], input=string, stdout=PIPE)
                     name += ret.stdout.decode()
+                elif shutil.which('iconv') is not None:
+                    ret = run(['iconv', '-f', charset, '-t', 'utf-8'], input=string, stdout=PIPE)
+                    if ret.returncode:
+                        name += string.decode(charset, 'backslashreplace')
+                    name += ret.stdout.decode()
+                else:
+                    name += string.decode(charset, 'backslashreplace')
             except Exception:
                 name += string.decode('raw_unicode_escape')
     return re.sub('[\u200B-\u200D\uFEFF]', '', name.replace('\n', ' '))  # ゼロ幅文字削除
