@@ -1250,13 +1250,13 @@ def decode_string(s, charset, error):
     if charset == 'iso-2022-jp-3' and shutil.which('nkf') is not None:
         ret = run(['nkf', '-w', '-J'], input=s, stdout=PIPE)
         return ret.stdout.decode()
+    elif vim_has('iconv'):
+        return vim.Function('iconv')(s, charset, 'utf-8').decode()
     elif shutil.which('iconv') is not None:
         ret = run(['iconv', '-f', charset, '-t', 'utf-8'], input=s, stdout=PIPE)
         if ret.returncode:
             return s.decode(charset, 'replace')
         return ret.stdout.decode()
-    elif vim_has('iconv'):
-        return vim.Function('iconv')(s, charset, 'utf-8').decode()
     else:
         return s.decode(charset, 'replace')
 
