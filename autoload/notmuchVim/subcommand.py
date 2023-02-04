@@ -1646,8 +1646,13 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def poup_pgp_signature():  # 署名検証に時間がかかるので、その間ポップ・アップを表示したいがうまく行かない←ウィンドウが切り替わった時点で消えるため
         if vim_has('popupwin'):
-            vim_popup_atcursor(['Checking signature'],
-                               {'border': [1, 1, 1, 1], 'drag': 1, 'close': 'click', 'id': 1024})
+            vim_popup_atcursor([' Checking signature '], {
+                'border': [1, 1, 1, 1],
+                'borderchars': ['─', '│', '─', '│', '┌', '┐', '┘', '└'],
+                'drag': 1,
+                'close': 'click',
+                'id': 1024
+            })
             # '"minwidth": 400,'+
         else:
             print('Checking signature')
@@ -3273,8 +3278,9 @@ def view_mail_info():
     if info is None:
         return
     if vim_has('popupwin'):
-        vim_popup_atcursor(info,
+        vim_popup_atcursor([' ' + x for x in info],
                            {'border': [1, 1, 1, 1],
+                            'borderchars': ['─', '│', '─', '│', '┌', '┐', '┘', '└'],
                             'drag': 1,
                             'close': 'click',
                             'moved': 'any',
