@@ -48,7 +48,7 @@ if exists('g:notmuch_visible_line') && ( g:notmuch_visible_line == 1 || g:notmuc
 	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 nolist
 	call s:set_colorcolmun()
 elseif has('patch-8.2.2518')
-	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 list listchars=tab:\|,
+	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 list listchars=tab:\|\   " 他は非表示"
 else
 	setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 nolist
 endif
