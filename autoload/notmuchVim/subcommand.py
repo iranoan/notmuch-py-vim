@@ -277,8 +277,6 @@ class MailData:  # メール毎の各種データ
         # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
         self.__subject = msg.get_header('Subject')
-        if self.__subject == '':
-            self.__subject = ' '
         self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.get_header('From'))).lower()
         # self.__path = msg.get_filenames().__str__().split('\n')  # file name (full path)
         # ↑同一 Message-ID メールが複数でも取り敢えず全て
@@ -288,6 +286,8 @@ class MailData:  # メール毎の各種データ
         # 整形した Subject
         self._reformed_subject = RE_TOP_SPACE.sub('', RE_TAB2SPACE.sub(
             ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject))))
+        if self._reformed_subject == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
+            self._reformed_subject = ' '
         # 整形した宛名
         m_from = msg.get_header('From')
         try:
@@ -3278,7 +3278,7 @@ def view_mail_info():
     if info is None:
         return
     if vim_has('popupwin'):
-        vim_popup_atcursor([' ' + x for x in info],
+        vim_popup_atcursor([' ' + x for x in info],  # 左側の罫線に左端の文字が隠される
                            {'border': [1, 1, 1, 1],
                             'borderchars': ['─', '│', '─', '│', '┌', '┐', '┘', '└'],
                             'drag': 1,
