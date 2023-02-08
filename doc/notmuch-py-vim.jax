@@ -1274,6 +1274,11 @@ thread-cut
 	* mail-reindex (|notmuch-python-vim-mail-reindex|) と reload
 		(|notmuch-python-vim-reload|) が行われる
 
+                                                *notmuch-python-vim-thread-next*
+thread-next
+	* |{T-WIN}| で次のメールを選択しスレッドを開く
+	* |j||zO| に違いが、折り畳みがなくてもエラーとせず、単に何もしない
+
                                                 *notmuch-python-vim-thread-sort*
 thread-sort [{list}/{tree} {sorting-way}]
 	* |{T-WIN}| で

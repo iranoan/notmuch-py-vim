@@ -64,14 +64,14 @@ vnoremap <buffer><silent>a :Notmuch tag-add<CR>
 nnoremap <buffer><silent>A :Notmuch tag-delete<CR>
 vnoremap <buffer><silent>A :Notmuch tag-delete<CR>
 nnoremap <buffer><silent>C :Notmuch thread-connect<CR>
-nnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>:normal! jzO<CR>
-vnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>:normal! `>0jzO<CR>
+nnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>:Notmuch thread-next<CR>
+vnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>:Notmuch thread-next<CR>
 nnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 vnoremap <buffer><silent>D :Notmuch attach-delete<CR>
 nnoremap <buffer><silent>o :Notmuch thread-toggle<CR>
 nnoremap <buffer><silent>O :Notmuch open<CR>
 nnoremap <buffer><silent>s :Notmuch search<CR>
 nnoremap <buffer><silent>S :Notmuch mail-save<CR>
-nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:normal! jzO<CR>
-vnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:normal! `>0jzO<CR>
+nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:Notmuch thread-next<CR>
+vnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:Notmuch thread-next<CR>
 nnoremap <buffer><silent>zn <Nop>

@@ -572,6 +572,7 @@ def set_subcmd_start():
         cmd['tag-set'] = ['Set_tags', 0x1f]
         cmd['thread-connect'] = ['Connect_thread', 0x06]
         cmd['thread-cut'] = ['Cut_thread', 0x06]
+        cmd['thread-next'] = ['Next_thread', 0x04]
         cmd['thread-toggle'] = ['Toggle_thread', 0x04]
         cmd['thread-sort'] = ['Thread_change_sort', 0x05]
         cmd['set-fcc'] = ['Set_fcc', 0x09]
@@ -855,12 +856,16 @@ def print_thread(b_num, search_term, select_unread, remake):
     # vim.command('redraw!')
 
 
-def fold_open():  # 折畳全開を試み、無くてもエラーとしない
+def fold_open_core():
+    if vim_foldlevel(vim.current.window.cursor[0]):
+        vim.command('normal! zO')
+
+
+def fold_open():
     c = vim.current
     line = c.window.cursor[0]
-    if vim_foldlevel(line):
-        vim.command('normal! zO')
-    reset_cursor_position(c.buffer, c.window, line)
+    fold_open_core()
+    reset_cursor_position(vim.current.buffer, vim.current.window, line)
 
 
 def print_thread_core(b_num, search_term, select_unread, remake):
@@ -5628,7 +5633,7 @@ def notmuch_thread():
     thread_id = 'thread:' + DBASE.find_message(msg_id).get_thread_id()
     DBASE.close()
     notmuch_search([0, 0, thread_id])  # 先頭2つの0はダミーデータ
-    vim.command('normal! zO')
+    fold_open_core()
     index = [i for i, msg in enumerate(
         THREAD_LISTS[thread_id]['list']) if msg._msg_id == msg_id]
     w = vim.current.window
@@ -5638,7 +5643,7 @@ def notmuch_thread():
         DBASE.open(PATH)
         print_thread_core(b.number, thread_id, False, True)
         DBASE.close()
-        vim.command('normal! zO')
+        fold_open_core()
         index = [i for i, msg in enumerate(
             THREAD_LISTS[thread_id]['list']) if msg._msg_id == msg_id]
     index = index[0] + 1
@@ -5646,7 +5651,7 @@ def notmuch_thread():
         DBASE.open(PATH)
         print_thread_core(b.number, thread_id, False, True)
         DBASE.close()
-        vim.command('normal! zO')
+        fold_open_core()
     reset_cursor_position(b, w, index)
 
 
@@ -5668,7 +5673,7 @@ def notmuch_address():
     adr = email2only_address(adr)
     search_term = 'from:' + adr + ' or to:' + adr + ' or cc:' + adr + ' or bcc:' + adr
     notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
-    vim.command('normal! zO')
+    fold_open_core()
     index = [i for i, msg in enumerate(
         THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
     reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)

@@ -166,6 +166,14 @@ function Open_something(args) abort
 	py3 open_something(vim.eval('a:args'))
 endfunction
 
+def Next_thread(args: list<any>): void
+	var type = py3eval('buf_kind()')
+	if type == 'thread' || type == 'search'
+		normal! j
+		py3 fold_open()
+	endif
+enddef
+
 def Make_show(): void # メール・バッファを用意するだけ
 	if has_key(buf_num, 'show') # && bufname(buf_num.show) !=? ''
 		py3 reopen('show', '')
@@ -1168,8 +1176,7 @@ def Toggle_thread(args: list<any>): void
 		select_thread = (s_select_thread <= foldclosedend(select_thread)
 									&& s_select_thread >= foldclosed(select_thread)) ? s_select_thread : foldclosedend(select_thread)
 		py3eval('reset_cursor_position(vim.current.buffer, vim.current.window, ' .. select_thread .. ')')
-		normal! zO
-		py3eval('reset_cursor_position(vim.current.buffer, vim.current.window, vim.current.window.cursor[0])') # zO の前だけだと、カーソル上下移動で桁位置が先頭になる
+		py3eval('fold_open()')
 	endif
 enddef
 
