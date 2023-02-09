@@ -572,61 +572,39 @@ def Vim_escape(s: string): string # Python に受け渡す時に \, ダブルク
 	return substitute(substitute(s, '\\', '\\\\', 'g'), '''', '\\\''', 'g')
 enddef
 
-export def MakeGUITabline(): string
+export def GetGUITabline(): string
 	def Get_gui_tab(notmuch_dic: dict<any>): string
 		if has_key(notmuch_dic, 'search_term')
-			return '%N| notmuch [' .. notmuch_dic.search_term .. ']%<'
+			return 'notmuch [' .. notmuch_dic.search_term .. ']%<'
 		else # notmuch-search 作成直後は b:notmuch.search_term 未定義
-			return '%N| notmuch []%<'
+			return 'notmuch []%<'
 		endif
 	enddef
 
-	var bufnrlist = tabpagebuflist(v:lnum)
-	# ウィンドウが複数あるときにはその数を追加する
-	var wincount = tabpagewinnr(v:lnum, '$')
-	var label: string = '%N|'
-	if wincount > 1
-		label ..= wincount
-	endif
-	# このタブページに変更のあるバッファは '+' を追加する
-	for bufnr in bufnrlist
-		if getbufvar(bufnr, '&modified') && !get(getwininfo(getbufinfo(bufnr)[0]['windows'][0])[0], 'terminal', 0)
-			label ..= '+'
-			break
-		endif
-	endfor
-	if label !~# '+$'
-		label ..= '  ' # 空白 1 つでは、+ より幅が狭い
-	endif
-	# バッファ名を追加する
-	if &filetype !~# '^notmuch-'
-		return label .. ' %t'
-	else
-		var type = py3eval('buf_kind()')
-		var vars = getbufinfo(bufnr())[0].variables
-		if type ==# 'edit'
-			return label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
-		elseif type ==# 'show'
-			if py3eval('is_same_tabpage("thread", "")')
-				return Get_gui_tab(getbufinfo(buf_num.thread)[0].variables.notmuch)
-			else
-				return label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
-			endif
-		elseif type ==# 'view' && has_key(vars.notmuch, 'search_term')
-			if py3eval('is_same_tabpage("search", ''' .. Vim_escape(b:notmuch.search_term) .. ''')')
-				return '%N| notmuch [' .. b:notmuch.search_term .. ']%<'
-			else
-				return label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
-			endif
-		elseif type ==# 'draft'
-			return label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
-		elseif type ==# 'search'
-			return Get_gui_tab(vars.notmuch)
-		elseif has_key(buf_num, 'thread') # notmuch-folder では notmuch-search と同じにするのを兼ねている
+	var type = py3eval('buf_kind()')
+	var vars = getbufinfo(bufnr())[0].variables
+	if type ==# 'edit'
+		return '%{b:notmuch.subject}%<%{b:notmuch.date}'
+	elseif type ==# 'show'
+		if py3eval('is_same_tabpage("thread", "")')
 			return Get_gui_tab(getbufinfo(buf_num.thread)[0].variables.notmuch)
 		else
-			return Get_gui_tab(vars.notmuch)
+			return '%{b:notmuch.subject}%<%{b:notmuch.date}'
 		endif
+	elseif type ==# 'view' && has_key(vars.notmuch, 'search_term')
+		if py3eval('is_same_tabpage("search", ''' .. Vim_escape(b:notmuch.search_term) .. ''')')
+			return 'notmuch [' .. b:notmuch.search_term .. ']%<'
+		else
+			return '%{b:notmuch.subject}%<%{b:notmuch.date}'
+		endif
+	elseif type ==# 'draft'
+		return 'notmuch [Draft] %{b:notmuch.subject}%<'
+	elseif type ==# 'search'
+		return Get_gui_tab(vars.notmuch)
+	elseif has_key(buf_num, 'thread') # notmuch-folder では notmuch-search と同じにするのを兼ねている
+		return Get_gui_tab(getbufinfo(buf_num.thread)[0].variables.notmuch)
+	else
+		return Get_gui_tab(vars.notmuch)
 	endif
 enddef
 
@@ -637,8 +615,8 @@ def Set_title_etc(): void
 			autocmd BufEnter,BufFilePost * &titlestring = Make_title()
 		augroup END
 	endif
-	if has('gui_running') && &showtabline != 0 # && &guitablabel ==# ''
-		set guitablabel=%!notmuch_py#MakeGUITabline()
+	if has('gui_running') && &showtabline != 0 && &guitablabel ==# ''
+		set guitablabel=%{%&filetype!~#'^notmuch-'?'%t':notmuch_py#GetGUITabline()%}
 	endif
 enddef
 
@@ -777,8 +755,8 @@ function New_mail(...) abort
 		if &title && &titlestring ==# ''
 			let &titlestring=s:Make_title()
 		endif
-		if has('gui_running') && &showtabline != 0 " && &guitablabel ==# ''
-			set guitablabel=%!notmuch_py#MakeGUITabline()
+		if has('gui_running') && &showtabline != 0 && &guitablabel ==# ''
+			set guitablabel=%{%&filetype!~#'^notmuch-'?'%t':notmuch_py#GetGUITabline()%}
 		endif
 	endif
 	py3 new_mail(vim.eval('a:000'))
