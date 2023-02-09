@@ -863,9 +863,8 @@ def fold_open_core():
 
 def fold_open():
     c = vim.current
-    line = c.window.cursor[0]
     fold_open_core()
-    reset_cursor_position(vim.current.buffer, vim.current.window, line)
+    reset_cursor_position(c.buffer, c.window, c.window.cursor[0])
 
 
 def print_thread_core(b_num, search_term, select_unread, remake):

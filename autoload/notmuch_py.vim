@@ -584,46 +584,42 @@ export def MakeGUITabline(): string
 	var bufnrlist = tabpagebuflist(v:lnum)
 	# ウィンドウが複数あるときにはその数を追加する
 	var wincount = tabpagewinnr(v:lnum, '$')
-	var label: string
+	var label: string = '%N|'
 	if wincount > 1
-		label = nr2char(wincount)
-	else
-		label = ''
+		label ..= wincount
 	endif
 	# このタブページに変更のあるバッファは '+' を追加する
 	for bufnr in bufnrlist
-		if getbufvar(bufnr, '&modified')
-					&& !( match(getbufinfo(bufnr)[0].name, '!/') == 0 && swapname(bufnr) ==# '' )
-					# 名前が !/bin/bash 等で !/ ではじまり、スワップ・ファイルがなければ :terminal の可能性が高い
+		if getbufvar(bufnr, '&modified') && !get(getwininfo(getbufinfo(bufnr)[0]['windows'][0])[0], 'terminal', 0)
 			label ..= '+'
 			break
 		endif
 	endfor
-	if label !=? ''
-		label ..= ' '
+	if label !~# '+$'
+		label ..= '  ' # 空白 1 つでは、+ より幅が狭い
 	endif
 	# バッファ名を追加する
 	if &filetype !~# '^notmuch-'
-		return '%N|' .. label .. ' %t'
+		return label .. ' %t'
 	else
 		var type = py3eval('buf_kind()')
 		var vars = getbufinfo(bufnr())[0].variables
 		if type ==# 'edit'
-			return '%N| ' .. label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
+			return label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 		elseif type ==# 'show'
 			if py3eval('is_same_tabpage("thread", "")')
 				return Get_gui_tab(getbufinfo(buf_num.thread)[0].variables.notmuch)
 			else
-				return '%N| ' .. label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
+				return label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 			endif
 		elseif type ==# 'view' && has_key(vars.notmuch, 'search_term')
 			if py3eval('is_same_tabpage("search", ''' .. Vim_escape(b:notmuch.search_term) .. ''')')
 				return '%N| notmuch [' .. b:notmuch.search_term .. ']%<'
 			else
-				return '%N| ' .. label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
+				return label .. '%{b:notmuch.subject}%<%{b:notmuch.date}'
 			endif
 		elseif type ==# 'draft'
-			return '%N| ' .. label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
+			return label .. 'notmuch [Draft] %{b:notmuch.subject}%<'
 		elseif type ==# 'search'
 			return Get_gui_tab(vars.notmuch)
 		elseif has_key(buf_num, 'thread') # notmuch-folder では notmuch-search と同じにするのを兼ねている
