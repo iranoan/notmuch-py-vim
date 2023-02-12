@@ -4591,7 +4591,7 @@ def before_make_draft(active_win):
         f = draft_dir + os.sep + 'cur' + os.sep + f + ':2,DS'
     else:
         f = draft_dir + os.sep + f
-    b.name = f
+    vim.current.buffer.name = f
     vim.command('setlocal filetype=notmuch-draft')
     vim.command('call s:Au_edit(' + str(active_win) + ', "' + search_term + '", 0)')
 

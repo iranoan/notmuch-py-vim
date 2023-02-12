@@ -9,6 +9,10 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2023/02/12 Ver.1.50~
+* バグ修正
+	- 下書き保存時に |{T-WIN}| の名前を変更していた
+
 2023/02/09 Ver.1.49~
 * GVim のタブで文字化け
 * guitabline は設定がないときのみ指定に仕様変更
