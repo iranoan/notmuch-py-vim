@@ -1349,7 +1349,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 continue
             data = ''
             for d in h_cont:
-                data += decode_header(d)
+                data += decode_header(d, False)
             if data != '':
                 data = data.replace('\t', ' ')
                 data = header + ': ' + data
@@ -1360,7 +1360,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         if attachments is None:
             return
         for f in attachments:
-            f = decode_header(f)
+            f = decode_header(f, True)
             if f == '':
                 continue
             f = os.path.expandvars(os.path.expanduser(f))
@@ -1518,11 +1518,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             out.main['attach'].append((header + name, [name, vim.List(part_ls), '']))
 
     def select_header(part, part_ls, pgp, out):
-        attachment = decode_header(part.get_filename())
+        attachment = decode_header(part.get_filename(), True)
         name = ''
         for t in part.get_params():
             if t[0] == 'name':
-                name = decode_header(t[1])
+                name = decode_header(t[1], False)
                 break
         if len(attachment) < len(name):
             attachment = name
@@ -1558,7 +1558,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             return False
         sub = ''
         for s in part.get_all('Subject', ''):
-            sub += decode_header(s)
+            sub += decode_header(s, False)
         if sub != '':
             b_v['subject'] = sub
             reset_subject(sub)
@@ -1862,7 +1862,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             else:
                 print_error('No exist digital signature.')
             inline = is_inline(verify)
-            attachment = decode_header(sig.get_filename())
+            attachment = decode_header(sig.get_filename(), True)
             cmd = cmd[0]
             if attachment == '':
                 if cmd == 'gpg':
@@ -2555,7 +2555,7 @@ def reindex_mail(msg_id, s, args):
     return [0, 0]  # ダミー・リストを返す
 
 
-def decode_header(f):
+def decode_header(f, is_file):
     if f is None:
         return ''
     name = ''
@@ -2568,12 +2568,18 @@ def decode_header(f):
         elif charset == 'unknown-8bit':
             name += string.decode('utf-8')
         else:
-            charset = replace_charset(charset)
             try:
                 name += string.decode(charset)
             except UnicodeDecodeError:  # コード外範囲の文字が有る時のエラー
-                print_warring('File name has out-of-code range characters.')
-                name += decode_string(string, charset, 'backslashreplace')
+                charset = replace_charset(charset)  # iso-2022-jp-3, gb18030 へ置き換え再度試みる
+                try:
+                    name += string.decode(charset)
+                except UnicodeDecodeError:
+                    if is_file:
+                        print_warring('File name has out-of-code range characters.')
+                    else:
+                        print_warring('Header has out-of-code range characters.')
+                    name += decode_string(string, charset, 'backslashreplace')
             except Exception:
                 name += string.decode('raw_unicode_escape')
     return re.sub('[\u200B-\u200D\uFEFF]', '', name.replace('\n', ' '))  # ゼロ幅文字削除
