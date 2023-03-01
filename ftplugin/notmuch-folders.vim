@@ -3,10 +3,10 @@
 
 scriptencoding utf-8
 
-if exists('b:did_ftplugin_user')
+if exists('b:did_ftplugin_plugin')
 	finish
 endif
-let b:did_ftplugin_user = 1
+let b:did_ftplugin_plugin = 1
 
 " if !exists('g:ft_notmuch_folders')
 " 	let g:ft_notmuch_folders = 1

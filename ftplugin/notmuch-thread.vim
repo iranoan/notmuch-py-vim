@@ -4,10 +4,10 @@
 scriptencoding utf-8
 scriptversion 4
 
-if exists('b:did_ftplugin_user')
+if exists('b:did_ftplugin_plugin')
 	finish
 endif
-let b:did_ftplugin_user = 1
+let b:did_ftplugin_plugin = 1
 
 if !exists('g:ft_notmuch_thread')
 	let g:ft_notmuch_thread = 1
