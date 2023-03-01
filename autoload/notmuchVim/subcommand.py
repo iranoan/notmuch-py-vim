@@ -1619,6 +1619,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 add_content(output.main['content'], tmp_text)
         elif content_type.find('text/html') == 0:
             tmp_text, tmp_tmp = get_mail_context(part, charset, encoding)
+            tmp_text = re.sub(r'(<\w[^>]*>)\s+', r' \1',  # 開くタグ直後の空白は前へ移動
+                              re.sub(r'\s+(</\w+>)', r'\1 ',  # 閉じるタグ直前の空白は後ろへ移動
+                                     tmp_text))
             if tmp_text == '':
                 if output.html['part_num']:  # 2 個目以降があれば連番
                     s = 'Del-HTML: index' + str(output.html['part_num']) + '.html'
