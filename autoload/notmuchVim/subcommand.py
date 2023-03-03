@@ -1179,7 +1179,7 @@ def cursor_move_thread(search_term):
     else:
         return
     b = vim.current.buffer
-    if b.number != buf_num or get_msg_id() == '' or b.vars['notmuch']['msg_id'] == get_msg_id():
+    if b.number != buf_num or get_msg_id() == '' or b.vars['notmuch']['msg_id'].decode() == get_msg_id():
         return
     change_buffer_vars()
     if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
