@@ -9,6 +9,9 @@ License: GPL Ver.3.
                                                     *notmuch-python-vim-history*
 更新履歴~
 
+2023/03/04 Ver.1.54~
+* 履歴は git log のみにする
+
 2023/03/03 Ver.1.53~
 * バグ修正
 	- |{T-WIN}| でビジュアルモードが行内だと使えない
