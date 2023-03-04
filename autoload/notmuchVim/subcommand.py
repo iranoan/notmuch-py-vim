@@ -4621,7 +4621,7 @@ def after_make_draft(b, msg, add_head):
     msg_id = email.utils.make_msgid()
     b_v = vim.current.buffer.vars
     b_v = b_v['notmuch']
-    b_v['date'] = now.strftime(DATE_FORMAT)
+    b_v['date'] = now.strftime(vim.vars['notmuch_date_format'].decode())
     b_v['msg_id'] = msg_id[1:-1]
     b_v['tags'] = 'draft'
     b.append('Date: ' + email.utils.format_datetime(now))
@@ -6435,6 +6435,10 @@ def set_defaults():
         vim.vars['notmuch_draft_header'] = ['From', 'To', 'Cc', 'Bcc', 'Subject', 'Reply-To', 'Attach']
     if 'notmuch_send_param' not in vim.vars:
         vim.vars['notmuch_send_param'] = ['sendmail', '-t', '-oi']
+    if 'notmuch_sent_tag' not in vim.vars:  # 送信済みを表すタグ
+        vim.vars['notmuch_sent_tag'] = 'sent'
+    if 'notmuch_display_item' not in vim.vars:
+        vim.vars['notmuch_display_item'] = ['subject', 'from', 'date']
     # OS 依存
     if 'notmuch_view_attachment' not in vim.vars:
         if sys.platform == 'darwin':  # macOS (os.name は posix)
@@ -6491,10 +6495,6 @@ else:
     DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' \
         + r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' \
         + r'|R[Ee][: ]+)*[　 ]*'
-if 'notmuch_sent_tag' not in vim.vars:  # 送信済みを表すタグ
-    vim.vars['notmuch_sent_tag'] = 'sent'
-if 'notmuch_display_item' not in vim.vars:
-    vim.vars['notmuch_display_item'] = ['subject', 'from', 'date']
 set_folder_format()
 set_subject_length()
 RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
