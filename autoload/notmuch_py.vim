@@ -1215,9 +1215,8 @@ enddef
 var fold_highlight: string = notmuch_py#Get_highlight('Folded')
 var specialkey_highlight: string = notmuch_py#Get_highlight('SpecialKey')
 var normal_highlight: string
-if exists('g:notmuch_visible_line') && g:notmuch_visible_line !=# '' && g:notmuch_visible_line != 1 && g:notmuch_visible_line != 2
+if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 1 && g:notmuch_visible_line !=# ''
 	try
-		normal_highlight = execute('highlight ' .. g:notmuch_visible_line)
 		normal_highlight = notmuch_py#Get_highlight(g:notmuch_visible_line)
 	catch /^Vim\%((\a\+)\)\=:E411:/
 		augroup notmuch_visible_line

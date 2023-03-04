@@ -24,21 +24,22 @@ endif
 function s:set_colorcolmun() abort
 	let l:colorcolumn = 7
 	let l:n_colorcolumn = 7
-	for l:i in split(py3eval('notmuchVim.subcommand.DISPLAY_FORMAT2'), '[{}\t]\+')[0 : 1]
-		if l:i == '0'
-			let l:n_colorcolumn += py3eval('notmuchVim.subcommand.SUBJECT_LENGTH') + 1
+	for l:i in g:notmuch_display_item[0 : 1]
+		if l:i ==? 'subject'
+			let l:n_colorcolumn += g:notmuch_subject_length + 1
 			let l:colorcolumn ..= ',' .. l:n_colorcolumn
-		elseif l:i == '1'
-			let l:n_colorcolumn += py3eval('notmuchVim.subcommand.FROM_LENGTH') + 1
+		elseif l:i ==? 'from'
+			let l:n_colorcolumn += g:notmuch_from_length + 1
 			let l:colorcolumn ..= ',' .. l:n_colorcolumn
-		elseif l:i == '2'
-			let l:n_colorcolumn += py3eval('notmuchVim.subcommand.TIME_LENGTH') + 1
+		elseif l:i ==? 'date'
+			let l:n_colorcolumn += py3eval(len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))) + 1
+			" date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
 			let l:colorcolumn ..= ',' .. l:n_colorcolumn
 		endif
 	endfor
 	execute 'setlocal colorcolumn=' .. l:colorcolumn
 	if g:notmuch_visible_line == 2
-		execute 'highlight ColorColumn ' .. substitute(notmuch_py#get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
+		execute 'highlight ColorColumn ' .. substitute(notmuch_py#Get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
 	endif
 endfunction
 

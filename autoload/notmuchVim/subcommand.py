@@ -454,8 +454,6 @@ def make_thread_core(search_term):
             global DISPLAY_FORMAT, DISPLAY_FORMAT2
             """ set display format and order in thread list."""
             def get_display_item():
-                if 'notmuch_display_item' not in vim.vars:
-                    return ['subject', 'from', 'date']
                 item = []
                 for i in vim.vars['notmuch_display_item']:
                     i = i.decode().lower()
@@ -487,6 +485,7 @@ def make_thread_core(search_term):
         DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
         SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
         get_display_format()
+
     query = notmuch.Query(DBASE, search_term)
     try:  # スレッド一覧
         threads = query.search_threads()
@@ -6494,6 +6493,8 @@ else:
         + r'|R[Ee][: ]+)*[　 ]*'
 if 'notmuch_sent_tag' not in vim.vars:  # 送信済みを表すタグ
     vim.vars['notmuch_sent_tag'] = 'sent'
+if 'notmuch_display_item' not in vim.vars:
+    vim.vars['notmuch_display_item'] = ['subject', 'from', 'date']
 set_folder_format()
 set_subject_length()
 RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
