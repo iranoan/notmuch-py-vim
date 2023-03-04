@@ -5353,7 +5353,7 @@ def delete_mail(msg_id, s, args):
         key = args[2]
     else:
         key = ''
-    files, tmp, num, key = select_file(msg_id, 'Select file to keep.\nTo lelete all mail, input a.', key)
+    files, tmp, num, key = select_file(msg_id, 'Except \'All\', leave selected file.\nselect file.', key)
     if not num:
         return [0, 0, key]
     if len(files) == 1:
