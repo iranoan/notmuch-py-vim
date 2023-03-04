@@ -120,11 +120,19 @@ def print_error(msg):
 
 def set_subject_length():
     """ calculate Subject width in thread list."""
-    global SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT, TIME_LENGTH
+    if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
+        from_length = vim.vars['notmuch_from_length']
+    else:
+        vim.vars['notmuch_from_length'] = 21
+        from_length = 21
+    if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
+        date_format = vim.vars['notmuch_date_format']
+    else:
+        date_format = '%Y-%m-%d %H:%M'
+        vim.vars['notmuch_date_format'] = '%Y-%m-%d %H:%M'
     if 'notmuch_subject_length' in vim.vars:
-        SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
         return
-    SUBJECT_LENGTH = 80 - FROM_LENGTH - 16 - 4
+    subject_length = 80 - from_length - 16 - 4
     width = vim.vars['notmuch_open_way']['thread'].decode()
     m = re.search(r'([0-9]+)vnew', width)
     if m is not None:
@@ -133,32 +141,16 @@ def set_subject_length():
         width = vim.options['columns']
     else:
         width = vim.options['columns'] / 2 - 1
-    TIME_LENGTH = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(DATE_FORMAT))
-    # DATE_FORMAT によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
-    width -= TIME_LENGTH + 6 + 3 + 2
+    time_length = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))
+    # date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
+    width -= time_length + 6 + 3 + 2
     # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
-    if SUBJECT_LENGTH < FROM_LENGTH * 2:
-        SUBJECT_LENGTH = int(width * 2 / 3)
-        FROM_LENGTH = width - SUBJECT_LENGTH
+    if subject_length < from_length * 2:
+        subject_length = int(width * 2 / 3)
+        vim.vars['notmuch_subject_length'] = subject_length
+        vim.vars['notmuch_from_length'] = width - subject_length
     else:
-        SUBJECT_LENGTH = width - FROM_LENGTH
-
-
-def set_display_format():
-    """ set display format and order in thread list."""
-    global DISPLAY_ITEM, DISPLAY_FORMAT, DISPLAY_FORMAT2
-    DISPLAY_FORMAT = '{0}'
-    DISPLAY_FORMAT2 = ''
-    for item in DISPLAY_ITEM:
-        if item == 'subject':
-            DISPLAY_FORMAT += '\t{1}'
-            DISPLAY_FORMAT2 += '\t{0}'
-        elif item == 'from':
-            DISPLAY_FORMAT += '\t{2}'
-            DISPLAY_FORMAT2 += '\t{1}'
-        elif item == 'date':
-            DISPLAY_FORMAT += '\t{3}'
-            DISPLAY_FORMAT2 += '\t{2}'
+        vim.vars['notmuch_subject_length'] = width - from_length
 
 
 def email2only_name(mail_address):
@@ -376,16 +368,17 @@ class MailData:  # メール毎の各種データ
 
 
 def make_dump():
+    temp_dir = get_temp_dir()
     if vim.vars.get('notmuch_make_dump', 0):
-        make_dir(TEMP_DIR)
-        ret = run(['notmuch', 'dump', '--gzip', '--output=' + TEMP_DIR + 'notmuch.gz'],
+        make_dir(temp_dir)
+        ret = run(['notmuch', 'dump', '--gzip', '--output=' + temp_dir + 'notmuch.gz'],
                   stdout=PIPE, stderr=PIPE)
         if ret.returncode:
             print(ret.stderr.decode('utf-8'))
         else:
-            shutil.move(TEMP_DIR + 'notmuch.gz', get_save_dir() + 'notmuch.gz')
-    rm_file(ATTACH_DIR)
-    rm_file(TEMP_DIR)
+            shutil.move(temp_dir + 'notmuch.gz', get_save_dir() + 'notmuch.gz')
+    rm_file(get_attach_dir())
+    rm_file(temp_dir)
 
 
 def make_dir(dirname):
@@ -424,7 +417,7 @@ def opened_mail(draft):
     for info in vim_getbufinfo():
         filename = info['name'].decode()
         if draft:
-            if MAILBOX_TYPE == 'Maildir':
+            if get_mailbox_type() == 'Maildir':
                 draft_dir = PATH + os.sep + '.draft'
             else:
                 draft_dir = PATH + os.sep + 'draft'
@@ -456,6 +449,44 @@ def shellcmd_popen(param):
 
 
 def make_thread_core(search_term):
+    def set_global_var():  # MailData で使用する設定依存の値をグローバル変数として保存
+        def get_display_format():
+            global DISPLAY_FORMAT, DISPLAY_FORMAT2
+            """ set display format and order in thread list."""
+            def get_display_item():
+                if 'notmuch_display_item' not in vim.vars:
+                    return ['subject', 'from', 'date']
+                item = []
+                for i in vim.vars['notmuch_display_item']:
+                    i = i.decode().lower()
+                    if i not in ['subject', 'from', 'date']:
+                        print_warring('Error: setting g:notmuch_display_item.\nset default.')
+                        return ['subject', 'from', 'date']
+                    item.append(i)
+                if len(set(item)) != 3:
+                    print_warring('Error: setting g:notmuch_display_item.\nset default.')
+                    return ['subject', 'from', 'date']
+                return item
+
+            DISPLAY_FORMAT = '{0}'
+            DISPLAY_FORMAT2 = ''
+            for item in get_display_item():
+                if item == 'subject':
+                    DISPLAY_FORMAT += '\t{1}'
+                    DISPLAY_FORMAT2 += '\t{0}'
+                elif item == 'from':
+                    DISPLAY_FORMAT += '\t{2}'
+                    DISPLAY_FORMAT2 += '\t{1}'
+                elif item == 'date':
+                    DISPLAY_FORMAT += '\t{3}'
+                    DISPLAY_FORMAT2 += '\t{2}'
+
+        global SENT_TAG, SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
+        SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
+        FROM_LENGTH = vim.vars['notmuch_from_length']
+        DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
+        SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
+        get_display_format()
     query = notmuch.Query(DBASE, search_term)
     try:  # スレッド一覧
         threads = query.search_threads()
@@ -466,6 +497,7 @@ def make_thread_core(search_term):
     print('Making cache data:' + search_term)
     threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
+    set_global_var()
     ls = []
     with ProcessPoolExecutor() as executor:
         f = [executor.submit(make_single_thread, i, search_term) for i in threads]
@@ -503,32 +535,6 @@ def make_single_thread(thread_id, search_term):
             ls.append(MailData(reply[1], thread, order, depth))
             order = order + 1
     return ls
-
-
-def set_display_item():
-    global DISPLAY_ITEM
-    if 'notmuch_display_item' not in vim.vars:
-        DISPLAY_ITEM = ('subject', 'from', 'date')
-        return
-    setting = vim.vars['notmuch_display_item']
-    if len(setting) != 3:
-        print_warring('Error: setting g:notmuch_display_item.\nset default.')
-        DISPLAY_ITEM = ('subject', 'from', 'date')
-        return
-    item = []
-    for i in setting:
-        i = i.decode().lower()
-        if i not in ['subject', 'from', 'date']:
-            DISPLAY_ITEM = ('subject', 'from', 'date')
-            print_warring('Error: setting g:notmuch_display_item.\nset default.')
-            DISPLAY_ITEM = ('subject', 'from', 'date')
-            return
-        item.append(i)
-    if len(set(item)) != 3:
-        print_warring('Error: setting g:notmuch_display_item.\nset default.')
-        DISPLAY_ITEM = ('subject', 'from', 'date')
-        return
-    DISPLAY_ITEM = tuple(item)
 
 
 def set_subcmd_start():
@@ -638,7 +644,6 @@ def set_folder_format():
         if 'view' not in open_way:
             open_way['view'] = 'belowright ' + str(height) + 'new'
 
-    global FOLDER_FORMAT
     try:
         DBASE.open(PATH)
     except NameError:
@@ -655,22 +660,19 @@ def set_folder_format():
         if s_len > max_len:
             max_len = s_len
     set_open_way(max_len + a + u + f + 5)
-    if 'notmuch_folder_format' in vim.vars:
-        FOLDER_FORMAT = vim.vars['notmuch_folder_format'].decode()
-    else:
-        FOLDER_FORMAT = '{0:<' + str(max_len) + '} {1:>' + str(u) + '}/{2:>' \
-            + str(a) + '}|{3:>' + str(f) + '} [{4}]'
+    if 'notmuch_folder_format' not in vim.vars:
+        vim.vars['notmuch_folder_format'] = '{0:<' + str(max_len) + '} {1:>' \
+            + str(u) + '}/{2:>' + str(a) + '}|{3:>' + str(f) + '} [{4}]'
 
 
 def format_folder(folder, search_term):
-    global FOLDER_FORMAT
     try:  # search_term チェック
         all_mail = notmuch.Query(DBASE, search_term).count_messages()  # メール総数
     except notmuch.errors.XapianError:
         print_error('notmuch.errors.XapianError: Check search term: ' + search_term)
         vim.command('message')  # 起動時のエラーなので、再度表示させる
         return '\'search term\' (' + search_term + ') error'
-    return FOLDER_FORMAT.format(
+    return vim.vars['notmuch_folder_format'].decode().format(
         folder,         # 擬似的なフォルダー・ツリー
         notmuch.Query(  # 未読メール数
             DBASE, '(' + search_term + ') and tag:unread').count_messages(),
@@ -1885,11 +1887,12 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     return sig.get_payload()
                 else:
                     return ''
-            make_dir(TEMP_DIR)
-            verify_tmp = TEMP_DIR + 'verify.tmp'
+            temp_dir = get_temp_dir()
+            make_dir(temp_dir)
+            verify_tmp = temp_dir + 'verify.tmp'
             with open(verify_tmp, 'w', newline='\r\n') as fp:  # 改行コードを CR+LF に統一して保存
                 fp.write(verify.as_string())
-            # pgp_tmp = TEMP_DIR + 'pgp.tmp'
+            # pgp_tmp = temp_dir + 'pgp.tmp'
             # write_file(part, 1, pgp_tmp)
             # ユーザ指定すると、gpgsm では鍵がないと不正署名扱いになり、gpg だと存在しないユーザー指定しても、実際には構わず署名としてしまう
             # ret = run([cmd, '--verify', pgp_tmp, verify_tmp], stdout=PIPE, stderr=PIPE)
@@ -2651,8 +2654,7 @@ def get_attach_info(line):
     part_num = [i for i in part_num]
     if part_num == [-1]:
         return name, None, None, dirORmes_str.decode('utf-8')
-    global ATTACH_DIR
-    tmpdir = ATTACH_DIR + sha256(b_v['msg_id']).hexdigest() + os.sep
+    tmpdir = get_attach_dir() + sha256(b_v['msg_id']).hexdigest() + os.sep
     count = same_name()
     if count[line]:
         name = os.path.splitext(name)[0] + '-' + str(count[line]) + os.path.splitext(name)[1]
@@ -3381,7 +3383,7 @@ def open_original(msg_id, search_term, args):
             vim.command('call s:Au_edit(' + str(active_win) + ', "' + search_term + '", 1)')
         else:
             vim.command('call s:Au_edit(' + str(active_win) + ', "", 1)')
-        if MAILBOX_TYPE == 'Maildir':
+        if get_mailbox_type() == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
             draft_dir = PATH + os.sep + 'draft'
@@ -3429,7 +3431,7 @@ def send_vim_buffer():
             vim.command('cquit')
         f = vim.current.buffer.name
         vim.command('bwipeout!')
-        if MAILBOX_TYPE == 'Maildir':
+        if get_mailbox_type() == 'Maildir':
             f = re.sub('[DFPRST]+$', '', f) + '*'
         rm_file_core(f)
         return True
@@ -3504,7 +3506,7 @@ def send_str(msg_data, msgid):
                       'To', 'Resent-To', 'Cc', 'Resent-Cc', 'Bcc', 'Resent-Bcc']
 
     def set_header(msg, header, data):  # エンコードしてヘッダ設定
-        for charset in SENT_CHARSET:
+        for charset in sent_charset:
             try:
                 if charset == 'us-ascii' or charset == 'ascii':
                     data.encode(charset)
@@ -3533,7 +3535,7 @@ def send_str(msg_data, msgid):
             print_err('Not exit: ' + path)
             return False
         # 添付ファイルの各 part のヘッダ部に付けるファイル情報
-        for charset in SENT_CHARSET:
+        for charset in sent_charset:
             filename = os.path.basename(path)
             try:
                 filename.encode(charset)  # 変換可能か試す
@@ -3585,7 +3587,7 @@ def send_str(msg_data, msgid):
         maintype, subtype = mimetype.split('/')
         if maintype == 'text':
             part = MIMEBase(_maintype='text', _subtype=subtype)
-            for charset in SENT_CHARSET:
+            for charset in sent_charset:
                 with open(path, 'rb') as fp:
                     try:
                         bs = fp.read()
@@ -3620,7 +3622,7 @@ def send_str(msg_data, msgid):
     def set_header_address(msg, header, address):  # ヘッダにエンコードした上でアドレスをセット
         pair = ''
         for s in address:
-            for charset in SENT_CHARSET:
+            for charset in sent_charset:
                 try:
                     d_s = email.utils.formataddr(email.utils.parseaddr(s), charset)
                     break
@@ -3663,7 +3665,7 @@ def send_str(msg_data, msgid):
         for i in adr_only(header):
             cmd.append('--recipient')
             cmd.append(i)
-        body_tmp = TEMP_DIR + 'body.tmp'
+        body_tmp = temp_dir + 'body.tmp'
         # with open(body_tmp, 'w', encoding=charset, newline='\r\n') as fp:
         #     fp.write(s)  # UTF-8 以外が保存できるようにエンコードを指定し、改行コードを CR+LF に統一して保存
         with open(body_tmp, 'w', encoding=charset) as fp:
@@ -3695,7 +3697,7 @@ def send_str(msg_data, msgid):
         if shutil.which(cmd[0]) is None:
             print_error('Can not execute ' + cmd[0] + '.')
             return False, s
-        body_tmp = TEMP_DIR + 'body.tmp'
+        body_tmp = temp_dir + 'body.tmp'
         with open(body_tmp, 'w', encoding=charset,  # UTF-8 以外が保存できるようにエンコードを指定
                   newline='\r\n') as fp:  # 署名用に改行コード CR+LF 指定
             fp.write(s)
@@ -3852,8 +3854,8 @@ def send_str(msg_data, msgid):
 
     def send(msg_send):
         msg_from = msg_send['From']
-        if type(SEND_PARAM) is dict:
-            for key, prg in SEND_PARAM.items():
+        if type(send_param_setting) is dict:
+            for key, prg in send_param_setting.items():
                 if key == '*':
                     default_prg = prg
                 elif re.search(key, email2only_address(msg_from)) is not None:
@@ -3862,7 +3864,7 @@ def send_str(msg_data, msgid):
             else:
                 send_param = default_prg
         else:
-            send_param = SEND_PARAM
+            send_param = send_param_setting
         try:
             pipe = Popen(send_param, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf8')
         except Exception as err:
@@ -3889,8 +3891,8 @@ def send_str(msg_data, msgid):
         sent_dir = get_draft_dir()
         if sent_dir == '':
             return
-        make_dir(TEMP_DIR)
-        send_tmp = TEMP_DIR + 'send.tmp'
+        make_dir(temp_dir)
+        send_tmp = temp_dir + 'send.tmp'
         with open(send_tmp, 'w') as fp:  # utf-8 だと、Mailbox に取り込めないので一度保存してバイナリで読込し直す
             if flag:
                 msg_data = msg_data[1:]
@@ -3904,9 +3906,9 @@ def send_str(msg_data, msgid):
             else:
                 fp.write(msg_send.as_string())
         if not attachments:
-            add_tag = [SENT_TAG]
+            add_tag = [vim.vars['notmuch_sent_tag'].decode()]
         else:
-            add_tag = [SENT_TAG, 'attachment']
+            add_tag = [vim.vars['notmuch_sent_tag'].decode(), 'attachment']
         DBASE.open(PATH)
         msg_id = msg_id[1:-1]
         msg = DBASE.find_message(msg_id)
@@ -4029,10 +4031,10 @@ def send_str(msg_data, msgid):
             msg.attach(msg_sig)
             return True
 
-        if ('utf-8' in SENT_CHARSET):  # utf-8+8bit を可能にする 無いとutf-8+base64
+        if ('utf-8' in sent_charset):  # utf-8+8bit を可能にする 無いとutf-8+base64
             email.charset.add_charset(
                 'utf-8', email.charset.SHORTEST, None, 'utf-8')
-        for charset in SENT_CHARSET:  # 可能な charset の判定とエンコード方法の選択
+        for charset in sent_charset:  # 可能な charset の判定とエンコード方法の選択
             try:
                 context.encode(charset)
                 if charset == 'utf-8':
@@ -4127,15 +4129,24 @@ def send_str(msg_data, msgid):
             return True
         return False
 
-    if type(SEND_PARAM) is dict:
-        for prg in SEND_PARAM.values():
+    if 'notmuch_send_encode' in vim.vars:  # 送信文字コード
+        sent_charset = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
+    else:
+        sent_charset = ['us-ascii', 'iso-2022-jp', 'utf-8']
+    if 'notmuch_send_param' in vim.vars:   # 送信プログラムやそのパラメータ
+        send_param_setting = vim.eval('g:notmuch_send_param')
+    else:
+        send_param_setting = ['sendmail', '-t', '-oi']
+    if type(send_param_setting) is dict:
+        for prg in send_param_setting.values():
             if shutil.which(prg[0]) is None:
                 print_error('\'' + prg[0] + '\' is not executable.')
                 return False
     else:
-        if shutil.which(SEND_PARAM[0]) is None:
-            print_error('\'' + SEND_PARAM[0] + '\' is not executable.')
+        if shutil.which(send_param_setting[0]) is None:
+            print_error('\'' + send_param_setting[0] + '\' is not executable.')
             return False
+    temp_dir = get_temp_dir()
     # ヘッダ・本文の分離
     match = re.search(r'\n\n', msg_data)
     if match is None:
@@ -4255,7 +4266,7 @@ def send_vim():
             return
     else:
         sent_tag = ' ((folder:draft or folder:.draft or tag:draft) not tag:' \
-            + SENT_TAG + ' not tag:Trash not tag:Spam)'
+            + vim.vars['notmuch_sent_tag'].decode() + ' not tag:Trash not tag:Spam)'
         buf_num = s_buf_num_dic()
         if bufnr == buf_num['folders']:
             send_search(sent_tag)
@@ -4581,10 +4592,11 @@ def before_make_draft(active_win):
 
     b = vim.current.buffer
     search_term = get_search_term()
+    mailbox_type = get_mailbox_type()
     if b.options['filetype'].decode()[:8] == 'notmuch-' \
             or vim.bindeval('wordcount()["bytes"]') != 0:
         vim.command(vim.vars['notmuch_open_way']['draft'].decode())
-    if MAILBOX_TYPE == 'Maildir':
+    if mailbox_type == 'Maildir':
         mbox_type = mailbox.Maildir
         draft_dir = PATH + os.sep + '.draft'
     else:
@@ -4596,7 +4608,7 @@ def before_make_draft(active_win):
     mbox = mbox_type(draft_dir)
     f = str(mbox.add(email.message.Message()))
     mbox.remove(f)
-    if MAILBOX_TYPE == 'Maildir':
+    if mailbox_type == 'Maildir':
         f = draft_dir + os.sep + 'cur' + os.sep + f + ':2,DS'
     else:
         f = draft_dir + os.sep + f
@@ -4716,7 +4728,7 @@ def set_reference(b, msg, flag):
         b.append('In-Reply-To:' + re_msg_id)
     fcc = msg.get_filenames().__str__().split('\n')[0]
     fcc = fcc[len(PATH) + 1:]
-    if MAILBOX_TYPE == 'Maildir':
+    if get_mailbox_type() == 'Maildir':
         fcc = re.sub(r'/(new|tmp|cur)/[^/]+', '', fcc)
     else:
         fcc = re.sub('/[^/]+$', '', fcc)
@@ -5036,7 +5048,7 @@ def move_mail(msg_id, s, args):
     mbox = args[2:]
     if not mbox:
         mbox.extend(vim_input_ls('Move Mail folder: ',
-                                 '.' if MAILBOX_TYPE == 'Maildir' else '',
+                                 '.' if get_mailbox_type() == 'Maildir' else '',
                                  'customlist,notmuch_py#Comp_dir'))
     if not mbox:
         return
@@ -5058,7 +5070,8 @@ def move_mail(msg_id, s, args):
 
 def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
     """ メール移動 """
-    if MAILBOX_TYPE == 'Maildir':
+    mailbox_type = get_mailbox_type()
+    if mailbox_type == 'Maildir':
         if move_mbox[0] == '.':
             move_mbox = PATH + os.sep + move_mbox
         else:
@@ -5067,13 +5080,13 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
             return
         save_path = move_mbox + os.sep + 'new'
         mbox = mailbox.Maildir(move_mbox)
-    elif MAILBOX_TYPE == 'MH':
+    elif mailbox_type == 'MH':
         save_path = PATH + os.sep + move_mbox
         if os.path.dirname(os.path.dirname(path)) == save_path:  # 移動先同じ
             return
         mbox = mailbox.MH(save_path)
     else:
-        print_err('Not support Mailbox type: ' + MAILBOX_TYPE)
+        print_err('Not support Mailbox type: ' + mailbox_type)
         return
     mbox.lock()
     msg_data = MIMEBase('text', 'plain')
@@ -5100,25 +5113,26 @@ def import_mail(args):
         print_warring('Please save and close mail.')
         return
     import_dir = vim.vars.get('notmuch_import_mailbox', b'').decode()
+    mailbox_type = get_mailbox_type()
     if import_dir == '':
         import_dir = PATH
-    elif MAILBOX_TYPE == 'Maildir':
+    elif mailbox_type == 'Maildir':
         if import_dir[0] == '.':
             import_dir = PATH + os.sep + import_dir
         else:
             import_dir = PATH + os.sep + '.' + import_dir
-    elif MAILBOX_TYPE == 'MH':
+    elif mailbox_type == 'MH':
         import_dir = PATH + os.sep + import_dir
     else:
-        print_err('Not support Mailbox type: ' + MAILBOX_TYPE)
+        print_err('Not support Mailbox type: ' + mailbox_type)
         return
     make_dir(import_dir)
-    if MAILBOX_TYPE == 'Maildir':
+    if mailbox_type == 'Maildir':
         mbox = mailbox.Maildir(import_dir)
         make_dir(import_dir + os.sep + 'new')
         make_dir(import_dir + os.sep + 'cur')
         make_dir(import_dir + os.sep + 'tmp')
-    elif MAILBOX_TYPE == 'MH':
+    elif mailbox_type == 'MH':
         mbox = mailbox.MH(import_dir)
     mbox.lock()
     if len(args) == 3:
@@ -5287,7 +5301,7 @@ def select_file(msg_id, question, s):
 def is_draft():
     b = vim.current.buffer
     if b.options['filetype'] == b'notmuch-draft':
-        if MAILBOX_TYPE == 'Maildir':
+        if get_mailbox_type() == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
             draft_dir = PATH + os.sep + 'draft'
@@ -5335,7 +5349,7 @@ def do_mail(cmd, args):
 
 
 def delete_mail(msg_id, s, args):
-     # s はダミー
+    # s はダミー
     if len(args) > 2:
         key = args[2]
     else:
@@ -5392,14 +5406,15 @@ def export_mail(msg_id, s, args):
 def get_mail_subfolders(root, folder, lst):
     """ get sub-mailbox lists """
     path_len = len(PATH) + 1
-    if MAILBOX_TYPE == 'Maildir':
+    mailbox_type = get_mailbox_type()
+    if mailbox_type == 'Maildir':
         folder = root + os.sep + '.' + folder
         mbox = mailbox.Maildir(folder)
-    elif MAILBOX_TYPE == 'MH':
+    elif mailbox_type == 'MH':
         folder = root + os.sep + folder
         mbox = mailbox.MH(folder)
     else:
-        # print_err('Not support Mailbox type: ' + MAILBOX_TYPE)
+        # print_err('Not support Mailbox type: ' + mailbox_type)
         return []
     lst.append(folder[path_len:])
     for f in mbox.list_folders():
@@ -5408,14 +5423,15 @@ def get_mail_subfolders(root, folder, lst):
 
 def get_mail_folders():
     """ get mailbox lists """
-    if MAILBOX_TYPE == 'Maildir':
+    mailbox_type = get_mailbox_type()
+    if mailbox_type == 'Maildir':
         mbox = mailbox.Maildir(PATH)
         notmuch_cnf_dir = 'notmuch'
-    elif MAILBOX_TYPE == 'MH':
+    elif mailbox_type == 'MH':
         mbox = mailbox.MH(PATH)
         notmuch_cnf_dir = '.notmuch'
     else:
-        # print_err('Not support Mailbox type: ' + MAILBOX_TYPE)
+        # print_err('Not support Mailbox type: ' + mailbox_type)
         return []
     lst = []
     for folder in mbox.list_folders():
@@ -5669,7 +5685,7 @@ def notmuch_address():
         return
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
-    if SENT_TAG in msg.get_tags():
+    if vim.vars['notmuch_sent_tag'].decode() in msg.get_tags():
         adr = msg.get_header('To')
         if adr == '':
             adr = msg.get_header('From')
@@ -5747,7 +5763,7 @@ def set_fcc(args):
     if not is_draft():
         return
     b = vim.current.buffer
-    if MAILBOX_TYPE == 'Maildir':  # 入力初期値に先頭「.」付加
+    if get_mail_folders() == 'Maildir':  # 入力初期値に先頭「.」付加
         fcc = '.'
     else:
         fcc = ''
@@ -6432,6 +6448,33 @@ def set_defaults():
             vim.vars['notmuch_view_attachment'] = ''
 
 
+def get_mailbox_type():
+    """ Mailbox の種類 """
+    if 'notmuch_mailbox_type' in vim.vars:
+        return vim.vars['notmuch_mailbox_type'].decode()
+    else:
+        return 'Maildir'
+
+
+def get_attach_dir():
+    """ 添付ファイルを処理するディレクトリの種類 """
+    if 'notmuch_attachment_tmpdir' in vim.vars:
+        return vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
+    else:
+        return vim.bindeval('script_root').decode() + os.sep + 'attach' + os.sep
+
+
+def get_temp_dir():
+    """
+    一次処理に用いるディレクトリの種類
+    添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリ
+    """
+    if 'notmuch_tmpdir' in vim.vars:
+        return vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
+    else:
+        return vim.bindeval('script_root').decode() + os.sep + '.temp' + os.sep
+
+
 #  以下初期化処理
 set_defaults()
 # 定数扱いするグローバル変数の初期値
@@ -6449,42 +6492,9 @@ else:
     DELETE_TOP_SUBJECT = r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' \
         + r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' \
         + r'|R[Ee][: ]+)*[　 ]*'
-if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
-    FROM_LENGTH = vim.vars['notmuch_from_length']
-else:
-    FROM_LENGTH = 21
-if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
-    DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
-else:
-    DATE_FORMAT = '%Y-%m-%d %H:%M'
-if 'notmuch_sent_tag' in vim.vars:  # 送信済みを表すタグ
-    SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
-else:
-    SENT_TAG = 'sent'
-if 'notmuch_send_encode' in vim.vars:  # 送信文字コード
-    SENT_CHARSET = [str.lower() for str in vim.eval('g:notmuch_send_encode')]
-else:
-    SENT_CHARSET = ['us-ascii', 'iso-2022-jp', 'utf-8']
-if 'notmuch_send_param' in vim.vars:   # 送信プログラムやそのパラメータ
-    SEND_PARAM = vim.eval('g:notmuch_send_param')
-else:
-    SEND_PARAM = ['sendmail', '-t', '-oi']
-if 'notmuch_attachment_tmpdir' in vim.vars:
-    ATTACH_DIR = vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
-else:
-    ATTACH_DIR = vim.bindeval('script_root').decode() + os.sep + 'attach' + os.sep
-if 'notmuch_tmpdir' in vim.vars:
-    # 添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリに作成
-    TEMP_DIR = vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
-else:
-    TEMP_DIR = vim.bindeval('script_root').decode() + os.sep + '.temp' + os.sep
-if 'notmuch_mailbox_type' in vim.vars:   # Mailbox の種類
-    MAILBOX_TYPE = vim.vars['notmuch_mailbox_type'].decode()
-else:
-    MAILBOX_TYPE = 'Maildir'
-set_display_item()
+if 'notmuch_sent_tag' not in vim.vars:  # 送信済みを表すタグ
+    vim.vars['notmuch_sent_tag'] = 'sent'
 set_folder_format()
-set_display_format()
 set_subject_length()
 RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
 RE_END_SPACE = re.compile(r'\s*$')  # 行末空白削除
@@ -6515,7 +6525,7 @@ THREAD_LISTS = {}
 """
 GLOBALS = globals()
 # 一次処理に使うディレクトリの削除や異常終了して残っていたファイルを削除
-make_dir(ATTACH_DIR)
-make_dir(TEMP_DIR)
-rm_file(ATTACH_DIR)
-rm_file(TEMP_DIR)
+make_dir(get_attach_dir())
+make_dir(get_temp_dir())
+rm_file(get_attach_dir())
+rm_file(get_temp_dir())

@@ -493,6 +493,7 @@ g:notmuch_delete_top_subject                        *g:notmuch_delete_top_subjec
 	Default: `r'^\s*((R[Ee][: ]*\d*)?\[[A-Za-z -]+(:\d+)?\](\s*R[Ee][: ])?\s*' +`
 	` r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' + r'|R[Ee][: ]+)*[　 ]*'`
 
+	* :Notmuch start より前に指定しないと無視される
 	* |{T-WIN}| に表示する Subject ヘッダの内容の内、実際の表記で省略する部分
 	* Vim では無く Python の正規表現で指定しなければならない
 
