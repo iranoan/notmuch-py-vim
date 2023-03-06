@@ -5,7 +5,7 @@ vim9script
 scriptencoding utf-8
 
 # 下記の二重読み込み防止変数の前に取得しておかないと、途中の読み込み失敗時に設定されずに読み込むファイルの取得ができなくなる変数
-var script_root = expand('<sfile>:p:h:h')
+var script_root: string = expand('<sfile>:p:h:h')
 var buf_num: dict<any>
 
 if !exists('g:loaded_notmuch_py')

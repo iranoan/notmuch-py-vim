@@ -88,6 +88,13 @@ def s_buf_num_dic():
         return vim.bindeval('s:buf_num')
 
 
+def script_root():
+    try:
+        return vim.bindeval('script_root').decode()
+    except vim.error:
+        return vim.bindeval('s:script_root').decode()
+
+
 def s_buf_num(k, s):
     if s != '':
         return s_buf_num_dic()[k][s]
@@ -3195,9 +3202,8 @@ def get_mark_in_thread():
 def get_save_dir():
     if 'notmuch_save_dir' in vim.vars:
         # 設定が有れば ~ や $HOME などの環境変数展開
-        save_path = os.path.expandvars(
-            os.path.expanduser(vim.vars['notmuch_save_dir'].decode()))
-        return os.path.expandvars(save_path).replace('/', os.sep) + os.sep
+        return os.path.expandvars(
+            os.path.expanduser(vim.vars['notmuch_save_dir'].decode())) + os.sep
     else:
         return os.getcwd() + os.sep
 
@@ -6462,9 +6468,11 @@ def get_mailbox_type():
 def get_attach_dir():
     """ 添付ファイルを処理するディレクトリの種類 """
     if 'notmuch_attachment_tmpdir' in vim.vars:
-        return vim.vars['notmuch_attachment_tmpdir'].decode() + os.sep + 'attach' + os.sep
+        return os.path.expandvars(
+            os.path.expanduser(
+                vim.vars['notmuch_attachment_tmpdir'].decode()) + os.sep + 'attach' + os.sep)
     else:
-        return vim.bindeval('script_root').decode() + os.sep + 'attach' + os.sep
+        return script_root() + os.sep + 'attach' + os.sep
 
 
 def get_temp_dir():
@@ -6473,9 +6481,11 @@ def get_temp_dir():
     添付ファイルの一時展開先等 plugin/autoload ディレクトリに *.vim/*.py があるのでその親ディレクトリ
     """
     if 'notmuch_tmpdir' in vim.vars:
-        return vim.vars['notmuch_tmpdir'].decode() + os.sep + '.temp' + os.sep
+        return os.path.expandvars(
+            os.path.expanduser(
+                vim.vars['notmuch_tmpdir'].decode()) + os.sep + '.temp' + os.sep)
     else:
-        return vim.bindeval('script_root').decode() + os.sep + '.temp' + os.sep
+        return script_root() + os.sep + '.temp' + os.sep
 
 
 #  以下初期化処理
