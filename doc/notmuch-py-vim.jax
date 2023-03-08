@@ -587,7 +587,7 @@ g:notmuch_from                                       *g:notmuch_from*
 <	* リスト内の指定の一つ一つは |Dictionary| で
 		{'id': 'ニックネーム', 'address': 'From ヘッダへの入力内容', 'To', '検索条件'}
 
-		- To ヘッダが検索条件に一致すれば、それが使われる
+		- To ヘッダを Python の正規表現による検索条件に一致すれば、'address' の値が使われる
 		- 一致する条件がなければ、'To':'*' を指定した要素が使われる
 			Example >
 				let g:notmuch_from = [
