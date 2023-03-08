@@ -4944,7 +4944,7 @@ def insert_signature(to_name, from_name):
 
     sig = ''
     for t in to_name:
-        sig = get_signature(to_name)
+        sig = get_signature(t)
         if sig != '':
             break
     if sig == '':
