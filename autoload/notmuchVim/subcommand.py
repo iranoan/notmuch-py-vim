@@ -4411,6 +4411,26 @@ def reply_mail():
                 x_ls.remove(x)
         return exist, dup
 
+    def to2from(str):  # g:notmuch_from に一致する From を返す
+        str = email2only_address(str)
+        adr = ''
+        for j in vim.vars.get('notmuch_from', []):
+            l_to = j.get('To', b'').decode()
+            if l_to == '' or l_to == '*':
+                continue
+            elif l_to == '*':
+                adr = j['address'].decode()
+            elif re.search(l_to, str) is not None:
+                return j['address'].decode()
+        return adr
+
+    def to2fromls(ls):  # リスト ls から g:notmuch_from に一致する From を返す
+        for i in ls:
+            adr = to2from(i)
+            if adr != '':
+                return adr
+        return ''
+
     active_win, msg_id, subject = check_org_mail()
     if not active_win:
         return
@@ -4448,6 +4468,12 @@ def reply_mail():
             addr_exist = addr_tmp
             send_from_name = send_tmp
         send_to_name = ', '.join((recive_to_name + [recive_from_name]))
+        # g:notmuch_from に従って From に書き込む情報置き換え
+        send_from_tmp = to2fromls(cc_name + recive_to_name)
+        if send_from_tmp == '':
+            send_from_tmp = to2from(recive_from_name)
+        if send_from_tmp != '':
+            send_from_name = send_from_tmp
     add_head = 0x01
     for header in headers:
         header = header.decode()

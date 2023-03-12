@@ -577,17 +577,18 @@ g:notmuch_from                                       *g:notmuch_from*
 	Type: |List|
 	Default: `[]`
 
-	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で本文部分にカーソ
-	  ル移動した時、From ヘッダが空の時に書き込む内容
-	* `[]` だと Notmuch の user.primary_email 設定 (~/.notmuch_config の次
-		のような記載部分) が使われる >
+	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) に書き込む From 内容
+		- 返信メール (|notmuch-python-vim-mail-reply|) ではバッファを開いた時に書き込む
+		- それ以外は本文部分にカーソル移動した時に書き込む
+	* `[]` だと Notmuch の user.primary_email 設定 (~/.notmuch_config の次のような記載
+		  部分) が使われる >
 			[user]
 			name=user name
 			primary_email=vim@user.com
 <	* リスト内の指定の一つ一つは |Dictionary| で
 		{'id': 'ニックネーム', 'address': 'From ヘッダへの入力内容', 'To', '検索条件'}
 
-		- To ヘッダを Python の正規表現による検索条件に一致すれば、'address' の値が使われる
+		- To ヘッダが Python の正規表現検索に一致すれば、'address' の値が使われる
 		- 一致する条件がなければ、'To':'*' を指定した要素が使われる
 			Example >
 				let g:notmuch_from = [
