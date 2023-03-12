@@ -4454,10 +4454,11 @@ def reply_mail():
     for i in vim.vars.get('notmuch_from', []):
         from_ls.append(email2only_address(i['address'].decode()))
     send_from_name = ''
+    cc_name = []
     if email2only_address(recive_from_name) in from_ls:  # 自分のメールに対する返信
         send_to_name = recive_to_name
         send_from_name = recive_from_name
-        cc_name = []
+        recive_to_name = [recive_to_name]
     else:
         recive_to_name = address2ls(recive_to_name)
         cc_name = address2ls(msg.get_header('Cc'))
@@ -4468,12 +4469,12 @@ def reply_mail():
             addr_exist = addr_tmp
             send_from_name = send_tmp
         send_to_name = ', '.join((recive_to_name + [recive_from_name]))
-        # g:notmuch_from に従って From に書き込む情報置き換え
-        send_from_tmp = to2fromls(cc_name + recive_to_name)
-        if send_from_tmp == '':
-            send_from_tmp = to2from(recive_from_name)
-        if send_from_tmp != '':
-            send_from_name = send_from_tmp
+    # g:notmuch_from に従って From に書き込む情報置き換え
+    send_from_tmp = to2fromls(cc_name + recive_to_name)
+    if send_from_tmp == '':
+        send_from_tmp = to2from(recive_from_name)
+    if send_from_tmp != '':
+        send_from_name = send_from_tmp
     add_head = 0x01
     for header in headers:
         header = header.decode()
