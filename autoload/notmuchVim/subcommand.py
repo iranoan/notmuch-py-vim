@@ -3724,7 +3724,9 @@ def send_str(msg_data, msgid):
                        'content-type', 'content-transfer-encoding']
         for h in headers.split('\n'):
             match = re.match(r'^[A-Za-z-]+:\s*', h)
-            if match is None:
+            if h == '':
+                pass
+            elif match is None:
                 match = RE_TOP_SPACE.match(h)
                 if match is None:
                     print_error('Illegal header:' + h)
