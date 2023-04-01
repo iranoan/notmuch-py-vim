@@ -4958,6 +4958,8 @@ def insert_signature(to_name, from_name):
         if 'notmuch_signature' in vim.vars:
             sigs = vim.vars['notmuch_signature']
             from_to = email2only_address(from_to)
+            if from_to == '':
+                return ''
             if os.name == 'nt':
                 sig = sigs.get(from_to, sigs.get('*', b'$USERPROFILE\\.signature'))
             else:
