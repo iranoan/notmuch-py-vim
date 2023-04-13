@@ -1037,7 +1037,7 @@ def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): 
 		var cmd: string = last[0]
 		var cmds: dict<any> = py3eval('get_command()')
 		if cmd ==# 'mail-move'
-			if last[1] !=# '' # 既に引数が有る
+			if last[1] # '' # 既に引数が有る
 				ls = py3eval('get_mark_cmd_name()')
 			else
 				ls = py3eval('get_mail_folders()')
@@ -1048,7 +1048,7 @@ def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): 
 		elseif !and(cmds[cmd], 0x01) # 引数を必要としないコマンド→次のコマンドを補完対象
 			ls = py3eval('get_mark_cmd_name()')
 		else
-			if last[1] !=# ''
+			if last[1]
 				ls = extend(py3eval('get_msg_all_tags_list("")'), py3eval('get_mark_cmd_name()'))
 			else
 				ls = py3eval('get_msg_all_tags_list("")')
