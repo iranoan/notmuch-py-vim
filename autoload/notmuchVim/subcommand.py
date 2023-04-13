@@ -5600,22 +5600,23 @@ def command_marked(cmdline):
         if cmd == '' and (cmds[arg] & 0x02):  # 引数必要
             cmd = arg
         elif cmd == '' and (cmds[arg] & 0x02):  # 引数を必要としないコマンド
-            cmd_arg.append([cmds_dic[arg][0].decode()[2:], ''])
+            cmd_arg.append([cmds_dic[arg][0].decode(), ''])
             cmd = ''
         elif arg == '\r' or arg == '\x00':  # コマンド区切り
             if cmd != '':
-                cmd_arg.append([cmds_dic[cmd][0].decode()[2:], args])
+                cmd_arg.append([cmds_dic[cmd][0].decode(), args])
                 cmd = ''
                 args = []
         else:  # コマンド引数
             args.append(arg)
     if cmd != '':
-        cmd_arg.append([cmds_dic[cmd][0].decode()[2:], args])
+        cmd_arg.append([cmds_dic[cmd][0].decode(), args])
     # 実際にここのメールにコマンド実行
     for i, cmd in enumerate(cmd_arg):
         for line in marked_line:
             msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
-            if cmd[0] in [  # 複数選択対応で do_mail() から呼び出されるものは search_term が必要
+            py_cmd = cmd[0].lower()
+            if py_cmd in [  # 複数選択対応で do_mail() から呼び出されるものは search_term が必要
                 # 不要な場合はダミーの文字列
                 'add_tags',
                 'set_tags',
@@ -5628,9 +5629,9 @@ def command_marked(cmdline):
                 'run_shell_program',
                 'toggle_tags',
             ]:
-                args = (GLOBALS[cmd[0]](msg_id, search_term, [line, line] + cmd[1]))[2:]
+                args = (GLOBALS[py_cmd](msg_id, search_term, [line, line] + cmd[1]))[2:]
             else:
-                args = GLOBALS[cmd[0]](msg_id, cmd[1])
+                args = GLOBALS[py_cmd](msg_id, cmd[1])
             cmd_arg[i][1] = args  # 引数が空の場合があるので実行した引数で置き換え
     vim_sign_unplace('')
     # DBASE.open(PATH)
