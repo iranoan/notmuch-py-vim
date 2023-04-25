@@ -650,25 +650,25 @@ def set_folder_format():
         if 'view' not in open_way:
             open_way['view'] = 'belowright ' + str(height) + 'new'
 
-    try:
-        DBASE.open(PATH)
-    except NameError:
-        DBASE.close()
-        raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
-    a = len(str(int(notmuch.Query(DBASE, 'path:**').count_messages() * 1.2)))  # メール総数
-    u = len(str(int(notmuch.Query(DBASE, 'tag:unread').count_messages()))) + 1
-    f = len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages()))) + 1
-    # 末尾付近の↑ * 1.2 や + 1 は増加したときのために余裕を見ておく為
-    DBASE.close()
     max_len = 0
     for s in vim.vars['notmuch_folders']:
         s_len = len(s[0].decode())
         if s_len > max_len:
             max_len = s_len
-    set_open_way(max_len + a + u + f + 5)
     if 'notmuch_folder_format' not in vim.vars:
-        vim.vars['notmuch_folder_format'] = '{0:<' + str(max_len) + '} {1:>' \
-            + str(u) + '}/{2:>' + str(a) + '}|{3:>' + str(f) + '} [{4}]'
+        try:
+            DBASE.open(PATH)
+        except NameError:
+            DBASE.close()
+            raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
+        vim.vars['notmuch_folder_format'] = '{0:<' + str(max_len) + '} ' + \
+            '{1:>' + str(len(str(int(notmuch.Query(DBASE, 'tag:unread').count_messages()))) + 1) + '}/' + \
+            '{2:>' + str(len(str(int(notmuch.Query(DBASE, 'path:**').count_messages() * 1.2)))) + '}│' + \
+            '{3:>' + str(len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages()))) + 1) + '} ' + \
+            '[{4}]'
+        # ↑上から順に、未読/全/重要メールの数、末尾付近の↑ * 1.2 や + 1 は増加したときのために余裕を見ておく為
+        DBASE.close()
+    set_open_way(strdisplaywidth(vim.vars['notmuch_folder_format'].decode().format('', 0, 0, 0, '')) - 1)
 
 
 def format_folder(folder, search_term):
