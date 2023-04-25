@@ -517,7 +517,7 @@ g:notmuch_draft_header                                *g:notmuch_draft_header*
 
 g:notmuch_folder_format                               *g:notmuch_folder_format*
 	Type: |String|
-	Default: `'{0:<??}{1:>??}/{2:>??}|{3:>??} [{4}]'`
+	Default: `'{0:<??}{1:>??}/{2:>??}│{3:>??} [{4}]'`
 
 	* |{F-WIN}| に表示する |g:notmuch_folders| の情報の表示方法
 	* Python の format() メソッドの指定を用いる必要が有る

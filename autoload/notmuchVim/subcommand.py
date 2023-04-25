@@ -666,7 +666,7 @@ def set_folder_format():
             '{2:>' + str(len(str(int(notmuch.Query(DBASE, 'path:**').count_messages() * 1.2)))) + '}│' + \
             '{3:>' + str(len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages()))) + 1) + '} ' + \
             '[{4}]'
-        # ↑上から順に、未読/全/重要メールの数、末尾付近の↑ * 1.2 や + 1 は増加したときのために余裕を見ておく為
+        # ↑上から順に、未読/全/重要メールの数の桁数計算、末尾付近の * 1.2 や + 1 は増加したときのために余裕を見ておく為
         DBASE.close()
     set_open_way(strdisplaywidth(vim.vars['notmuch_folder_format'].decode().format('', 0, 0, 0, '')) - 1)
 
