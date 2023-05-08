@@ -4413,6 +4413,15 @@ def reply_mail():
                 x_ls.remove(x)
         return exist, dup
 
+    def uniq_adr(ls, adr):
+        only_adr = []
+        for i in ls:
+            only_adr.append(email2only_address(i))
+        if email2only_address(adr) in only_adr:
+            return ls
+        else:
+            return ls + [adr]
+
     def to2from(str):  # g:notmuch_from に一致する From を返す
         str = email2only_address(str)
         adr = ''
@@ -4470,7 +4479,7 @@ def reply_mail():
         if not addr_exist:
             addr_exist = addr_tmp
             send_from_name = send_tmp
-        send_to_name = ', '.join((recive_to_name + [recive_from_name]))
+        send_to_name = ', '.join(uniq_adr(recive_to_name, recive_from_name))
     # g:notmuch_from に従って From に書き込む情報置き換え
     send_from_tmp = to2fromls(cc_name + recive_to_name)
     if send_from_tmp == '':
