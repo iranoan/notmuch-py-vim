@@ -5052,6 +5052,8 @@ def save_mail(msg_id, s, args):
     type = buf_kind()
     if type == 'show' or type == 'view':
         save_file = single_file()
+        if save_file == '':
+            return args
     elif args[0] == -1:
         return args
     else:
