@@ -5055,6 +5055,7 @@ def save_mail(msg_id, s, args):
         if save_file == '':
             return args
     elif args[0] == -1:
+        print('No save.')
         return args
     else:
         if len(args) == 5:
