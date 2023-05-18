@@ -5729,22 +5729,39 @@ def notmuch_thread():
 
 
 def notmuch_address():
+    def only_address(address):
+        ls = []
+        for i in address:
+            only_adr = email2only_address(i).lower()
+            if only_adr != '':
+                ls.append(only_adr)
+        return ls
+
     msg_id = get_msg_id()
     if msg_id == '':
         return
     DBASE.open(PATH)
     msg = DBASE.find_message(msg_id)
     if vim.vars['notmuch_sent_tag'].decode() in msg.get_tags():
-        adr = msg.get_header('To')
-        if adr == '':
-            adr = msg.get_header('From')
+        adr = only_address(address2ls(msg.get_header('To')))
+        if not adr:
+            adr = only_address(address2ls(msg.get_header('Cc')))
+            if not adr:
+                adr = only_address(address2ls(msg.get_header('Bcc')))
     else:
-        adr = msg.get_header('From')
+        adr = only_address(address2ls(msg.get_header('From'))) + \
+            only_address(address2ls(msg.get_header('Reply-To')))
     DBASE.close()
-    if adr == '':
+    if not adr:
+        if vim.vars['notmuch_sent_tag'].decode() in msg.get_tags():
+            print_warring('To/Cc/Bcc header is empty.')
+        else:
+            print_warring('From header is empty.')
         return
-    adr = email2only_address(adr)
-    search_term = 'from:' + adr + ' or to:' + adr + ' or cc:' + adr + ' or bcc:' + adr
+    search_term = ''
+    for i in set(adr):
+        search_term += 'or from:' + i + ' or to:' + i + ' or cc:' + i + ' or bcc:' + i
+    search_term = search_term[3:]
     notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
     fold_open_core()
     index = [i for i, msg in enumerate(

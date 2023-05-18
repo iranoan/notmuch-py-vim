@@ -1113,10 +1113,12 @@ search [|search-term|]
 
                                               *notmuch-python-vim-search-address*
 search-address
-	* `sent` もしくは |g:notmuch_sent_tag| で指定したタグがついているメールなら From
-	  ヘッダ、そうでなけれ To ヘッダのアドレスでメールを検索し、|{T-Win}| 枠に表示
-	  する
-	* From, To, Cc, Bcc の何れかに含まれていれば検索にヒットする
+	* 次のアドレスが From, To, Cc, Bcc の何れかに含まれているメールを |{T-Win}| 枠
+		に一覧表示する
+		- `sent` もしくは |g:notmuch_sent_tag| で指定したタグがついているメールなら
+			From と Reply-To ヘッダに書かれたメール・アドレス
+		- そうでなければ To、To が空なら Cc、Cc も空なら Bcc ヘッダに書かれたメール・
+			アドレス
 
                                           *notmuch-python-vim-search-duplication*
 search-duplication
