@@ -243,12 +243,12 @@ def Next_unread_page(args: list<any>): void # メール最後の行が表示さ�
 			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 			py3eval('next_unread(' .. l_buf_num .. ')')
 		endif
-	elseif line('w0') != line('w$') # 一行で 1 ページ全体だと、<PageDown> では折り返されている部分が飛ばされるので分ける
-		execute "normal! \<PageDown>"
-		if line('w0') != line('w$') && line('w$') == line('$') # 表示先頭行 != 最終行 かつ 表示最終行 = 最終行 なら最後まで表示
+	elseif line('w0') != line('w$') # 一行で 1 ページ全体ではない
+		execute 'normal!' winheight(0) - winline() + 1 .. 'gjzt' # 表示している最終行が折り返し行だと <PageDown> ではうまくいかない
+		if line('w$') == line('$') # 表示最終行 = 最終行 なら最後まで表示
 			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 		endif
-	else
+	else # 一行で 1 ページ全体
 		var pos = line('.')
 		execute 'normal!' winheight(0) - winline() + 1 .. 'gj'
 		if line('.') != pos # 移動前に表示していた次の行までカーソル移動して、行番号が異なれば行の最後まで表示されていた
