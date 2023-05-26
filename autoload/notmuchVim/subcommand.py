@@ -408,6 +408,16 @@ def notmuch_new(open_check):
         if opened_mail(False):
             print_warring('Can\'t remake database.\nBecase open the file.')
             return False
+    # 未更新の閉じられたメール・ファイルのバッファを閉じる
+    path = PATH + os.sep
+    path_len = len(path)
+    open_b = [i.buffer.number for i in vim.windows]  # 開いているバッファ・リスト
+    for b in vim.buffers:
+        n = b.number
+        if b.options['modified'] is False \
+                and n is not open_b \
+                and os.path.expanduser(b.name)[:path_len] == path:
+            vim.command('bwipeout ' + str(n))
     return shellcmd_popen(['notmuch', 'new'])
 
 
