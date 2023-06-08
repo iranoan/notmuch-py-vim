@@ -26,10 +26,10 @@ execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
  " marddown
 syntax cluster markdownInline contains=markdownLinkText,markdownItalic,markdownBold
 syntax cluster markdownBlock contains=markdownH1,markdownH2,markdownH3,markdownH4,markdownH5,markdownH6
-syntax region markdownItalic matchgroup=markdownItalicDelimiter start=" _\S\@=" end="\S\@<=_ " skip="\\_" contains=markdownLineStart,@Spell,markdownLink,markdownLinkText concealends oneline
+syntax region markdownItalic matchgroup=markdownItalicDelimiter start="_\S\@=" end="\S\@<=_" skip="\\_" contains=markdownLineStart,@Spell,markdownLink,markdownLinkText concealends oneline
 syntax region markdownBold matchgroup=markdownBoldDelimiter start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*" contains=markdownLineStart,markdownItalic,@Spell,markdownLink,markdownLinkText concealends oneline
-syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start=" _ \*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*" contains=markdownLineStart,@Spell,markdownLink,markdownLinkText concealends oneline
-syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start='\*\*_\S\@=' end='\S\@<=_\*\*\s\s' skip="\\_\|\\\*" contains=markdownLineStart,markdownItalic,@Spell,markdownLink,markdownLinkText concealends oneline
+syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*" contains=markdownLineStart,@Spell,markdownLink,markdownLinkText concealends oneline
+syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*" contains=markdownLineStart,markdownItalic,@Spell,markdownLink,markdownLinkText concealends oneline
 
 syntax region markdownLinkText matchgroup=markdownLinkTextDelimiter start="!\=\[\%(\%(\_[^][]\|\[\_[^][]*\]\)*]\%( \=[[(]\)\)\@=" end="\]\%( \=[[(]\)\@=" nextgroup=markdownLink,markdownId skipwhite contains=@markdownInline,markdownLineStart oneline
 syntax region markdownLink matchgroup=markdownLinkDelimiter start="(" end=")" contains=mailURL keepend contained oneline
