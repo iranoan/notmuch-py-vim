@@ -465,44 +465,45 @@ def shellcmd_popen(param):
     return True
 
 
-def make_thread_core(search_term):
-    def set_global_var():  # MailData で使用する設定依存の値をグローバル変数として保存
-        def get_display_format():
-            global DISPLAY_FORMAT, DISPLAY_FORMAT2
-            """ set display format and order in thread list."""
-            def get_display_item():
-                item = []
-                for i in vim.vars['notmuch_display_item']:
-                    i = i.decode().lower()
-                    if i not in ['subject', 'from', 'date']:
-                        print_warring('Error: setting g:notmuch_display_item.\nset default.')
-                        return ['subject', 'from', 'date']
-                    item.append(i)
-                if len(set(item)) != 3:
+def set_global_var():  # MailData で使用する設定依存の値をグローバル変数として保存
+    def get_display_format():
+        global DISPLAY_FORMAT, DISPLAY_FORMAT2
+        """ set display format and order in thread list."""
+        def get_display_item():
+            item = []
+            for i in vim.vars['notmuch_display_item']:
+                i = i.decode().lower()
+                if i not in ['subject', 'from', 'date']:
                     print_warring('Error: setting g:notmuch_display_item.\nset default.')
                     return ['subject', 'from', 'date']
-                return item
+                item.append(i)
+            if len(set(item)) != 3:
+                print_warring('Error: setting g:notmuch_display_item.\nset default.')
+                return ['subject', 'from', 'date']
+            return item
 
-            DISPLAY_FORMAT = '{0}'
-            DISPLAY_FORMAT2 = ''
-            for item in get_display_item():
-                if item == 'subject':
-                    DISPLAY_FORMAT += '\t{1}'
-                    DISPLAY_FORMAT2 += '\t{0}'
-                elif item == 'from':
-                    DISPLAY_FORMAT += '\t{2}'
-                    DISPLAY_FORMAT2 += '\t{1}'
-                elif item == 'date':
-                    DISPLAY_FORMAT += '\t{3}'
-                    DISPLAY_FORMAT2 += '\t{2}'
+        DISPLAY_FORMAT = '{0}'
+        DISPLAY_FORMAT2 = ''
+        for item in get_display_item():
+            if item == 'subject':
+                DISPLAY_FORMAT += '\t{1}'
+                DISPLAY_FORMAT2 += '\t{0}'
+            elif item == 'from':
+                DISPLAY_FORMAT += '\t{2}'
+                DISPLAY_FORMAT2 += '\t{1}'
+            elif item == 'date':
+                DISPLAY_FORMAT += '\t{3}'
+                DISPLAY_FORMAT2 += '\t{2}'
 
-        global SENT_TAG, SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
-        SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
-        FROM_LENGTH = vim.vars['notmuch_from_length']
-        DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
-        SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
-        get_display_format()
+    global SENT_TAG, SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
+    SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
+    FROM_LENGTH = vim.vars['notmuch_from_length']
+    DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
+    SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
+    get_display_format()
 
+
+def make_thread_core(search_term):
     query = notmuch.Query(DBASE, search_term)
     try:  # スレッド一覧
         threads = query.search_threads()
@@ -5780,6 +5781,8 @@ def notmuch_address():
 
 
 def notmuch_duplication(remake):
+    if not THREAD_LISTS:
+        set_global_var()
     if remake or not ('*' in THREAD_LISTS):
         DBASE.open(PATH)
         query = notmuch.Query(DBASE, 'path:**')
