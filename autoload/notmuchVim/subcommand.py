@@ -5771,8 +5771,8 @@ def notmuch_address():
         return
     search_term = ''
     for i in set(adr):
-        search_term += 'or from:' + i + ' or to:' + i + ' or cc:' + i + ' or bcc:' + i
-    search_term = search_term[3:]
+        search_term += ' or from:' + i + ' or to:' + i + ' or cc:' + i + ' or bcc:' + i
+    search_term = search_term[4:]
     notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
     fold_open_core()
     index = [i for i, msg in enumerate(
