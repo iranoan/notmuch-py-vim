@@ -17,7 +17,7 @@ syntax cluster	mailHeaderField2	contains=mailHeaderKey,mailHeaderShow,@mailHeade
 syntax case ignore
 
 syntax match	mailMultiHead	contained	contains=@NoSpell '^--\%(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$'
-syntax region	mailMultiHeader	contained	contains=mailMultiHead,@mailHeaderField,@NoSpell start='^--\%(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$' skip='^\s' end='^$' fold
+syntax region	mailMultiHeader	contained	contains=mailHeaderKey,mailMultiHead,@mailHeaderField,@NoSpell start='^--\%(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$' skip='^\s' end='^$' fold
 syntax region	mailMultiPart     keepend	contains=mailMultiHeader,@mailLinks,@NoSpell start='^--\z\(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$' end='^--\z1--$' end='^--\z1$'me=s-1 fold
 
 syntax match	mailHeaderKey	contained	contains=mailHeaderEmail,mailEmail,@NoSpell /^[a-z-]\+:\s*/
