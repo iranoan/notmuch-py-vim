@@ -12,62 +12,81 @@ set cpoptions&vim
 
 syntax case ignore
 
-syntax match   mailNewPartHead  contained contains=@NoSpell '^[\x0C]\zs.\+ part$'
-syntax region  mailHeader       contained contains=mailNewPartHead,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
-syntax region  mailNewPart      contains=mailHeader,@markdownBlock,@mailHeaderFields,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
-syntax region  mailNewPart      contains=mailNewPartHead,@markdownBlock,@mailHeaderFields,@NoSpell start='^[\x0C]HTML part$' end='^[\x0C]'me=e-1 fold
+syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]\zs.\+ part$'
+syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]\zsHTML mail$'
+syntax region	mailHeader	contained	contains=mailNewPartHead,@mailHeaderField,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
+syntax region	mailNewPart	contains=mailHeader,@HTMLmailBlock,@mailHeaderField,@NoSpell start='^[\x0C].\+ \(part\|mail\)$' end='^[\x0C]'me=e-1 fold
+syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBlock,@NoSpell start='^[\x0C]HTML \%(mail\|part\)$' end='^[\x0C]'me=e-1 end='\%$' fold
 
 " Usenet headers
-syntax match   mailHeaderKey    contained contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
-syntax region mailHeader                 contains=mailHideHeader,@mailHeaderFields,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 fold
+syntax match	mailHeaderKey	contained	contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
+syntax region	mailHeader	contains=mailHideHeader,@mailHeaderField,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 end='^[\x0C]'me=e-1 fold
 
 execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
 
  " marddown
-syntax cluster markdownInline contains=markdownLinkText,markdownItalic,markdownBold
-syntax cluster markdownBlock contains=markdownH1,markdownH2,markdownH3,markdownH4,markdownH5,markdownH6
-syntax region markdownItalic matchgroup=markdownItalicDelimiter start="_\S\@=" end="\S\@<=_" skip="\\_" contains=markdownLineStart,@Spell,markdownLink,markdownLinkText concealends oneline
-syntax region markdownBold matchgroup=markdownBoldDelimiter start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*" contains=markdownLineStart,markdownItalic,@Spell,markdownLink,markdownLinkText concealends oneline
-syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*" contains=markdownLineStart,@Spell,markdownLink,markdownLinkText concealends oneline
-syntax region markdownBoldItalic matchgroup=markdownBoldItalicDelimiter start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*" contains=markdownLineStart,markdownItalic,@Spell,markdownLink,markdownLinkText concealends oneline
+syntax cluster	HTMLmailInline	contains=HTMLmailLinkTxt,HTMLmailItalic,HTMLmailB,HTMLmailBI
+syntax cluster	HTMLmailBlock	contains=HTMLmailH1,HTMLmailH2,HTMLmailH3,HTMLmailH4,HTMLmailH5,HTMLmailH6,@HTMLmailInline,HTMLmailLink,HTMLmailId
 
-syntax region markdownLinkText matchgroup=markdownLinkTextDelimiter start="!\=\[\%(\%(\_[^][]\|\[\_[^][]*\]\)*]\%( \=[[(]\)\)\@=" end="\]\%( \=[[(]\)\@=" nextgroup=markdownLink,markdownId skipwhite contains=@markdownInline,markdownLineStart oneline
-syntax region markdownLink matchgroup=markdownLinkDelimiter start="(" end=")" contains=mailURL keepend contained oneline
-syntax region markdownId matchgroup=markdownIdDelimiter start="\[" end="\]" keepend contained oneline
+syntax region	HTMLmailItalic	contained	matchgroup=HTMLmailItDelim start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=HTMLmailLineStart,HTMLmailBI2,@Spell,HTMLmailLink,HTMLmailLinkTxt concealends keepend
+syntax region	HTMLmailB	contained	matchgroup=HTMLmailBDelim start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=HTMLmailLineStart,HTMLmailBI2,@Spell,HTMLmailLink,HTMLmailLinkTxt concealends keepend
+syntax region	HTMLmailBI	contained	matchgroup=HTMLmailItBDelim start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*"	contains=HTMLmailLineStart,@Spell,HTMLmailLink,HTMLmailLinkTxt concealends keepend
+syntax region	HTMLmailBI	contained	matchgroup=HTMLmailItBDelim start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*"	contains=HTMLmailLineStart,@Spell,HTMLmailLink,HTMLmailLinkTxt concealends keepend
+syntax region	HTMLmailBI2	contained	matchgroup=HTMLmailItBDelim start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=HTMLmailLineStart,@Spell,HTMLmailLink,HTMLmailLinkTxt concealends keepend
+syntax region	HTMLmailBI2	contained	matchgroup=HTMLmailItBDelim start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=HTMLmailLineStart,@Spell,HTMLmailLink,HTMLmailLinkTxt concealends keepend
 
-syntax match  markdownH1 contains=@NoSpell,@markdownInline,mailURL '^## .\+$'
-syntax match  markdownH2 contains=@NoSpell,@markdownInline,mailURL '^### .\+$'
-syntax match  markdownH3 contains=@NoSpell,@markdownInline,mailURL '^#### .\+$'
-syntax match  markdownH4 contains=@NoSpell,@markdownInline,mailURL '^##### .\+$'
-syntax match  markdownH5 contains=@NoSpell,@markdownInline,mailURL '^###### .\+$'
-syntax match  markdownH6 contains=@NoSpell,@markdownInline,mailURL '^####### .\+$'
+syntax region	HTMLmailLink	contained	matchgroup=HTMLmailLinkDelimiter start="(" end=")"	contains=mailURL keepend oneline
+syntax region	HTMLmailId	contained	matchgroup=HTMLmailIdDelimiter start="\[" end="\]" keepend oneline
+syntax region	HTMLmailLinkTxt	contained	matchgroup=HTMLmailLinkTextDelimiter start="!\=\[\%(\%(\_[^][]\|\[\_[^][]*\]\)*]\%( \=[[(]\)\)\@=" end="\]\%( \=[[(]\)\@=" nextgroup=HTMLmailLink,HTMLmailId skipwhite	contains=@HTMLmailInline,HTMLmailLineStart,HTMLmailLinkIt,HTMLmailLinkB oneline keepend
+syntax region	HTMLmailLinkIt	contained	matchgroup=HTMLmailLinkITDelimiter start="_\S\@=" end="\S\@<=_"  skip="\\_"	contains=HTMLmailLineStart,@Spell concealends oneline keepend
+syntax region	HTMLmailLinkB	contained	matchgroup=HTMLmailLinkBDelimiter start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=HTMLmailLineStart,@Spell concealends oneline keepend
 
-highlight default link markdownH1                    Title
-highlight default link markdownH2                    Title
-highlight default link markdownH3                    Title
-highlight default link markdownH4                    Title
-highlight default link markdownH5                    Title
-highlight default link markdownH6                    Title
-highlight default link markdownHeadingRule           PreProc
-highlight default link markdownH1Delimiter           Delimiter
-highlight default link markdownH2Delimiter           Delimiter
-highlight default link markdownH3Delimiter           Delimiter
-highlight default link markdownH4Delimiter           Delimiter
-highlight default link markdownH5Delimiter           Delimiter
-highlight default link markdownH6Delimiter           Delimiter
+syntax match	HTMLmailH1	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^## .\+$'
+syntax match	HTMLmailH2	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^### .\+$'
+syntax match	HTMLmailH3	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#### .\+$'
+syntax match	HTMLmailH4	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^##### .\+$'
+syntax match	HTMLmailH5	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^###### .\+$'
+syntax match	HTMLmailH6	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^####### .\+$'
 
-highlight default link markdownLinkText              Underlined
-highlight default link markdownId                    Type
+highlight default link HTMLmailH1	Title
+highlight default link HTMLmailH2	Title
+highlight default link HTMLmailH3	Title
+highlight default link HTMLmailH4	Title
+highlight default link HTMLmailH5	Title
+highlight default link HTMLmailH6	Title
+highlight default link HTMLmailLinkTxt	Underlined
+highlight default link HTMLmailId	Type
+highlight default link HTMLmailB	htmlBold
+highlight default link HTMLmailBDelim	htmlBold
+highlight default link HTMLmailBI	htmlBoldItalic
+highlight default link HTMLmailBI2	htmlBoldItalic
+highlight default link HTMLmailItBDelim htmlBoldItalic
+highlight default link HTMLmailItalic	htmlItalic
+highlight default link HTMLmailItDelim	htmlItalic
 
+let link_string = notmuch_py#Get_highlight('Underlined')
+if link_string =~# '\<cterm='
+	let link_it = substitute(link_string, '\<cterm=', 'cterm=italic,', 'g')
+	let link_b = substitute(link_string, '\<cterm=', 'cterm=bold,', 'g')
+else
+	let link_it = link_string ..' cterm=italic'
+	let link_b = link_string ..' cterm=bold'
+endif
+if link_string =~# '\<gui='
+	let link_it = substitute(link_string, '\<gui=', 'gui=italic,', 'g')
+	let link_b = substitute(link_string, '\<gui=', 'gui=bold,', 'g')
+else
+	let link_it = link_it ..' gui=italic'
+	let link_b = link_b ..' gui=bold'
+endif
+execute 'highlight HTMLmailLinkIt ' .. link_it
+execute 'highlight HTMLmailLinkB ' .. link_b
+unlet link_string
+unlet link_it
+unlet link_b
 highlight htmlBold       term=bold cterm=bold gui=bold
 highlight htmlBoldItalic term=bold,italic cterm=bold,italic gui=bold,italic
 highlight htmlItalic     term=italic cterm=italic gui=italic
-highlight default link markdownBold                  htmlBold
-highlight default link markdownBoldDelimiter         htmlBold
-highlight default link markdownBoldItalic            htmlBoldItalic
-highlight default link markdownBoldItalicDelimiter   htmlBoldItalic
-highlight default link markdownItalic                htmlItalic
-highlight default link markdownItalicDelimiter       htmlItalic
 
 let b:current_syntax = 'notmuch-show'
 

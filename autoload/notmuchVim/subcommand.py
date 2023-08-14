@@ -1454,6 +1454,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 ls.append(t[0])
             ls.append('')
             if not out.main['content']:
+                ls[-1] = '\fHTML mail'
                 ls += out.html['content']
             else:
                 ls += out.main['content']
