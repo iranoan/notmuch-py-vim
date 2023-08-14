@@ -2,11 +2,11 @@
 scriptversion 4
 
 " Syntax clusters
-syntax cluster	mailHeaderField	contains=mailHeaderKey,mailHeaderEmail,@mailLinks
+syntax cluster	mailHeaderField	contains=mailHeaderEmail,@mailLinks
 syntax cluster	mailLinks	contains=mailURL,mailEmail
 syntax cluster	mailQuoteExps	contains=mailQuoteExp1,mailQuoteExp2,mailQuoteExp3,mailQuoteExp4,mailQuoteExp5,mailQuoteExp6
 
-execute 'syntax region	mailHideHeader	contained	contains=@mailHeaderField,@NoSpell,@mailHeaderComp '
+execute 'syntax region	mailHideHeader	contained	contains=mailHeaderKey,@mailHeaderField,@NoSpell,@mailHeaderComp '
 			\ .. 'start=''^\%(' .. py3eval('get_hide_header()') .. '\):'' skip=''^\s'' '
 			\ .. 'end=''' .. '^\%(' .. join(g:notmuch_show_headers, '\|') .. '\|\%(Del-\)\?\%(Attach\|HTML\)\|Fcc\|\%(Not-\)\?Decrypted\|Encrypt\|\%(Good-\|Bad-\)\?Signature\):''me=s-1 '
 			\ .. 'end=''^$'' fold'
