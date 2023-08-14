@@ -12,8 +12,8 @@ set cpoptions&vim
 
 syntax case ignore
 
-syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]\zs.\+ part$'
-syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]\zsHTML mail$'
+syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C].\+ part$'
+syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]HTML mail$'
 syntax region	mailHeader	contained	contains=mailHeaderKey,mailNewPartHead,@mailHeaderField,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
 syntax region	mailNewPart	contains=mailHeader,@HTMLmailBoldlock,@mailHeaderField,@NoSpell start='^[\x0C].\+ \(part\|mail\)$' end='^[\x0C]'me=e-1 fold
 syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML \%(mail\|part\)$' end='^[\x0C]'me=e-1 end='\%$' fold
