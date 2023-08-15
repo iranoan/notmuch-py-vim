@@ -1656,7 +1656,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     html_converter.ignore_tables = True
                 html_converter.body_width = len(tmp_text)
                 add_content(output.html['content'],
-                            re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text)))
+                            re.sub(r'(?<![A-Za-z]) (?=(_|\*\*))', r'',  # ASCII 外が前後にあると勝手に空白が入る
+                                   re.sub(r'(_|\*\*) (?![A-Za-z])', r'\1',  # '(?<=(_|\*\*)) (?![A-Za-z])'←エラー
+                                          re.sub(r'[\s\n]+$', '', html_converter.handle(tmp_text)))))
                 if output.html['part_num']:  # 2 個目以降があれば連番
                     s = 'index' + str(output.html['part_num']) + '.html'
                 else:
