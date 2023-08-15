@@ -4697,7 +4697,11 @@ def after_make_draft(b, msg, add_head):
         b.append('Attach: ')
     if add_head & 0x01:
         b.append('')
+    vim_op = vim.options
+    undolevels = vim_op['undolevels']
+    vim_op['undolevels'] = -1
     del b[0]
+    vim_op['undolevels'] = undolevels
     b.options['modified'] = 0
     if 'folders' in s_buf_num_dic():
         vim.command('silent cd ' + os.path.dirname(
