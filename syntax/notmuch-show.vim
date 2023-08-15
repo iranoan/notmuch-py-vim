@@ -12,41 +12,37 @@ set cpoptions&vim
 
 syntax case ignore
 
+execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
+
 syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C].\+ part$'
 syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]HTML mail$'
 syntax region	mailHeader	contained	contains=mailHeaderKey,mailNewPartHead,@mailHeaderField,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
 syntax region	mailNewPart	contains=mailHeader,@HTMLmailBoldlock,@mailHeaderField,@NoSpell start='^[\x0C].\+ \%(mail\|part\)$' end='^[\x0C]'me=e-1 fold
 syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML \%(mail\|part\)$' end='^[\x0C]'me=e-1 end='\%$' fold
 
-" Usenet headers
-syntax match	mailHeaderKey	contained	contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
-syntax region	mailHeader	contains=mailHeaderKey,mailHideHeader,@mailHeaderField,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 end='^[\x0C]'me=e-1 fold
-
-execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
-
  " marddown
 syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold,HTMLmailBoldItalic
 syntax cluster	HTMLmailBoldlock	contains=HTMLmailH1,HTMLmailH2,HTMLmailH3,HTMLmailH4,HTMLmailH5,HTMLmailH6,@HTMLmailInline,HTMLmailLink,HTMLmailId
 
-syntax region	HTMLmailItalic	contained	matchgroup=HTMLmailItDelim start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend oneline
-syntax region	HTMLmailBold	contained	matchgroup=HTMLmailBoldDelim start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend oneline
-syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailItBDelim start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend oneline
-syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailItBDelim start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend oneline
-syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailItBDelim start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend oneline
-syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailItBDelim start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend oneline
+syntax region	HTMLmailItalic	contained	matchgroup=HTMLmailItalicTag start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+syntax region	HTMLmailBold	contained	matchgroup=HTMLmailBoldTag start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 
-syntax region	HTMLmailLink	contained	matchgroup=HTMLmailLinkDelimiter start="(" end=")"	contains=mailURL keepend oneline
-syntax region	HTMLmailId	contained	matchgroup=HTMLmailIdDelimiter start="\[" end="\]" keepend oneline
-syntax region	HTMLmailLinkText	contained	matchgroup=HTMLmailLinkTextDelimiter start="!\=\[\%(\%(\_[^][]\|\[\_[^][]*\]\)*]\%( \=[[(]\)\)\@=" end="\]\%( \=[[(]\)\@=" nextgroup=HTMLmailLink,HTMLmailId skipwhite	contains=@HTMLmailInline,HTMLmailLinkItalic,HTMLmailLinkBold oneline keepend
-syntax region	HTMLmailLinkItalic	contained	matchgroup=HTMLmailLinkITDelimiter start="_\S\@=" end="\S\@<=_"  skip="\\_"	contains=@Spell concealends oneline keepend
-syntax region	HTMLmailLinkBold	contained	matchgroup=HTMLmailLinkBDelimiter start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=@Spell concealends oneline keepend
+syntax region	HTMLmailLink	contained	matchgroup=HTMLmailLinkTag start="(" end=")"	contains=mailURL keepend oneline
+syntax region	HTMLmailId	contained	matchgroup=HTMLmailIdTag start="\[" end="\]" keepend oneline
+syntax region	HTMLmailLinkText	contained	matchgroup=HTMLmailLinkTextTag start="!\=\[\%(\%(\_[^][]\|\[\_[^][]*\]\)*]\%( \=[[(]\)\)\@=" end="\]\%( \=[[(]\)\@=" nextgroup=HTMLmailLink,HTMLmailId skipwhite	contains=@HTMLmailInline,HTMLmailLinkItalic,HTMLmailLinkBold keepend
+syntax region	HTMLmailLinkItalic	contained	matchgroup=HTMLmailLinkItalicTag start="_\S\@=" end="\S\@<=_"  skip="\\_"	contains=@Spell concealends keepend
+syntax region	HTMLmailLinkBold	contained	matchgroup=HTMLmailLinkBoldTag start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=@Spell concealends keepend
 
-syntax match	HTMLmailH1	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^## .\+$'
-syntax match	HTMLmailH2	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^### .\+$'
-syntax match	HTMLmailH3	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#### .\+$'
-syntax match	HTMLmailH4	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^##### .\+$'
-syntax match	HTMLmailH5	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^###### .\+$'
-syntax match	HTMLmailH6	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^####### .\+$'
+syntax match	HTMLmailH1	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#\{2} .\+$'
+syntax match	HTMLmailH2	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#\{3} .\+$'
+syntax match	HTMLmailH3	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#\{4} .\+$'
+syntax match	HTMLmailH4	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#\{5} .\+$'
+syntax match	HTMLmailH5	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#\{6} .\+$'
+syntax match	HTMLmailH6	contained	contains=@NoSpell,@HTMLmailInline,mailURL '^#\{7} .\+$'
 
 highlight default link HTMLmailH1	Title
 highlight default link HTMLmailH2	Title
@@ -57,36 +53,76 @@ highlight default link HTMLmailH6	Title
 highlight default link HTMLmailLinkText	Underlined
 highlight default link HTMLmailId	Type
 highlight default link HTMLmailBold	htmlBold
-highlight default link HTMLmailBoldDelim	htmlBold
+highlight default link HTMLmailBoldTag	htmlBold
 highlight default link HTMLmailBoldItalic	htmlBoldItalic
 highlight default link HTMLmailLinkBoldItalic	htmlBoldItalic
-highlight default link HTMLmailItBDelim htmlBoldItalic
+highlight default link HTMLmailBoldItalicTag htmlBoldItalic
 highlight default link HTMLmailItalic	htmlItalic
-highlight default link HTMLmailItDelim	htmlItalic
+highlight default link HTMLmailItalicTag	htmlItalic
+highlight default link HTMLmailLinkItalic htmlLinkItalic
+highlight default link HTMLmailLinkBold htmlLinkBold
+highlight default link HTMLmailLinkItalicTag htmlLinkItalic
+highlight default link HTMLmailLinkBoldTag htmlLinkBold
 
-let link_string = notmuch_py#Get_highlight('Underlined')
-if link_string =~# '\<cterm='
-	let link_it = substitute(link_string, '\<cterm=', 'cterm=italic,', 'g')
-	let link_b = substitute(link_string, '\<cterm=', 'cterm=bold,', 'g')
+let highlight_string = notmuch_py#Get_highlight('Normal')
+if highlight_string =~# '\<term='
+	let highlight_it = substitute(highlight_string, '\<term=', 'term=italic,', 'g')
+	let highlight_b = substitute(highlight_string, '\<term=', 'term=bold,', 'g')
+	let highlight_bi = substitute(highlight_string, '\<term=', 'term=bold,italic,italic,', 'g')
 else
-	let link_it = link_string ..' cterm=italic'
-	let link_b = link_string ..' cterm=bold'
+	let highlight_it = highlight_string ..' term=italic'
+	let highlight_b = highlight_string ..' term=bold'
+	let highlight_bi = highlight_string ..' term=bold,italic'
 endif
-if link_string =~# '\<gui='
-	let link_it = substitute(link_string, '\<gui=', 'gui=italic,', 'g')
-	let link_b = substitute(link_string, '\<gui=', 'gui=bold,', 'g')
+if highlight_string =~# '\<cterm='
+	let highlight_it = substitute(highlight_it, '\<cterm=', 'cterm=italic,', 'g')
+	let highlight_b = substitute(highlight_b, '\<cterm=', 'cterm=bold,', 'g')
+	let highlight_bi = substitute(highlight_b, '\<cterm=', 'cterm=bold,italic,', 'g')
 else
-	let link_it = link_it ..' gui=italic'
-	let link_b = link_b ..' gui=bold'
+	let highlight_it = highlight_it ..' cterm=italic'
+	let highlight_b = highlight_b ..' cterm=bold'
+	let highlight_bi = highlight_b ..' cterm=bold,italic'
 endif
-execute 'highlight HTMLmailLinkItalic ' .. link_it
-execute 'highlight HTMLmailLinkBold ' .. link_b
-unlet link_string
-unlet link_it
-unlet link_b
-highlight htmlBold       term=bold cterm=bold gui=bold
-highlight htmlBoldItalic term=bold,italic cterm=bold,italic gui=bold,italic
-highlight htmlItalic     term=italic cterm=italic gui=italic
+if highlight_string =~# '\<gui='
+	let highlight_it = substitute(highlight_it, '\<gui=', 'gui=italic,', 'g')
+	let highlight_b = substitute(highlight_b, '\<gui=', 'gui=bold,', 'g')
+	let highlight_bi = substitute(highlight_b, '\<gui=', 'gui=bold,italic,', 'g')
+else
+	let highlight_it = highlight_it ..' gui=italic'
+	let highlight_b = highlight_b ..' gui=bold'
+	let highlight_bi = highlight_b ..' gui=bold,italic'
+endif
+execute 'highlight htmlBold ' .. highlight_b
+execute 'highlight htmlItalic ' .. highlight_it
+execute 'highlight htmlBoldItalic ' .. highlight_bi
+let highlight_string = notmuch_py#Get_highlight('Underlined')
+if highlight_string =~# '\<term='
+	let highlight_it = substitute(highlight_string, '\<term=', 'term=italic,', 'g')
+	let highlight_b = substitute(highlight_string, '\<term=', 'term=bold,', 'g')
+else
+	let highlight_it = highlight_string ..' term=italic'
+	let highlight_b = highlight_string ..' term=bold'
+endif
+if highlight_string =~# '\<cterm='
+	let highlight_it = substitute(highlight_it, '\<cterm=', 'cterm=italic,', 'g')
+	let highlight_b = substitute(highlight_b, '\<cterm=', 'cterm=bold,', 'g')
+else
+	let highlight_it = highlight_it ..' cterm=italic'
+	let highlight_b = highlight_b ..' cterm=bold'
+endif
+if highlight_string =~# '\<gui='
+	let highlight_it = substitute(highlight_it, '\<gui=', 'gui=italic,', 'g')
+	let highlight_b = substitute(highlight_b, '\<gui=', 'gui=bold,', 'g')
+else
+	let highlight_it = highlight_it ..' gui=italic'
+	let highlight_b = highlight_b ..' gui=bold'
+endif
+execute 'highlight htmlLinkItalic ' .. highlight_it
+execute 'highlight htmlLinkBold ' .. highlight_b
+unlet highlight_string
+unlet highlight_it
+unlet highlight_b
+unlet highlight_bi
 
 let b:current_syntax = 'notmuch-show'
 

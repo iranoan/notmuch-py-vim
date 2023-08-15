@@ -2,16 +2,18 @@
 scriptversion 4
 
 " Syntax clusters
-syntax cluster	mailHeaderField	contains=mailHeaderEmail,@mailLinks
+syntax cluster	mailHeaderField	contains=mailHeaderEmail,@mailLinks,@mailHeaderComp
 syntax cluster	mailLinks	contains=mailURL,mailEmail
 syntax cluster	mailQuoteExps	contains=mailQuoteExp1,mailQuoteExp2,mailQuoteExp3,mailQuoteExp4,mailQuoteExp5,mailQuoteExp6
 
+" Usenet headers
+syntax match	mailHeaderKey	contained	contains=mailHeaderEmail,mailEmail,@NoSpell /\v^[a-z-]+:\s*/
+
+syntax region	mailHeader	contains=mailHeaderKey,mailHideHeader,@mailHeaderField,@NoSpell start='\%^' skip='^\s' end='^$'me=s-1 end='^[\x0C]'me=e-1 fold
 execute 'syntax region	mailHideHeader	contained	contains=mailHeaderKey,@mailHeaderField,@NoSpell,@mailHeaderComp '
 			\ .. 'start=''^\%(' .. py3eval('get_hide_header()') .. '\):'' skip=''^\s'' '
 			\ .. 'end=''' .. '^\%(' .. join(g:notmuch_show_headers, '\|') .. '\|\%(Del-\)\?\%(Attach\|HTML\)\|Fcc\|\%(Not-\)\?Decrypted\|Encrypt\|\%(Good-\|Bad-\)\?Signature\):''me=s-1 '
 			\ .. 'end=''^$'' fold'
-execute 'syntax region	mailHeaderShow	contained	contains=mailHeaderKey,mailHeaderEmail,mailEmail,@NoSpell,@mailHeaderComp '
-			\ .. 'start=''^\%(' .. join(g:notmuch_show_headers, '\|') .. '\):\s*'' skip=''^\s'' end=''$'''
 
 " Anything in the header between < and > is an email address
 syntax match	mailHeaderEmail	contained	contains=@NoSpell '<.\{-}>'
@@ -54,7 +56,6 @@ endif
 " Define the default highlighting.
 highlight default link mailVerbatim	Special
 highlight default link mailHeader	Statement
-highlight default link mailHeaderShow	Statement
 highlight default link mailHideHeader	mailHeader
 highlight default link mailHeaderKey	Type
 highlight default link mailSignature	PreProc
