@@ -17,8 +17,10 @@ execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
 syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C].\+ part$'
 syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C]HTML mail$'
 syntax region	mailHeader	contained	contains=mailHeaderKey,mailNewPartHead,@mailHeaderField,@NoSpell start='^[\x0C].\+ part$' skip='^\s' end='^[^:]*\n' fold
-syntax region	mailNewPart	contains=mailHeader,@HTMLmailBoldlock,@mailHeaderField,@NoSpell start='^[\x0C].\+ \%(mail\|part\)$' end='^[\x0C]'me=e-1 fold
-syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML \%(mail\|part\)$' end='^[\x0C]'me=e-1 end='\%$' fold
+syntax region	mailNewPart	contains=mailHeader,@HTMLmailBoldlock,@mailHeaderField,@NoSpell start='^[\x0C].\+ part$' end='^[\x0C]'me=e-1 fold
+syntax region	mailNewPart	contains=mailHeader,@HTMLmailBoldlock,@mailHeaderField,@NoSpell start='^[\x0C].\+ mail$' end='^[\x0C]'me=e-1
+syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML part$' end='^[\x0C]'me=e-1 end='\%$' fold
+syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML mail$' end='^[\x0C]'me=e-1 end='\%$'
 
  " marddown
 syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold,HTMLmailBoldItalic
