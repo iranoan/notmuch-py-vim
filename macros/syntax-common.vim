@@ -27,7 +27,7 @@ syntax region	mailVerbatim	keepend	contains=@NoSpell start='^#v+$' end='^#v-$' f
 syntax region	mailVerbatim	keepend	contains=@mailQuoteExps,@NoSpell start='^\z(\%(> \?\)\+\)#v+$' end='\z1#v-$' fold
 
 " URLs start with a known protocol or www,web,w3.
-syntax match	mailURL	contains=@NoSpell '\v<(((https?|ftp|gopher)://|(mailto|file|news):)[^'' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^'' \t<>"]+)[a-z0-9/]|(\~?/)?([-A-Za-z._0-9]+/)*[-A-Za-z._0-9]+(\.\a([A-Za-z0-9]{,3})|/)'
+syntax match	mailURL	contains=@NoSpell '\v(<(((https?|ftp|gopher)://|(mailto|file|news):)[^'' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^'' \t<>"]+)[a-z0-9/])'
 
 syntax match	mailEmail	contains=@NoSpell '\v[_=a-z\./+0-9-]+\@[a-z0-9._-]+\a{2}'
 
