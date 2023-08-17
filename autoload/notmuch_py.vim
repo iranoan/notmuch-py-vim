@@ -300,8 +300,8 @@ def View_mail_info(args: list<any>): void
 	py3 view_mail_info()
 enddef
 
-def Close_popup(id: number, key: string): bool
-	if key ==? 'x' || key ==? 'q' || key ==? 'c' || key ==? 'p' || key ==? "\<Esc>"
+export def Close_popup(id: number, key: string): bool
+	if key ==? 'x' || key ==? 'q' || key ==? 'c' || key ==? 'o' || key ==? 'p' || key ==? "\<Esc>"
 		popup_close(id)
 		return 1
 	else

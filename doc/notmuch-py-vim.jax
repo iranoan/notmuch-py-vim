@@ -250,7 +250,8 @@ o					カーソル位置に応じて開く (Open)             *notmuch-python-vi
 										(3) カーソル位置が本文内に書かれた添付ファイル名なら開く
 										(4) 一部のヘッダや HTML パート等の開閉
 										(5) |g:notmuch_open_way|['open'] で指定されたコマンド実行
-O					|{T-WIN}| で |{S-WIN}| を開く       |notmuch-python-vim-open|
+O					|{T-WIN}|	|{S-WIN}| を開く        |notmuch-python-vim-open|
+					|{S-WIN}|	'conceallevel' が 0 の時は 3 に、それ以外の時は 0 にする
 c					新規メール (Compose new mail)   |notmuch-python-vim-mail-new|
 r					返信メール (Reply)              |notmuch-python-vim-mail-reply|
 R					転送メール                      |notmuch-python-vim-mail-forward|
@@ -269,7 +270,9 @@ I					メール・エクスポート (import の逆) |notmuch-python-vim-mail-ex
 p					|search-term| やメールの各種情報や OpenPGP, S/MIME 処理の詳細情報を
 					ポップアップやコマンド・ラインで表示 (Popup information)
 					                                |notmuch-python-vim-mail-info|
-					表示されたポップアップはカーソル移動や C/c/X/x/Q/q/P/p/<Esc> で閉じる
+					表示されたポップアップはカーソル移動や C/X/Q/P/O/<Esc> で閉じる
+P					|{S-WIN}|	'conceallevel' によって表示されていない HTML メール内のリ
+										ンク URL をポップアップやコマンド・ラインで表示
 s					|{F-WIN}|/|{T-WIN}|  検索一覧 (Search)
 					                                |notmuch-python-vim-search|
 					|{S-WIN}|  添付ファイルを保存 (Save attach)
@@ -459,6 +462,13 @@ g:notmuch_command                                    *g:notmuch_command*
 								- 0x04:	|{F-WIN}|/|{T-WIN}|/|{S-WIN}| で使用可能か?
 								- 0x08:	送信メール・バッファ
 									(|notmuch-python-vim-sending-buffer|) で使用可能か?
+
+g:notmuch_conceal_url                                *g:notmuch_conceal_url*
+	Type: |Number|
+	Default: `0`
+
+	* |{S-WIN}| で HTML メール中のリンク先 URL を表示しない (conceal)
+	* 非表示になっても、|'wrap'| で折り返されている文の縦方向のズレは残る
 
 g:notmuch_date_format                                *g:notmuch_date_format*
 	Type: |String|

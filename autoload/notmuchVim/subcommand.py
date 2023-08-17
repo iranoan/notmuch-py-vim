@@ -3318,7 +3318,7 @@ def view_mail_info():
                             'drag': 1,
                             'close': 'click',
                             'moved': 'any',
-                            'filter': "Close_popup",
+                            'filter': "notmuch_py#Close_popup",
                             'col': 'cursor',
                             'wrap': 0,
                             'mapping': 0})

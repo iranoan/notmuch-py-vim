@@ -33,8 +33,11 @@ syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag star
 syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 
-syntax region	HTMLmailLink	contained	matchgroup=HTMLmailLinkTag start="(" end=")"	contains=mailURL keepend oneline conceal
-" ↑非表示にはできても、折返し分の空間までは消えない
+if get(g:, 'notmuch_conceal_url', 0)
+	syntax region	HTMLmailLink	contained	matchgroup=HTMLmailLinkTag start="(" end=")"	contains=mailURL keepend oneline conceal
+else
+	syntax region	HTMLmailLink	contained	matchgroup=HTMLmailLinkTag start="(" end=")"	contains=mailURL keepend oneline
+endif
 syntax region	HTMLmailId	contained	matchgroup=HTMLmailIdTag start="\[" end="\]" keepend oneline
 syntax region	HTMLmailLinkText	contained	matchgroup=HTMLmailLinkTextTag start="!\=\[\%(\%(\_[^][]\|\[\_[^][]*\]\)*]\%( \=[[(]\)\)\@=" end="\]\%( \=[[(]\)\@=" nextgroup=HTMLmailLink,HTMLmailId skipwhite	contains=@HTMLmailInline,HTMLmailLinkItalic,HTMLmailLinkBold keepend
 syntax region	HTMLmailLinkItalic	contained	matchgroup=HTMLmailLinkItalicTag start="_\S\@=" end="\S\@<=_"  skip="\\_"	contains=@Spell concealends keepend
