@@ -1207,7 +1207,7 @@ enddef
 
 export def Get_highlight(hi: string): string
 	return substitute(substitute(substitute(execute('highlight ' .. hi),
-				'[\n\r \t]\+', ' ', 'g'),
+				'[\n\r]\+', '', 'g'),
 				' *' .. hi .. '\s\+xxx *', '', ''),
 				'\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
 enddef
