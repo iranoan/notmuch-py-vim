@@ -25,7 +25,7 @@ if !exists('g:ft_notmuch_show')
 endif
 
 if &statusline ==? ''
-	setlocal statusline=%{%printf(printf("%%.%dS",&columns-53-strdisplaywidth(b:notmuch.date)),b:notmuch.subject)%}%=\ %{b:notmuch.date}\ %c:%v\ %3l/%L\ %3{line('w$')*100/line('$')}%%\ 0x%B
+	setlocal statusline=%{%printf(printf("%%.%dS",&columns-53-strdisplaywidth(b:notmuch.date)),b:notmuch.subject)%}%=\ %{b:notmuch.date}\ %c:%v\ %3l/%-3L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
 setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=notmuch_py#FoldHeaderText() foldlevel=2 nolist
 if &foldcolumn == 0
