@@ -284,7 +284,7 @@ class MailData:  # メール毎の各種データ
             ' ', datetime.datetime.fromtimestamp(self._date).strftime(DATE_FORMAT))
         # 整形した Subject
         self._reformed_subject = RE_TOP_SPACE.sub('', RE_TAB2SPACE.sub(
-            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject))))
+            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject.translate(ZEN2HAN)))))
         if self._reformed_subject == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
             self._reformed_subject = ' '
         # 整形した宛名
@@ -6572,6 +6572,12 @@ def get_temp_dir():
 #  以下初期化処理
 set_defaults()
 # 定数扱いするグローバル変数の初期値
+ZEN2HAN = str.maketrans('０１２３４５６７８９'
+                        + 'ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ'
+                        + r'！＂＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～　',
+                        '0123456789'
+                        + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                        + r'!"#$%&' + r"'()*+,-./:;<=>?@[⧵]^_`{|}~ ")
 PATH = get_config('database.path')
 if not os.path.isdir(PATH):
     raise notmuchVimError('\'' + PATH + '\' don\'t exist.')
