@@ -913,9 +913,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     b.vars['notmuch']['search_term'] = search_term
     b[:] = None
     vim.command('redraw')  # 直前より行数の少ないスレッドを開いた時、後に選択する行がウィンドウ先頭に表示されるのを防ぐ
-    ls = []
-    for msg in threadlist:
-        ls.append(msg.get_list(flag))
+    ls = [msg.get_list(flag) for msg in threadlist]
     # 下の様はマルチプロセス化を試みたが反って遅くなる
     # with ProcessPoolExecutor() as executor:  # ProcessPoolExecutor
     #     f = [executor.submit(i.get_list, flag) for i in threadlist]
