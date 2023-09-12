@@ -19,6 +19,7 @@ import shutil                     # ファイル移動
 import sys
 import time                       # UNIX time の取得
 from base64 import b64decode
+from math import ceil
 from concurrent.futures import ProcessPoolExecutor
 # from concurrent.futures import ThreadPoolExecutor
 from email.message import Message
@@ -180,88 +181,14 @@ def str_just_length(string, length):
     count_widht = strdisplaywidth(string)
     if count_widht == length:
         return string
-    elif count_widht < length:
-        return string + ' ' * (length - count_widht)
-    ambiwidth = (vim.options['ambiwidth'] == b'double')
-    if ambiwidth:
-        symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' \
-            + '±µ¶×ø■□▲△▶▷▼▽◀◁◆◇◈○◎●◢◣◤◥◯◽◾' \
-            + '★☆☉☎☏☔☕☜☞♀♂♈♉♊♋♌♍♎♏♐♑♒♓♠♡♣♤♥♧♨♩♪♬♭♯⚓⚞⚟⚡' \
-            + '⚪⚫⚽⚾⚿⛄⛅⛇⛈⛉⛊⛋⛌⛎⛏⛐⛑⛒⛓⛔⛕⛖⛗⛘⛙⛚⛛⛜⛝⛞⛟⛠⛡' \
-            + '⛨⛩⛪⛫⛬⛭⛮⛯⛰⛱⛲⛳⛴⛵⛶⛷⛸⛹⛺⛻⛼⛽⛾⛿' \
-            + '∀∀∂∃∇∈∋∏∑∕√∝∞∟∠∣∥∧∨∩∩∪∫∬∮∵∵∶∼∽≈≒≠≡≤≥≦≧≪≫≮≯⊃⊆⊇⊕⊙⊥⊿'
-    else:
-        symbol = '⌚⌛⏩⏪⏫⏬⏰⏳' \
-            + '◽◾' \
-            + '☕♉♊♋♌♍♎♏♐♑♒♓⚓⚡' \
-            + '⚪⚫⚽⚾⛄⛅⛎⛔' \
-            + '⛪⛲⛳⛵⛺⛽'
-    count_widht = 0
-    count_char = 0
-    ambiwidth += 1  # ambiwidth が double かどうかのフラグから、その文字幅の数値に変換
-    for char in string:  # .decode('utf-8'):  # プロンプトから実行した時にエラーに成る
-        char_code = ord(char)
-        if char_code >= 0x391 and char_code <= 0x337:        # ギリシャ大文字
-            count_widht += ambiwidth
-        elif char_code >= 0x3B1 and char_code <= 0x3C9:      # ギリシャ小文字
-            count_widht += ambiwidth
-        # 一般句読点はバラバラ
-        elif char_code == 0x2010:
-            count_widht += ambiwidth
-        elif (char_code >= 0x2013 and char_code <= 0x2016) \
-                or char_code == 0x2018 or char_code == 0x2019 \
-                or char_code == 0x201C or char_code == 0x201D \
-                or (char_code >= 0x2020 and char_code <= 0x2022) \
-                or (char_code >= 0x2024 and char_code <= 0x2027) \
-                or char_code == 0x2030 \
-                or char_code == 0x2032 or char_code == 0x2033 \
-                or char_code == 0x2035 \
-                or char_code == 0x203B or char_code == 0x203E:
-            count_widht += ambiwidth
-        elif char_code >= 0x2000 and char_code <= 0x206F:    # 一般句読点の上記以外
-            count_widht += 1
-        elif (char_code >= 0x215B and char_code <= 0x215E) \
-                or (char_code >= 0x2160 and char_code <= 0x216B) \
-                or (char_code >= 0x2170 and char_code <= 0x2179):  # ローマ数字など数字に準じるもの
-            count_widht += ambiwidth
-        elif (char_code >= 0x2190 and char_code <= 0x2199) \
-                or char_code == 0x21B8 or char_code == 0x21B9 \
-                or char_code == 0x21D2 or char_code == 0x21E7:  # ←↑→↓↔↕↖↗↘↙ ↸↹ ⇒ ⇧
-            count_widht += ambiwidth
-        elif char_code >= 0x2460 and char_code <= 0x253C:    # 囲み数字と全角罫線
-            count_widht += 2
-        elif char in symbol:                                 # コードが固まっていない記号
-            count_widht += 2
-        elif char_code >= 0x3000 and char_code <= 0x30FF:    # CJK 記号句読点、かな文字
-            count_widht += 2
-        elif char_code >= 0x31F0 and char_code <= 0x9FEF:    # かな文字拡張 CJK 囲み文字/漢字など
-            count_widht += 2
-        elif char_code >= 0xAC00 and char_code <= 0xD7FB:    # ハングル
-            count_widht += 2
-        elif char_code >= 0xF900 and char_code <= 0xFAD9:    # CJK 互換
-            count_widht += 2
-        elif char_code >= 0xFE10 and char_code <= 0xFE19:    # 縦書形
-            count_widht += 2
-        elif char_code >= 0xFE30 and char_code <= 0xFE6B:    # CJK 互換形
-            count_widht += 2
-        elif char_code >= 0xFF00 and char_code <= 0xFF64:    # ASCII の全角形(･を除く)
-            count_widht += 2
-        # ASCII の全角形(･を除く)の続き
-        elif char_code >= 0xFF66 and char_code <= 0xFFEE:
-            count_widht += 2
-        elif char_code >= 0x1F300 and char_code <= 0x1F64F:  # 顔文字・絵文字
-            count_widht += 2
-        elif char_code >= 0x20000 and char_code <= 0x2FA1D:  # CJK 結合拡張
-            count_widht += 2
-            # ↑他にもあると思うけど見つかったら追加していく
-        else:
-            count_widht += 1
-        count_char += 1
-        if count_widht == length:
-            return string[0:count_char]
-        elif count_widht > length:
-            return string[0:count_char - 1] + ' '
-    return string + (length - count_widht) * ' '
+    elif count_widht > length:
+        while True:
+            string = string[:-ceil((count_widht - length) / 2)]  # 末尾の多い分を削除
+            # ただし全角の場合が有るので、2で割り切り上げ
+            count_widht = strdisplaywidth(string)
+            if length >= count_widht:
+                break
+    return string + ' ' * (length - count_widht)
 
 
 class MailData:  # メール毎の各種データ
