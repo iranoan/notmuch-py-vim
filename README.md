@@ -12,13 +12,13 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 
 メール数が多い検索条件だとスレッド一覧の表示に時間がかかる
 
-* Ubuntu 21.10
-* Linux kernel 5.13.0
-* VIM - Vi IMproved 8.2 (2019 Dec 12, compiled Nov 08 2021 14:17:01)
-* CPU: Intel&reg; Core&trade; i7-6500U CPU @ 2.50&nbsp;GHz
-* Memory: 8&nbsp;GB
+* Ubuntu 23.04
+* Linux kernel 6.2.0
+* VIM - Vi IMproved 9.0
+* CPU: 12th Gen Intel© Core™ i7-1270P×16
+* Memory: 32&nbsp;GB
 
-の環境で、約 24000 通にヒットする検索条件のスレッド一覧の表示に 21 秒ほどかかる
+の環境で、約 29000 通にヒットする検索条件のスレッド一覧の表示に 14 秒ほどかかるかかる
 
 個人的には今の所、普段は 3 ヶ月以内のメールのみ一覧するように検索条件を指定している
 
