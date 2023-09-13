@@ -54,7 +54,7 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 	* VIM - Vi IMproved 9.0
 	* CPU: 12th Gen Intel© Core™ i7-1270P×16
 	* Memory: 32 GB
-の環境で、約 29000 通にヒットする検索条件のスレッド一覧の表示に 14 秒ほどかかる
+の環境で、約 29000 通にヒットする検索条件のスレッド一覧の表示に 17 秒ほどかかる
 かかる
 
                                                                    *search-term*
