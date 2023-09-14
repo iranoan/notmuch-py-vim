@@ -1535,7 +1535,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 if re_match is None:
                     break
                 match = re_match[0]
-                s = s.replace(match, re.sub(r'</?' + tag + '>', r'', match).translate(rep_dic))
+                s = s.replace(match, re.sub(r'</?' + tag + '>', r'', match, re.IGNORECASE).translate(rep_dic))
             return s
 
         content_type = part.get_content_type()
