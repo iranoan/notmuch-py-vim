@@ -1528,6 +1528,16 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         thread_b.options['modifiable'] = 0
 
     def get_output(part, part_ls, output):
+        def replace_intag(dic, tag, chars, s):  # tag 自身を削除し、それに挟まれた chars を dic の対応に合わせて置換する
+            rep_dic = str.maketrans(dic)
+            while True:
+                re_match = re.search(r'<' + tag + '>' + chars + '</' + tag + '>', s, re.IGNORECASE)
+                if re_match is None:
+                    break
+                match = re_match[0]
+                s = s.replace(match, re.sub(r'</?' + tag + '>', r'', match).translate(rep_dic))
+            return s
+
         content_type = part.get_content_type()
         charset = part.get_content_charset('utf-8')
         # * 下書きメールを単純にファイル保存した時は UTF-8 にしそれをインポート
@@ -1579,6 +1589,15 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 # html_converter.table_start = True
                 if vim.vars.get('notmuch_ignore_tables', 0):
                     html_converter.ignore_tables = True
+                tmp_text = replace_intag({  # 上付き添字の変換
+                    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+                    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+                    '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
+                    'a': 'ª', 'i': 'ⁱ', 'n': 'ⁿ', 'o': 'º'}, 'sup', r'[aino0-9+=()-]+', tmp_text)
+                tmp_text = replace_intag({  # 下付き添字の変換
+                    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+                    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+                    '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎'}, 'sub', r'[0-9+=()-]+', tmp_text)
                 html_converter.body_width = len(tmp_text)
                 add_content(output.html['content'],
                             re.sub(r'(?<![A-Za-z]) (?=(_|\*\*))', r'',  # ASCII 外が前後にあると勝手に空白が入る
