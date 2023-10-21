@@ -23,13 +23,14 @@ syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start
 syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML mail$' end='^[\x0C]'me=e-1 end='\%$'
 
  " marddown
-syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold,HTMLmailBoldItalic
+" syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold,HTMLmailBoldItalic
+syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold
 syntax cluster	HTMLmailBoldlock	contains=HTMLmailH1,HTMLmailH2,HTMLmailH3,HTMLmailH4,HTMLmailH5,HTMLmailH6,@HTMLmailInline,HTMLmailLink,HTMLmailId
 
 syntax region	HTMLmailItalic	contained	matchgroup=HTMLmailItalicTag start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailBold	contained	matchgroup=HTMLmailBoldTag start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
-syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
-syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+" syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\*\*\S\@=" end="\S\@<=\*\*_\w\@!" skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+" syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start='\*\*_\S\@=' end='\S\@<=_\*\*\s' skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\S\@=" end="\S\@<=_" skip="\\_"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="\*\*\S\@=" end="\S\@<=\*\*" skip="\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 
@@ -60,7 +61,7 @@ highlight default link HTMLmailLinkText	Underlined
 highlight default link HTMLmailId	Type
 highlight default link HTMLmailBold	htmlBold
 highlight default link HTMLmailBoldTag	htmlBold
-highlight default link HTMLmailBoldItalic	htmlBoldItalic
+" highlight default link HTMLmailBoldItalic	htmlBoldItalic
 highlight default link HTMLmailLinkBoldItalic	htmlBoldItalic
 highlight default link HTMLmailBoldItalicTag htmlBoldItalic
 highlight default link HTMLmailItalic	htmlItalic
