@@ -916,6 +916,13 @@ close
 	* ウィンドウを閉じる
 	* |:close| と違い最後のウィンドウでも他のバッファが無ければ Vim 自体を終了する
 
+                                                   *notmuch-python-vim-close-tab*
+close-tab
+	close (|notmuch-python-vim-close|) に加えて
+	* 同一タブページに |{F-WIN}| があれば、他の |{T-WIN}|/|{S-WIN}| や未編集の送信メー
+		ル・バッファ(|notmuch-python-vim-sending-buffer|) も閉じる
+	* そうでなければ、同一ウィンドウ内に有るペアとなる |{T-WIN}|/|{S-WIN}| を閉じる
+
                                                *notmuch-python-vim-mail-attach*
 mail-attach-forward
 	* 添付ファイルとして転送するメールの編集バッファを開く

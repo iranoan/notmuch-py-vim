@@ -823,7 +823,7 @@ function Delete_attachment(args) abort
 	py3 delete_attachment(vim.eval('a:args'))
 endfunction
 
-def Close(args: list<any>): void # notmuch-* を閉じる (基本 close なので隠すだけ) が、他のバッファが残っていれば Vim を終了させずに、そのバッファを復活させる
+def CloseCore(): void # notmuch-* を閉じる (閉じるメイン部分)
 	if winnr('$') == 1 && tabpagenr('$') == 1
 		var bufnr: number = Search_not_notmuch()
 		if bufnr
@@ -833,6 +833,47 @@ def Close(args: list<any>): void # notmuch-* を閉じる (基本 close なの�
 		endif
 	else
 		close
+	endif
+enddef
+
+def Close(args: list<any>): void # notmuch-* を閉じる (基本 close なので隠すだけ) が、他のバッファが残っていれば Vim を終了させずに、そのバッファを復活させる
+	CloseCore()
+enddef
+
+def CloseTab(args: list<any>): void # notmuch-* を閉じる
+	# タブ・ページに notmuch-folder があれば、notmuch-* すべての終了を試みる
+	# そうでない場合、互いに対応する notmuch-thread/notmuch-show を閉じる
+	def ClosePare(pair_b: number, current: number)
+		var c_tab: number = tabpagenr()
+		for b in tabpagebuflist()
+			if b == current || b == pair_b
+				for w in getbufinfo(b)[0].windows
+					if c_tab == win_id2tabwin(w)[0]
+						win_gotoid(w)
+						CloseCore()
+					endif
+				endfor
+			endif
+		endfor
+	enddef
+
+	for b in tabpagebuflist()
+		if b == buf_num.folders
+			End_notmuch()
+			return
+		endif
+	endfor
+	var bufnum: number = bufnr('')
+	if &filetype ==# 'notmuch-edit' || &filetype ==# 'notmuch-draft'
+		close
+	elseif buf_num['thread'] == bufnum
+		ClosePare(buf_num['show'], bufnum)
+	elseif buf_num['show'] == bufnum
+		ClosePare(buf_num['thread'], bufnum)
+	elseif &filetype ==# 'notmuch-thread'
+		ClosePare(buf_num['view'][getbufinfo('')[0].variables.notmuch.search_term], bufnum)
+	elseif &filetype ==#  'notmuch-show'
+		ClosePare(buf_num['search'][getbufinfo('')[0].variables.notmuch.search_term], bufnum)
 	endif
 enddef
 

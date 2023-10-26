@@ -488,6 +488,7 @@ def set_subcmd_start():
         cmd['attach-delete'] = ['Delete_attachment', 0x06]
         cmd['attach-save'] = ['Save_attachment', 0x06]
         cmd['close'] = ['Close', 0x04]
+        cmd['close-tab'] = ['CloseTab', 0x04]
         cmd['mail-attach-forward'] = ['Forward_mail_attach', 0x04]
         cmd['mail-delete'] = ['Delete_mail', 0x06]
         cmd['mail-edit'] = ['Open_original', 0x06]
