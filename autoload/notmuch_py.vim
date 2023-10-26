@@ -859,7 +859,7 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 
 	for b in tabpagebuflist()
 		if b == buf_num.folders
-			End_notmuch()
+			execute 'bwipeout ' .. b
 			return
 		endif
 	endfor
