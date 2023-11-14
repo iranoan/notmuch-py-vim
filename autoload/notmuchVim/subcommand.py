@@ -868,6 +868,8 @@ def print_thread_core(b_num, search_term, select_unread, remake):
             vim.command('normal! Gzb')
             reset_cursor_position(b, vim.current.window, vim.current.window.cursor[0])
             fold_open()
+    bufname = 'silent file! notmuch://thread?' + search_term.replace('#', r'\#')
+    vim.command(bufname)
 
 
 def thread_change_sort(sort_way):
@@ -1983,6 +1985,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             msg = change_tags_before_core(msg.get_message_id())
             delete_msg_tags(msg, ['unread'])
             change_tags_after_core(msg, True)
+    bufname = 'silent file! notmuch://show?' + search_term.replace('#', r'\#')
+    vim.command(bufname)
     vim_goto_bufwinid(active_win)
     vim.command('redrawstatus!')
 

@@ -141,7 +141,6 @@ def Make_search_list(search_term: string): void
 		return
 	endif
 	New_buffer('search', search_term)
-	execute 'silent file! notmuch://thread?' .. substitute(search_term, '#', '\\#', 'g')
 	Set_thread()
 	augroup NotmuchMakeSearch
 		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
@@ -194,7 +193,6 @@ def Make_view(search_term: string): void # メール・バッファを用意す�
 		return
 	endif
 	New_buffer('view', search_term)
-	execute 'silent file! notmuch://show?' .. substitute(search_term, '#', '\\"', 'g')
 	Set_show()
 	augroup NotmuchMakeView
 		# autocmd!
