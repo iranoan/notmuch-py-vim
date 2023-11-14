@@ -109,7 +109,7 @@ def Make_folders_list(): void
 		endif
 	else
 		call New_buffer('folders', '')
-		:silent file! notmuch-folder
+		:silent file! notmuch://folder
 		py3 print_folder()
 		augroup NotmuchMakeFolder
 			autocmd!
@@ -124,7 +124,7 @@ def Make_thread_list(): void # スレッド・バッファを用意するだけ
 		return
 	endif
 	New_buffer('thread', '')
-	silent file! notmuch-thread
+	silent file! notmuch://thread
 	Set_thread()
 	augroup NotmuchMakeThread
 		autocmd!
@@ -141,7 +141,7 @@ def Make_search_list(search_term: string): void
 		return
 	endif
 	New_buffer('search', search_term)
-	execute 'silent file! notmuch-thread [' .. substitute(search_term, '#', '\\#', 'g') .. ']'
+	execute 'silent file! notmuch://thread?' .. substitute(search_term, '#', '\\#', 'g')
 	Set_thread()
 	augroup NotmuchMakeSearch
 		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
@@ -181,7 +181,7 @@ def Make_show(): void # メール・バッファを用意するだけ
 	endif
 	call New_buffer('show', '')
 	call Set_show()
-	:silent file! notmuch-show
+	:silent file! notmuch://show
 	augroup NotmuchMakeShow
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.show
@@ -194,7 +194,7 @@ def Make_view(search_term: string): void # メール・バッファを用意す�
 		return
 	endif
 	New_buffer('view', search_term)
-	execute 'silent file! notmuch-show [' .. substitute(search_term, '#', '\\"', 'g') .. ']'
+	execute 'silent file! notmuch://show?' .. substitute(search_term, '#', '\\"', 'g')
 	Set_show()
 	augroup NotmuchMakeView
 		# autocmd!
