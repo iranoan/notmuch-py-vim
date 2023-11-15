@@ -929,7 +929,7 @@ def Au_write_draft(): void # draft mail の保存
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchSaveDraft' .. l_bufnr
 		autocmd!
-		autocmd BufWritePost <buffer> py3 save_draft()
+		autocmd BufWrite <buffer> py3 save_draft()
 		execute 'autocmd BufWipeout <buffer> autocmd! NotmuchSaveDraft' .. l_bufnr
 	augroup END
 enddef
