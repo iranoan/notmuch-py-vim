@@ -109,7 +109,7 @@ def Make_folders_list(): void
 		endif
 	else
 		call New_buffer('folders', '')
-		:silent file! notmuch://folder
+		execute('silent file! notmuch://folder?' .. getcwd())
 		py3 print_folder()
 		augroup NotmuchMakeFolder
 			autocmd!

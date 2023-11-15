@@ -3356,7 +3356,7 @@ def open_original(msg_id, search_term, args):
         if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
             vim.command('setlocal filetype=notmuch-draft | call s:Au_write_draft() | cd '
                         + os.path.dirname(
-                            vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()))
+                            vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
         else:
             vim.command('setlocal filetype=notmuch-edit')
     if message != '':
@@ -4652,7 +4652,7 @@ def after_make_draft(b, msg, add_head):
     b.options['modified'] = 0
     if 'folders' in s_buf_num_dic():
         vim.command('silent cd ' + os.path.dirname(
-            vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()))
+            vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
     vim.command('call s:Au_write_draft()')
 
 
