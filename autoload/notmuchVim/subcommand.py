@@ -212,7 +212,8 @@ class MailData:  # メール毎の各種データ
         self._tags = list(msg.get_tags())
         # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
-        # self.__subject = msg.get_header('Subject') # 元のメール・ファイルのヘッダの途中で改行されていると最初の行しか取得しない
+        # self.__subject = msg.get_header('Subject') # ←元のメール・ファイルのヘッダの途中で改行されていると最初の行しか取得しない
+        # ↑の問題に対応する→スレッド生成でマルチ・スレッドが使えなくなる
         for f in msg.get_filenames():
             if os.path.isfile(f):
                 try:
