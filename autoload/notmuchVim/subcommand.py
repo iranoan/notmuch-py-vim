@@ -20,7 +20,7 @@ import sys
 import time                       # UNIX time の取得
 from base64 import b64decode
 from math import ceil
-from concurrent.futures import ProcessPoolExecutor
+# from concurrent.futures import ProcessPoolExecutor
 # from concurrent.futures import ThreadPoolExecutor
 from email.message import Message
 from email.mime.base import MIMEBase
@@ -193,6 +193,16 @@ def str_just_length(string, length):
 
 class MailData:  # メール毎の各種データ
     def __init__(self, msg, thread, order, depth):
+        def get_subject(msg_f):
+            h_cont = msg_f.get_all('Subject')
+            if h_cont is None:
+                return ''
+            else:
+                data = ''
+                for d in h_cont:
+                    data += decode_header(d, False)
+                return RE_TAB2SPACE.sub(' ', data)
+
         self._date = msg.get_date()                   # 日付 (time_t)
         self._newest_date = thread.get_newest_date()  # 同一スレッド中で最も新しい日付 (time_t)
         self._thread_id = thread.get_thread_id()      # スレッド ID
@@ -202,7 +212,18 @@ class MailData:  # メール毎の各種データ
         self._tags = list(msg.get_tags())
         # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
-        self.__subject = msg.get_header('Subject')
+        # self.__subject = msg.get_header('Subject') # 元のメール・ファイルのヘッダの途中で改行されていると最初の行しか取得しない
+        for f in msg.get_filenames():
+            if os.path.isfile(f):
+                try:
+                    with open(f, 'r') as fp:
+                        self.__subject = get_subject(email.message_from_file(fp))
+                except UnicodeDecodeError:
+                    # ↑普段は上のテキスト・ファイルとして開く
+                    # 理由は↓だと、本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
+                    with open(f, 'rb') as fp:
+                        self.__subject = get_subject(email.message_from_binary_file(fp))
+                break
         self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.get_header('From'))).lower()
         # self.__path = msg.get_filenames().__str__().split('\n')  # file name (full path)
         # ↑同一 Message-ID メールが複数でも取り敢えず全て
@@ -210,8 +231,8 @@ class MailData:  # メール毎の各種データ
         self.__reformed_date = RE_TAB2SPACE.sub(
             ' ', datetime.datetime.fromtimestamp(self._date).strftime(DATE_FORMAT))
         # 整形した Subject
-        self._reformed_subject = RE_TOP_SPACE.sub('', RE_TAB2SPACE.sub(
-            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject.translate(ZEN2HAN)))))
+        self._reformed_subject = RE_TOP_SPACE.sub(
+            '', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject.translate(ZEN2HAN))))
         if self._reformed_subject == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
             self._reformed_subject = ' '
         # 整形した宛名
@@ -258,8 +279,7 @@ class MailData:  # メール毎の各種データ
             emoji_length = '{:' + str(emoji_length) + 's}'
             ls += emoji_length.format('')
         subject = str_just_length(self.__thread_depth * flag_thread * ('  ')
-                                  + '  ' + RE_TAB2SPACE.sub(' ', self._reformed_subject),
-                                  SUBJECT_LENGTH)
+                                  + '  ' + self._reformed_subject, SUBJECT_LENGTH)
         adr = str_just_length(RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)
         date = RE_TAB2SPACE.sub(' ', self.__reformed_date)
         return RE_END_SPACE.sub('', DISPLAY_FORMAT.format(ls, subject, adr, date))
@@ -297,7 +317,10 @@ class MailData:  # メール毎の各種データ
         return self.__subject
 
     def set_subject(self, s):  # 復号化した時、JIS 外漢字が使われデコード結果と異なる時に呼び出され、Subject 情報を書き換える
-        self._reformed_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s)))
+        self._reformed_subject = RE_TOP_SPACE.sub('', RE_TAB2SPACE.sub(
+            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s.translate(ZEN2HAN)))))
+        if self._reformed_subject == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
+            self._reformed_subject = ' '
         self.__subject = s
 
 
@@ -443,10 +466,13 @@ def make_thread_core(search_term):
     # ValueError: ctypes objects containing pointers cannot be pickled
     set_global_var()
     ls = []
-    with ProcessPoolExecutor() as executor:
-        f = [executor.submit(make_single_thread, i, search_term) for i in threads]
-        for r in f:
-            ls += r.result()
+    for i in threads:
+        ls.extend(make_single_thread(i, search_term))
+    # マルチプロセス版 Mailbox で Subject 全体をの取得にしたら落ちる
+    # with ProcessPoolExecutor() as executor:
+    #     f = [executor.submit(make_single_thread, i, search_term) for i in threads]
+    #     for r in f:
+    #         ls += r.result()
     ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
     THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
     vim.command('redraw')

@@ -49,12 +49,12 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 欠点~
 
 メール数が多い検索条件だとスレッド一覧の表示に時間がかかる
-	* Ubuntu 23.04
-	* Linux kernel 6.2.0
+	* Ubuntu 23.10
+	* Linux kernel 6.5.0
 	* VIM - Vi IMproved 9.0
 	* CPU: 12th Gen Intel© Core™ i7-1270P×16
 	* Memory: 32 GB
-の環境で、約 29000 通にヒットする検索条件のスレッド一覧の表示に 17 秒ほど
+の環境で、約 28000 通にヒットする検索条件のスレッド一覧の表示に 21 秒ほど
 
                                                                    *search-term*
 NOTE: 以下、Notmuch を用いる検索条件は |search-term| と記載する
