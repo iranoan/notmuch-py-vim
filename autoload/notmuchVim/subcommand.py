@@ -232,10 +232,7 @@ class MailData:  # メール毎の各種データ
         self.__reformed_date = RE_TAB2SPACE.sub(
             ' ', datetime.datetime.fromtimestamp(self._date).strftime(DATE_FORMAT))
         # 整形した Subject
-        self._reformed_subject = RE_TOP_SPACE.sub(
-            '', RE_END_SPACE.sub('', RE_SUBJECT.sub('', self.__subject.translate(ZEN2HAN))))
-        if self._reformed_subject == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
-            self._reformed_subject = ' '
+        self.reform_subject(self.__subject)
         # 整形した宛名
         m_from = msg.get_header('From')
         try:
@@ -265,6 +262,14 @@ class MailData:  # メール毎の各種データ
 
     def __del__(self):  # デストラクタ←本当に必要か不明
         del self
+
+    def reform_subject(self, s):
+        s = RE_TOP_SPACE.sub(
+            '', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s.translate(ZEN2HAN))))
+        if s == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
+            self._reformed_subject = ' '
+        else:
+            self._reformed_subject = s
 
     def get_list(self, flag_thread):
         ls = ''
@@ -318,10 +323,7 @@ class MailData:  # メール毎の各種データ
         return self.__subject
 
     def set_subject(self, s):  # 復号化した時、JIS 外漢字が使われデコード結果と異なる時に呼び出され、Subject 情報を書き換える
-        self._reformed_subject = RE_TOP_SPACE.sub('', RE_TAB2SPACE.sub(
-            ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', s.translate(ZEN2HAN)))))
-        if self._reformed_subject == '':  # Subject が空の時そのままだと通常の空白で埋められ、親スレッドが無いと別のスレッド扱いになる
-            self._reformed_subject = ' '
+        self.reform_subject(s)
         self.__subject = s
 
 
