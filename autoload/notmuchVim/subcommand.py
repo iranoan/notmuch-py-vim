@@ -2555,11 +2555,11 @@ def reindex_mail(msg_id, s, args):
     return [0, 0]  # ダミー・リストを返す
 
 
-def decode_header(f, is_file):
-    if f is None:
+def decode_header(s, is_file):
+    if s is None:
         return ''
     name = ''
-    for string, charset in email.header.decode_header(f):
+    for string, charset in email.header.decode_header(s):
         if charset is None:
             if type(string) is bytes:
                 name += string.decode('raw_unicode_escape')
