@@ -200,8 +200,8 @@ class MailData:  # メール毎の各種データ
             else:
                 data = ''
                 for d in h_cont:
-                    data += decode_header(d, False)
-                return RE_TAB2SPACE.sub(' ', data)
+                    data += d
+                return RE_TAB2SPACE.sub(' ', decode_header(data, False))
 
         self._date = msg.get_date()                   # 日付 (time_t)
         self._newest_date = thread.get_newest_date()  # 同一スレッド中で最も新しい日付 (time_t)
@@ -1322,7 +1322,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 continue
             data = ''
             for d in h_cont:
-                data += decode_header(d, False)
+                data += d
+            data = decode_header(data, False)
             if data != '':
                 data = data.replace('\t', ' ')
                 data = header + ': ' + data
@@ -1532,7 +1533,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             return False
         sub = ''
         for s in part.get_all('Subject', ''):
-            sub += decode_header(s, False)
+            sub += s
+        sub = decode_header(sub, False)
         if sub != '':
             b_v['subject'] = sub
             reset_subject(sub)
