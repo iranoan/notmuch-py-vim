@@ -34,6 +34,7 @@ from urllib.parse import unquote  # URL の %xx を変換
 
 from html2text import HTML2Text   # HTML メールの整形
 import notmuch                    # API で出来ないことは notmuch コマンド (subprocess)
+import notmuch2                   # API で出来ないことは notmuch コマンド (subprocess)
 import vim
 
 
@@ -237,8 +238,8 @@ class MailData:  # メール毎の各種データ
         m_from = msg.get_header('From')
         try:
             m_to = msg.get_header('To')
-        except notmuch.errors.NullPointerError:  # どの様な条件で起きるのか不明なので、取り敢えず From ヘッダを使う
-            # print_warring('Message-ID:' + self._msg_id + 'notmuch.errors.NullPointerError') ←マルチスレッド中だと落ちる
+        except notmuch2.NullPointerError:  # どの様な条件で起きるのか不明なので、取り敢えず From ヘッダを使う
+            # print_warring('Message-ID:' + self._msg_id + 'notmuch2.NullPointerError') ←マルチスレッド中だと落ちる
             m_to = m_from
         # ↓From, To が同一なら From←名前が入っている可能性がより高い
         m_to_adr = email2only_address(m_to)
@@ -460,7 +461,7 @@ def make_thread_core(search_term):
     query = notmuch.Query(DBASE, search_term)
     try:  # スレッド一覧
         threads = query.search_threads()
-    except notmuch.errors.NullPointerError:
+    except notmuch2.NullPointerError:
         print_err('Error: Search thread')
         return False
     reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
@@ -492,7 +493,7 @@ def make_single_thread(thread_id, search_term):
     thread = list(query.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
         msgs = thread.get_toplevel_messages()
-    except notmuch.errors.NullPointerError:
+    except notmuch2.NullPointerError:
         print_err('Error: get top-level message')
     replies = []
     for msg in msgs:
@@ -1292,7 +1293,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         b_v['msg_id'] = msg_id
         try:
             b_v['subject'] = msg.get_header('Subject')
-        except notmuch.errors.NullPointerError:  # メール・ファイルが削除されているときに起きる
+        except notmuch2.NullPointerError:  # メール・ファイルが削除されているときに起きる
             b_v['subject'] = ''
         b_v['date'] = RE_TAB2SPACE.sub(
             ' ', datetime.datetime.fromtimestamp(msg.get_date()).strftime(DATE_FORMAT))
@@ -5268,7 +5269,7 @@ def select_file(msg_id, question, s):
         return [], '', 0, ''
     try:
         subject = msg.get_header('Subject')
-    except notmuch.errors.NullPointerError:  # すでにファイルが削除されているとき
+    except notmuch2.NullPointerError:  # すでにファイルが削除されているとき
         print('The email has already been completely deleted.')
         DBASE.close()
         return [], '', 0, ''
