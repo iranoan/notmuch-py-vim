@@ -643,8 +643,8 @@ def set_folder_format():
 def format_folder(folder, search_term):
     try:  # search_term チェック
         all_mail = notmuch.Query(DBASE, search_term).count_messages()  # メール総数
-    except notmuch.errors.XapianError:
-        print_error('notmuch.errors.XapianError: Check search term: ' + search_term)
+    except notmuch2.XapianError:
+        print_error('notmuch2.XapianError: Check search term: ' + search_term)
         vim.command('message')  # 起動時のエラーなので、再度表示させる
         return '\'search term\' (' + search_term + ') error'
     return vim.vars['notmuch_folder_format'].decode().format(
@@ -849,8 +849,8 @@ def print_thread_core(b_num, search_term, select_unread, remake):
         return
     try:  # search_term チェック
         unread = notmuch.Query(DBASE, search_term).count_messages()
-    except notmuch.errors.XapianError:
-        print_error('notmuch.errors.XapianError: Check search term: ' + search_term + '.')
+    except notmuch2.XapianError:
+        print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
     # if vim_goto_bufwinid("thread") == 0:
     #     reopen('thread', search_term)
@@ -5682,10 +5682,10 @@ def notmuch_search(search_term):
             DBASE.close()
             print_warring('Don\'t find mail.  (0 search mail).')
             return
-    except notmuch.errors.XapianError:
+    except notmuch2.XapianError:
         DBASE.close()
         vim.command('redraw')
-        print_error('notmuch.errors.XapianError: Check search term: ' + search_term + '.')
+        print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
     DBASE.close()
     vim.command('call s:Make_search_list(\'' + vim_escape(search_term) + '\')')
