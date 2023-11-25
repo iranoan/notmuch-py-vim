@@ -1138,7 +1138,7 @@ def reload_thread():
         fold_open()
         if is_same_tabpage('show', ''):
             # タグを変更することが有るので書き込み権限も
-            DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+            DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
             open_mail_by_msgid(
                 search_term,
                 THREAD_LISTS[search_term]['list'][w.cursor[0] - 1]._msg_id,
@@ -1219,7 +1219,7 @@ def open_mail():
 def open_mail_by_index(search_term, index, active_win):
     """ 実際にメールを表示 """
     # タグを変更することが有るので書き込み権限も
-    DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
     threadlist = THREAD_LISTS[search_term]['list']
     msg_id = threadlist[index]._msg_id
     open_mail_by_msgid(search_term, msg_id, active_win, False)
@@ -1310,7 +1310,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     DBASE.close()
                     reindex_mail(msg_id, '', '')
                     msg = DBASE.find_message(msg_id)
-                    DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+                    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
                 return msg, f
             reindex = True  # メール・ファイルが存在しなかったので、再インデックスが必要
             # やらないとデータベース上に残る存在しないファイルからの情報取得でエラー発生
@@ -2079,7 +2079,7 @@ def get_msg_id():
 
 def change_tags_before(msg_id):
     """ タグ変更前の前処理 """
-    DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
     return change_tags_before_core(msg_id)
 
 
@@ -2494,7 +2494,7 @@ def next_unread(active_win):
     else:
         search_view = False
     # タグを変更することが有るので、書き込み権限も
-    DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
     if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合
         # if search_view:  # そもそも検索にヒットしなければ、search, view は開かれないはず
         #     vim_goto_bufwinid(active_win)
@@ -2950,7 +2950,7 @@ def delete_attachment(args):
         if msg_id == '':
             return
         # メール本文表示だと未読→既読扱いでタグを変更することが有るので書き込み権限も
-        DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
         deleted_attach = []  # 実際に削除する添付ファイルが書かれた行番号
         b_attachments = b_v['attachments']
@@ -3030,7 +3030,7 @@ def delete_attachment(args):
                 with open(fname, 'w') as fp:
                     fp.write(msg_file.as_string())
 
-        DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
         for i in range(args[0], args[1] + 1):
             msg_id = THREAD_LISTS[search_term]['list'][i - 1]._msg_id
@@ -5072,7 +5072,7 @@ def save_mail(msg_id, s, args):
             buf_num = s_buf_num('show', '')
         elif type == 'search':
             buf_num = s_buf_num('view', b.vars.search_term)
-        DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
         open_mail_by_msgid(s, msg_id, buf_num, False)
         DBASE.close()
     with open(save_file, 'w') as fp:
@@ -5222,7 +5222,7 @@ def import_mail(args):
     mbox.unlock()
     # タグの付け直し
     notmuch_new(False)
-    # DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+    # DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
     # for msg_id in msg_ids:
     #     msg = change_tags_before_core(msg_id)
     #     add_msg_tags(msg, ['inbox'])
@@ -6158,7 +6158,7 @@ def notmuch_refine_common(s, index):
                 vim_goto_bufwinid(b.number)
                 fold_open()
     if f_show:
-        DBASE.open(PATH, mode=notmuch.Database.MODE.READ_WRITE)
+        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
         msg_id = THREAD_LISTS[s]['list'][index]._msg_id
         open_mail_by_msgid(s, msg_id, str(org_b_num), True)
         DBASE.close()
