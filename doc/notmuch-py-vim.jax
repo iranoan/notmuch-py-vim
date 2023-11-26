@@ -54,7 +54,7 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 	* VIM - Vi IMproved 9.0
 	* CPU: 12th Gen Intel© Core™ i7-1270P×16
 	* Memory: 32 GB
-の環境で、約 28000 通にヒットする検索条件のスレッド一覧の表示に 21 秒ほど
+の環境で、約 28000 通にヒットする検索条件のスレッド一覧の表示に 18 秒ほど
 
                                                                    *search-term*
 NOTE: 以下、Notmuch を用いる検索条件は |search-term| と記載する
@@ -88,13 +88,13 @@ Notmuch が動作条件なので、対応しているメール・ボックスの
 
 Python Ver.3.5 以上~
 
-加えて Python Ver.3 の notmuch, html2text パッケージが必要
+加えて Python Ver.3 の notmuch2, html2text パッケージが必要
 
 Ubuntu 等の Debian 系なら >
-	$ sudo apt install -y python3-notmuch python3-html2text
+	$ sudo apt install -y python3-notmuch2 python3-html2text
 <
 他では例えば >
-	$ python3 -m pip install notmuch html2text
+	$ python3 -m pip install notmuch2 html2text
 
 MTA~
 

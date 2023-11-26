@@ -1188,7 +1188,7 @@ def Toggle_thread(args: list<any>): void
 	else
 		select_thread = (s_select_thread <= foldclosedend(select_thread)
 									&& s_select_thread >= foldclosed(select_thread)) ? s_select_thread : foldclosedend(select_thread)
-		py3eval('reset_cursor_position(vim.current.buffer, vim.current.window, ' .. select_thread .. ')')
+		py3eval('reset_cursor_position(vim.current.buffer, ' .. select_thread .. ')')
 		py3eval('fold_open()')
 	endif
 enddef

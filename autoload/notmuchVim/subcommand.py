@@ -17,7 +17,6 @@ import os                         # ディレクトリの存在確認、作成
 import re                         # 正規表現
 import shutil                     # ファイル移動
 import sys
-import time                       # UNIX time の取得
 from base64 import b64decode
 from math import ceil
 # from concurrent.futures import ProcessPoolExecutor
@@ -33,7 +32,6 @@ from subprocess import PIPE, Popen, TimeoutExpired, run
 from urllib.parse import unquote  # URL の %xx を変換
 
 from html2text import HTML2Text   # HTML メールの整形
-import notmuch                    # API で出来ないことは notmuch コマンド (subprocess)
 import notmuch2                   # API で出来ないことは notmuch コマンド (subprocess)
 import vim
 
@@ -192,42 +190,68 @@ def str_just_length(string, length):
     return string + ' ' * (length - count_widht)
 
 
+def open_email_file_from_msg(msg):
+    '''
+    msg: notmuch2.Message
+    return email.Message
+    * msg.path だとメール・ファイル削除後データベースが削除されている時に対応できないので、候補の全てで存在確認する
+    '''
+    for f in msg.filenames():
+        if os.path.isfile(f):
+            return open_email_file(f)
+    return None
+
+
+def open_email_file(f):
+    '''
+    f: file
+    return email.Message
+    '''
+    try:
+        with open(f, 'r') as fp:
+            return email.message_from_file(fp)
+    except UnicodeDecodeError:
+        # ↑普段は上のテキスト・ファイルとして開く
+        # 理由は↓だと、本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
+        with open(f, 'rb') as fp:
+            return email.message_from_binary_file(fp)
+
+
+def get_msg_header(msg, h):
+    '''
+    msg: email.Message
+    h:   header key (name)
+    return header item
+    '''
+    h_cont = msg.get_all(h)
+    if h_cont is None:
+        return ''
+    else:
+        data = ''
+        for d in h_cont:
+            data += d
+        return RE_TAB2SPACE.sub(' ', decode_header(data, False))
+
+
 class MailData:  # メール毎の各種データ
     def __init__(self, msg, thread, order, depth):
-        def get_subject(msg_f):
-            h_cont = msg_f.get_all('Subject')
-            if h_cont is None:
-                return ''
-            else:
-                data = ''
-                for d in h_cont:
-                    data += d
-                return RE_TAB2SPACE.sub(' ', decode_header(data, False))
-
-        self._date = msg.get_date()                   # 日付 (time_t)
-        self._newest_date = thread.get_newest_date()  # 同一スレッド中で最も新しい日付 (time_t)
-        self._thread_id = thread.get_thread_id()      # スレッド ID
-        self._thread_order = order                    # 同一スレッド中の表示順
-        self.__thread_depth = depth                   # 同一スレッド中での深さ
-        self._msg_id = msg.get_message_id()           # Message-ID
-        self._tags = list(msg.get_tags())
+        self._date = msg.date              # 日付 (time_t)
+        self._newest_date = thread.first   # 同一スレッド中で最も新しい日付 (time_t)
+        self._thread_id = thread.threadid  # スレッド ID
+        self._thread_order = order         # 同一スレッド中の表示順
+        self.__thread_depth = depth        # 同一スレッド中での深さ
+        self._msg_id = msg.messageid       # Message-ID
+        self._tags = list(msg.tags)
         # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
-        # self.__subject = msg.get_header('Subject') # ←元のメール・ファイルのヘッダの途中で改行されていると最初の行しか取得しない
+        # self.__subject = msg.header('Subject') # ←元のメール・ファイルのヘッダの途中で改行されていると最初の行しか取得しない
         # ↑の問題に対応する→スレッド生成でマルチ・スレッドが使えなくなる
-        for f in msg.get_filenames():
-            if os.path.isfile(f):
-                try:
-                    with open(f, 'r') as fp:
-                        self.__subject = get_subject(email.message_from_file(fp))
-                except UnicodeDecodeError:
-                    # ↑普段は上のテキスト・ファイルとして開く
-                    # 理由は↓だと、本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
-                    with open(f, 'rb') as fp:
-                        self.__subject = get_subject(email.message_from_binary_file(fp))
-                break
-        self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.get_header('From'))).lower()
-        # self.__path = msg.get_filenames().__str__().split('\n')  # file name (full path)
+        msg_f = open_email_file_from_msg(msg)
+        if msg_f is None:
+            return None
+        self.__subject = get_msg_header(msg_f, 'Subject')
+        self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.header('From'))).lower()
+        # self.__path = msg.filenames().__str__().split('\n')  # file name (full path)
         # ↑同一 Message-ID メールが複数でも取り敢えず全て
         # 整形した日付
         self.__reformed_date = RE_TAB2SPACE.sub(
@@ -235,11 +259,9 @@ class MailData:  # メール毎の各種データ
         # 整形した Subject
         self.reform_subject(self.__subject)
         # 整形した宛名
-        m_from = msg.get_header('From')
-        try:
-            m_to = msg.get_header('To')
-        except notmuch2.NullPointerError:  # どの様な条件で起きるのか不明なので、取り敢えず From ヘッダを使う
-            # print_warring('Message-ID:' + self._msg_id + 'notmuch2.NullPointerError') ←マルチスレッド中だと落ちる
+        m_from = msg.header('From')
+        m_to = get_msg_header(msg_f, 'To')
+        if m_to == '':
             m_to = m_from
         # ↓From, To が同一なら From←名前が入っている可能性がより高い
         m_to_adr = email2only_address(m_to)
@@ -247,17 +269,17 @@ class MailData:  # メール毎の各種データ
         if m_to_adr == email2only_address(m_from):
             name = RE_TAB2SPACE.sub(' ', m_from_name)
         else:  # それ以外は送信メールなら To だけにしたいので、リスト利用
-            self._tags = list(msg.get_tags())
+            self._tags = list(msg.tags)
             # 実際の判定 (To と Reply-To が同じなら ML だろうから除外)
             if (SENT_TAG in self._tags or 'draft' in self._tags) \
-                    and m_to_adr != email2only_address(msg.get_header('Reply-To')) \
+                    and m_to_adr != email2only_address(get_msg_header(msg_f, 'Reply-To')) \
                     and m_to != '':
                 name = 'To:' + email2only_name(m_to)
             else:
                 name = RE_TAB2SPACE.sub(' ', m_from_name)
         self.__reformed_name = name
         # 以下はどれもファイルをオープンしっぱなしになるもよう
-        # self.__path = msg.get_filenames()
+        # self.__path = msg.filenames()
         # self.__msg = msg                               # msg_p
         # self.__thread = thread                         # thread_p
 
@@ -299,10 +321,9 @@ class MailData:  # メール毎の各種データ
         return RE_END_SPACE.sub('', DISPLAY_FORMAT2.format(subject, adr, date))
 
     def make_sort_key(self):
-        query = notmuch.Query(DBASE, 'id:"' + self._msg_id + '"')
-        thread = list(query.search_threads())[0]
+        thread = list(DBASE.threads('id:"' + self._msg_id + '"'))[0]
         # 同一スレッド中のメール作成者
-        string = thread.get_authors()
+        string = thread.authors
         if string is None:
             self._authors = ''
         else:
@@ -310,12 +331,8 @@ class MailData:  # メール毎の各種データ
                                      for s in re.split('[,|]', string.lower())]))
             # ↑おそらく | で区切られているのは、使用している search_term では含まれれないが、同じ thread_id に含まれているメールの作成者
         # スレッド・トップの Subject
-        string = list(thread.get_toplevel_messages())[0].get_header('Subject')
-        if string is None:
-            self._thread_subject = ''
-        else:
-            self._thread_subject = RE_TAB2SPACE.sub(
-                ' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
+        string = get_msg_header(open_email_file_from_msg(list(thread.toplevel())[0]), 'Subject')
+        self._thread_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
 
     def get_date(self):
         return self.__reformed_date
@@ -458,15 +475,10 @@ def set_global_var():  # MailData で使用する設定依存の値をグロー�
 
 
 def make_thread_core(search_term):
-    query = notmuch.Query(DBASE, search_term)
-    try:  # スレッド一覧
-        threads = query.search_threads()
-    except notmuch2.NullPointerError:
-        print_err('Error: Search thread')
-        return False
+    threads = DBASE.threads(search_term)
     reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
     print('Making cache data:' + search_term)
-    threads = [i.get_thread_id() for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
+    threads = [i.threadid for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # ValueError: ctypes objects containing pointers cannot be pickled
     set_global_var()
     ls = []
@@ -485,14 +497,14 @@ def make_thread_core(search_term):
 
 def make_single_thread(thread_id, search_term):
     def make_reply_ls(ls, message, depth):  # スレッド・ツリーの深さ情報取得
-        ls.append((message.get_message_id(), message, depth))
-        for msg in message.get_replies():
+        ls.append((message.messageid, message, depth))
+        for msg in message.replies():
             make_reply_ls(ls, msg, depth + 1)
 
-    query = notmuch.Query(DBASE, '(' + search_term + ') and thread:' + thread_id)
-    thread = list(query.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
+    thread = list(DBASE.threads('(' + search_term + ') and thread:' + thread_id))[0]
+    # thread_id で検索しているので元々該当するのは一つ
     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
-        msgs = thread.get_toplevel_messages()
+        msgs = thread.toplevel()
     except notmuch2.NullPointerError:
         print_err('Error: get top-level message')
     replies = []
@@ -502,7 +514,7 @@ def make_single_thread(thread_id, search_term):
     ls = []
     # search_term にヒットするメールに絞り込み
     for reply in replies:
-        if notmuch.Query(DBASE, '(' + search_term + ') and id:"' + reply[0] + '"').count_messages():
+        if DBASE.count_messages('(' + search_term + ') and id:"' + reply[0] + '"'):
             depth = reply[2]
             if depth > order:
                 depth = order
@@ -619,6 +631,7 @@ def set_folder_format():
         if 'view' not in open_way:
             open_way['view'] = 'belowright ' + str(height) + 'new'
 
+    global DBASE
     max_len = 0
     for s in vim.vars['notmuch_folders']:
         s_len = len(s[0].decode())
@@ -626,14 +639,14 @@ def set_folder_format():
             max_len = s_len
     if 'notmuch_folder_format' not in vim.vars:
         try:
-            DBASE.open(PATH)
+            DBASE = notmuch2.Database()
         except NameError:
             DBASE.close()
             raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
         vim.vars['notmuch_folder_format'] = '{0:<' + str(max_len) + '} ' + \
-            '{1:>' + str(len(str(int(notmuch.Query(DBASE, 'tag:unread').count_messages()))) + 1) + '}/' + \
-            '{2:>' + str(len(str(int(notmuch.Query(DBASE, 'path:**').count_messages() * 1.2)))) + '}│' + \
-            '{3:>' + str(len(str(int(notmuch.Query(DBASE, 'tag:flagged').count_messages()))) + 1) + '} ' + \
+            '{1:>' + str(len(str(DBASE.count_messages('tag:unread') + 1))) + '}/' + \
+            '{2:>' + str(len(str(int(DBASE.count_messages('path:**') * 1.2)))) + '}│' + \
+            '{3:>' + str(len(str(DBASE.count_messages('tag:flagged'))) + 1) + '} ' + \
             '[{4}]'
         # ↑上から順に、未読/全/重要メールの数の桁数計算、末尾付近の * 1.2 や + 1 は増加したときのために余裕を見ておく為
         DBASE.close()
@@ -641,27 +654,27 @@ def set_folder_format():
 
 
 def format_folder(folder, search_term):
+    global DBASE
     try:  # search_term チェック
-        all_mail = notmuch.Query(DBASE, search_term).count_messages()  # メール総数
+        all_mail = DBASE.count_messages(search_term)  # メール総数
     except notmuch2.XapianError:
         print_error('notmuch2.XapianError: Check search term: ' + search_term)
         vim.command('message')  # 起動時のエラーなので、再度表示させる
         return '\'search term\' (' + search_term + ') error'
     return vim.vars['notmuch_folder_format'].decode().format(
-        folder,         # 擬似的なフォルダー・ツリー
-        notmuch.Query(  # 未読メール数
-            DBASE, '(' + search_term + ') and tag:unread').count_messages(),
+        folder,                                                         # 擬似的なフォルダー・ツリー
+        DBASE.count_messages('(' + search_term + ') and tag:unread'),   # 未読メール数
         all_mail,
-        notmuch.Query(  # 重要メール数
-            DBASE, '(' + search_term + ') and tag:flagged').count_messages(),
-        search_term     # 検索方法
+        DBASE.count_messages('(' + search_term + ') and tag:flagged'),  # 重要メール数
+        search_term                                                     # 検索方法
     )
 
 
 def print_folder():
+    global DBASE
     """ vim から呼び出された時にフォルダ・リストを書き出し """
     try:
-        DBASE.open(PATH)
+        DBASE = notmuch2.Database()
     except NameError:
         return
     b = vim.buffers[s_buf_num('folders', '')]
@@ -699,17 +712,19 @@ def reprint_folder():
 
 
 def reprint_folder2():
+    global DBASE
     notmuch_new(False)
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     reprint_folder()
     DBASE.close()
 
 
 def set_folder_b_vars(v):
+    global DBASE
     """ フォルダ・リストのバッファ変数セット """
-    v['all_mail'] = notmuch.Query(DBASE, '').count_messages()
-    v['unread_mail'] = notmuch.Query(DBASE, 'tag:unread').count_messages()
-    v['flag_mail'] = notmuch.Query(DBASE, 'tag:flagged').count_messages()
+    v['all_mail'] = DBASE.count_messages('')
+    v['unread_mail'] = DBASE.count_messages('tag:unread')
+    v['flag_mail'] = DBASE.count_messages('tag:flagged')
 
 
 def rm_file(dirname):
@@ -763,8 +778,9 @@ def open_something(args):
 
 def print_thread_view(search_term):
     """ vim 外からの呼び出し時のスレッド・リスト書き出し """
+    global DBASE
     if not (search_term in THREAD_LISTS.keys()):
-        DBASE.open(PATH)
+        DBASE = notmuch2.Database()
         if not make_thread_core(search_term):
             DBASE.close()
             return False
@@ -779,10 +795,11 @@ def print_thread_view(search_term):
 
 
 def get_unread_in_THREAD_LISTS(search_term):
+    global DBASE
     """ THREAD_LISTS から未読を探す """
     return [i for i, x in enumerate(THREAD_LISTS[search_term]['list'])
-            if (DBASE.find_message(x._msg_id) is not None)  # 削除済みメール・ファイルがデータベースに残っていると起きる
-            and ('unread' in DBASE.find_message(x._msg_id).get_tags())]
+            if get_message('id:' + x._msg_id) is not None  # 削除済みメール・ファイルがデータベースに残っていると起きる
+            and ('unread' in DBASE.find(x._msg_id).tags)]
 
 
 def open_thread_from_vim(select_unread, remake):  # 実際にスレッドを印字←フォルダ・リストがアクティブ前提
@@ -826,7 +843,8 @@ def open_thread(line, select_unread, remake):
 
 def print_thread(b_num, search_term, select_unread, remake):
     """ スレッド・リスト書き出し """
-    DBASE.open(PATH)
+    global DBASE
+    DBASE = notmuch2.Database()
     print_thread_core(b_num, search_term, select_unread, remake)
     change_buffer_vars_core()
     DBASE.close()
@@ -841,14 +859,15 @@ def fold_open_core():
 def fold_open():
     c = vim.current
     fold_open_core()
-    reset_cursor_position(c.buffer, c.window, c.window.cursor[0])
+    reset_cursor_position(c.buffer, c.window.cursor[0])
 
 
 def print_thread_core(b_num, search_term, select_unread, remake):
+    global DBASE
     if search_term == '':
         return
     try:  # search_term チェック
-        unread = notmuch.Query(DBASE, search_term).count_messages()
+        unread = DBASE.count_messages(search_term)
     except notmuch2.XapianError:
         print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
@@ -888,15 +907,15 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     reopen(kind, search_term)
     if select_unread:
         index = get_unread_in_THREAD_LISTS(search_term)
-        unread = notmuch.Query(DBASE, '(' + search_term + ') and tag:unread').count_messages()
+        unread = DBASE.count_messages('(' + search_term + ') and tag:unread')
         if index:
-            reset_cursor_position(b, vim.current.window, index[0] + 1)
+            reset_cursor_position(b, index[0] + 1)
             fold_open()
         elif unread:  # フォルダリストに未読はないが新規メールを受信していた場合
             print_thread_core(b_num, search_term, True, True)
         else:
             vim.command('normal! Gzb')
-            reset_cursor_position(b, vim.current.window, vim.current.window.cursor[0])
+            reset_cursor_position(b, vim.current.window.cursor[0])
             fold_open()
     vim.command('silent file! notmuch://thread?' + search_term.replace('#', r'\#'))
 
@@ -957,8 +976,9 @@ def thread_change_sort(sort_way):
     if sort_way == THREAD_LISTS[search_term]['sort']:
         return
     vim_sign_unplace(bufnr)
+    global DBASE
     if not THREAD_LISTS[search_term]['make_sort_key']:
-        DBASE.open(PATH)
+        DBASE = notmuch2.Database()
         for msg in THREAD_LISTS[search_term]['list']:
             msg.make_sort_key()
         DBASE.close()
@@ -1022,7 +1042,7 @@ def thread_change_sort(sort_way):
     index = [i for i, msg in enumerate(threadlist) if msg._msg_id == msg_id]
     vim.command('normal! Gzb')
     if index:  # 実行前のメールがリストに有れば選び直し
-        reset_cursor_position(b, vim.current.window, index[0] + 1)
+        reset_cursor_position(b, index[0] + 1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
         vim.command('normal! G')
@@ -1031,13 +1051,15 @@ def thread_change_sort(sort_way):
 
 def change_buffer_vars():
     """ スレッド・リストのバッファ変数更新 """
-    DBASE.open(PATH)
+    global DBASE
+    DBASE = notmuch2.Database()
     change_buffer_vars_core()
     DBASE.close()
     vim.command('redrawstatus!')
 
 
 def change_buffer_vars_core():
+    global DBASE
     b_v = vim.current.buffer.vars['notmuch']
     b_v['pgp_result'] = ''
     if vim.current.buffer[0] == '':  # ←スレッドなので最初の行が空か見れば十分
@@ -1051,7 +1073,7 @@ def change_buffer_vars_core():
         b_v['msg_id'] = msg_id
         b_v['subject'] = msg.get_subject()
         b_v['date'] = msg.get_date()
-        b_v['tags'] = get_msg_tags(DBASE.find_message(msg_id))
+        b_v['tags'] = get_msg_tags(DBASE.find(msg_id))
 
 
 def vim_escape(s):
@@ -1090,9 +1112,10 @@ def is_same_tabpage(kind, search_term):
 
 
 def reload_show():
+    global DBASE
     b = vim.current.buffer
     print('reload', b.options['filetype'].decode()[8:])
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     b_v = b.vars['notmuch']
     open_mail_by_msgid(b_v['search_term'].decode(),
                        b_v['msg_id'].decode(), b.number, True)
@@ -1100,6 +1123,7 @@ def reload_show():
 
 
 def reload_thread():
+    global DBASE
     # if opened_mail(False):
     #     print_warring('Please save and close mail.')
     #     return
@@ -1112,7 +1136,7 @@ def reload_thread():
     w = vim.current.window
     # 再作成後に同じメールを開くため Message-ID を取得しておく
     msg_id = get_msg_id()
-    DBASE.open(PATH)  # ここで書き込み権限 ON+関数内で OPEN のままにしたいが、そうすると空のスレッドで上の
+    DBASE = notmuch2.Database()  # ここで書き込み権限 ON+関数内で OPEN のままにしたいが、そうすると空のスレッドで上の
     # search_term = b.vars['notmuch']['search_term'].decode()
     # で固まる
     print_thread_core(b.number, search_term, False, True)
@@ -1129,7 +1153,7 @@ def reload_thread():
     # ウィンドウ下部にできるだけ空間表示がない様にする為一度最後のメールに移動後にウィンドウ最下部にして表示
     vim.command('normal! Gzb')
     if msg_id != '' and len(index):  # 実行前のメールがリストに有れば選び直し
-        reset_cursor_position(b, w, index[0] + 1)
+        reset_cursor_position(b, index[0] + 1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
     change_buffer_vars_core()
@@ -1138,7 +1162,7 @@ def reload_thread():
         fold_open()
         if is_same_tabpage('show', ''):
             # タグを変更することが有るので書き込み権限も
-            DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+            DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
             open_mail_by_msgid(
                 search_term,
                 THREAD_LISTS[search_term]['list'][w.cursor[0] - 1]._msg_id,
@@ -1199,7 +1223,8 @@ def reopen(kind, search_term):
 
 
 def open_mail():
-    # h = list(vim.vars['notmuch_show_headers']) + [b'Attach', b'Decrypted', b'Encrypt', b'Fcc', b'HTML', b'Signature']
+    # h = list(vim.vars['notmuch_show_headers']) + \
+    #     [b'Attach', b'Decrypted', b'Encrypt', b'Fcc', b'HTML', b'Signature']
     # print(h)
     # for i in vim.vars['notmuch_show_hide_headers']:
     #     if i in~ h:
@@ -1218,8 +1243,9 @@ def open_mail():
 
 def open_mail_by_index(search_term, index, active_win):
     """ 実際にメールを表示 """
+    global DBASE
     # タグを変更することが有るので書き込み権限も
-    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     threadlist = THREAD_LISTS[search_term]['list']
     msg_id = threadlist[index]._msg_id
     open_mail_by_msgid(search_term, msg_id, active_win, False)
@@ -1241,6 +1267,18 @@ def decode_string(s, charset, error):
     else:
         return s.decode(charset, 'replace')
 
+
+def get_message(s):
+    '''
+    * search-term: s にヒットする notmuch2.Message を返す
+    * 見つからないときは None
+    * 見つかったときは最初の一つ
+    * list(DBASE.messages(s))[0] では上手く行かなかったので…
+    '''
+    global DBASE
+    for m in DBASE.messages(s):
+        return m
+    return None
 
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     """ open mail by Message-ID (not threader order)
@@ -1274,16 +1312,15 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             return False
 
     def get_msg():  # 条件を満たす Message とそのメール・ファイル名を取得
+        global DBASE
         # ファイルが全て消されている場合は、None, None を返す
         b_v['search_term'] = search_term
-        msg = list(notmuch.Query(
-            DBASE, '(' + search_term + ') and id:"' + msg_id + '"').search_messages())
-        if msg:
-            msg = msg[0]
-        else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
+        msg = get_message('(' + search_term + ') and id:"' + msg_id + '"')
+        if msg is None:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
             print('Already Delete/Move/Change folder/tag')
-            msg = DBASE.find_message(msg_id)
-            if msg is None:
+            try:
+                msg = DBASE.find(msg_id)
+            except LookupError:
                 b_v['msg_id'] = ''
                 b_v['subject'] = ''
                 b_v['date'] = ''
@@ -1292,11 +1329,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         reindex = False
         b_v['msg_id'] = msg_id
         try:
-            b_v['subject'] = msg.get_header('Subject')
+            b_v['subject'] = get_msg_header(open_email_file_from_msg(msg), 'Subject')
         except notmuch2.NullPointerError:  # メール・ファイルが削除されているときに起きる
             b_v['subject'] = ''
         b_v['date'] = RE_TAB2SPACE.sub(
-            ' ', datetime.datetime.fromtimestamp(msg.get_date()).strftime(DATE_FORMAT))
+            ' ', datetime.datetime.fromtimestamp(msg.date).strftime(DATE_FORMAT))
         b_v['tags'] = get_msg_tags(msg)
         if active_win != b_w.number \
                 and (is_same_tabpage('thread', '') or is_same_tabpage('search', search_term)):
@@ -1304,19 +1341,19 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             thread_b_v['subject'] = b_v['subject']
             thread_b_v['date'] = b_v['date']
             thread_b_v['tags'] = b_v['tags']
-        for f in msg.get_filenames():
+        for f in msg.filenames():
             if os.path.isfile(f):
                 if reindex:
                     DBASE.close()
                     reindex_mail(msg_id, '', '')
-                    msg = DBASE.find_message(msg_id)
-                    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+                    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
+                    msg = DBASE.find(msg_id)
                 return msg, f
             reindex = True  # メール・ファイルが存在しなかったので、再インデックスが必要
             # やらないとデータベース上に残る存在しないファイルからの情報取得でエラー発生
         return None, None
 
-    def get_header(msg, output, notmuch_headers):  # vim からの呼び出し時に msg に有るヘッダ出力
+    def header(msg, output, notmuch_headers):  # vim からの呼び出し時に msg に有るヘッダ出力
         for header in notmuch_headers:
             if type(header) == bytes:
                 header = header.decode()
@@ -1778,9 +1815,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                 out = Output()
                 out.main['header'].append('')
                 out.main['header'].append('\f' + content_type + ' part')
-                get_header(part, out, vim.vars['notmuch_show_headers'])
-                get_header(part, out, vim.vars['notmuch_show_hide_headers'])
-                get_header(part, out, ['Encrypt', 'Signature'])
+                header(part, out, vim.vars['notmuch_show_headers'])
+                header(part, out, vim.vars['notmuch_show_hide_headers'])
+                header(part, out, ['Encrypt', 'Signature'])
                 get_virtual_header(part, out, 'X-Attach')
                 get_virtual_header(part, out, 'Attach')
                 part_ls[-1] += 1
@@ -1947,22 +1984,14 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     def make_header_content(f, output, flag):
         # flag:   1:ローカルファイル
         #         2:暗号化メール
-        try:
-            with open(f, 'r') as fp:
-                msg_file = email.message_from_file(fp)
-        except UnicodeDecodeError:
-            # ↑普段は上のテキスト・ファイルとして開く
-            # 理由は↓だと、本文が UTF-8 そのままのファイルだと、BASE64 エンコードされた状態になり署名検証に失敗する
-            with open(f, 'rb') as fp:
-                msg_file = email.message_from_binary_file(fp)
-            # 下書きをそのまま送信メールとした時の疑似ヘッダの印字
+        msg_file = open_email_file(f)
         show_header = vim.vars['notmuch_show_headers']
         hide_header = vim.vars['notmuch_show_hide_headers']
-        get_header(msg_file, output, show_header)
-        get_header(msg_file, output, hide_header)
+        header(msg_file, output, show_header)
+        header(msg_file, output, hide_header)
         for h in [b'Encrypt', b'Signature', b'Fcc']:
             if not (h in show_header) and not (h in hide_header):
-                get_header(msg_file, output, [h])
+                header(msg_file, output, [h])
         get_virtual_header(msg_file, output, 'X-Attach')
         get_virtual_header(msg_file, output, 'Attach')
         part_ls = [1]
@@ -2012,9 +2041,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         main_out = Output()
         make_header_content(f, main_out, 0)
         vim_append_content(main_out)
-        if check_end_view() and ('unread' in msg.get_tags()):
-            msg = change_tags_before_core(msg.get_message_id())
-            delete_msg_tags(msg, ['unread'])
+        if check_end_view() and ('unread' in msg.tags):
+            msg = change_tags_before_core(msg.messageid)
+            delete_msg_tags(msg.tags, ['unread'])
             change_tags_after_core(msg, True)
     vim.command('silent file! notmuch://show?' + search_term.replace('#', r'\#'))
     vim_goto_bufwinid(active_win)
@@ -2078,32 +2107,34 @@ def get_msg_id():
 
 
 def change_tags_before(msg_id):
+    global DBASE
     """ タグ変更前の前処理 """
-    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     return change_tags_before_core(msg_id)
 
 
 def change_tags_before_core(msg_id):
-    msg = DBASE.find_message(msg_id)
-    if msg is None:
+    global DBASE
+    try:
+        msg = DBASE.find(msg_id)
+    except LookupError:
         print_err('Message-ID: ' + msg_id + ' don\'t find.\nDatabase is broken or emails have been deleted.')
         return None
-    msg.freeze()
     return msg
 
 
 def get_msg_all_tags_list(tmp):
+    global DBASE
     """ データベースで使われている全て+notmuch 標準のソート済みタグのリスト """
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     tag = get_msg_all_tags_list_core()
     DBASE.close()
     return tag
 
 
 def get_msg_all_tags_list_core():
-    tags = []
-    for tag in DBASE.get_all_tags():
-        tags.append(tag)
+    global DBASE
+    tags = list(DBASE.tags)
     tags += ['flagged', 'inbox', 'draft', 'passed', 'replied', 'unread', 'Trash', 'Spam']
     tags = list(set(tags))
     tags = sorted(tags, key=str.lower)
@@ -2115,7 +2146,7 @@ def get_msg_tags(msg):
     if msg is None:
         return ''
     emoji_tags = ''
-    tags = list(msg.get_tags())
+    tags = list(msg.tags)
     for t, emoji in {'unread': '📩', 'draft': '📝', 'flagged': '⭐',
                      'Trash': '🗑', 'attachment': '📎',
                      'encrypted': '🔑', 'signed': '🖋️'}.items():
@@ -2125,22 +2156,22 @@ def get_msg_tags(msg):
     return emoji_tags + ' '.join(tags)
 
 
-def add_msg_tags(msg, tags):
+def add_msg_tags(tags, adds):
     """ メールのタグ追加→フォルダ・リスト書き換え """
-    try:  # 同一 Message-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
-        for tag in tags:
-            msg.add_tag(tag, sync_maildir_flags=True)
-    except notmuch.NotInitializedError:
-        pass
+    # try:  # 同一 Message-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている) エラーの種類不明
+    for a in adds:
+        tags.add(a)
+    # except notmuch.NotInitializedError:
+    #     pass
 
 
-def delete_msg_tags(msg, tags):
+def delete_msg_tags(tags, dels):
     """ メールのタグ削除→フォルダ・リスト書き換え """
-    try:  # 同一 Message-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている)
-        for tag in tags:
-            msg.remove_tag(tag, sync_maildir_flags=True)
-    except notmuch.NotInitializedError:
-        pass
+    # try:  # 同一 Message-ID の複数ファイルの移動で起きるエラー対処 (大抵移動は出来ている) エラーの種類不明
+    for d in dels:
+        tags.discard(d)
+    # except notmuch.NotInitializedError:
+    #     pass
 
 
 def set_tags(msg_id, s, args):
@@ -2182,7 +2213,7 @@ def set_tags(msg_id, s, args):
     if msg is None:
         return
     msg_tags = []
-    for t in msg.get_tags():
+    for t in msg.tags:
         msg_tags.append(t)
     for tag in toggle_tags:
         if tag in msg_tags:
@@ -2191,8 +2222,8 @@ def set_tags(msg_id, s, args):
         else:
             if tag not in delete_tags:
                 add_tags.append(tag)
-    delete_msg_tags(msg, delete_tags)
-    add_msg_tags(msg, add_tags)
+    delete_msg_tags(msg.tags, delete_tags)
+    add_msg_tags(msg.tags, add_tags)
     change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -2217,7 +2248,7 @@ def add_tags(msg_id, s, args):
     msg = change_tags_before(msg_id)
     if msg is None:
         return
-    add_msg_tags(msg, tags)
+    add_msg_tags(msg.tags, tags)
     change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -2242,7 +2273,7 @@ def delete_tags(msg_id, s, args):
     msg = change_tags_before(msg_id)
     if msg is None:
         return
-    delete_msg_tags(msg, tags)
+    delete_msg_tags(msg.tags, tags)
     change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -2271,18 +2302,19 @@ def toggle_tags(msg_id, s, args):
         if msg is None:
             return
         msg_tags = []
-        for t in msg.get_tags():
+        for t in msg.tags:
             msg_tags.append(t)
         for tag in tags:
             if tag in msg_tags:
-                delete_msg_tags(msg, [tag])
+                delete_msg_tags(msg.tags, [tag])
             else:
-                add_msg_tags(msg, [tag])
+                add_msg_tags(msg.tags, [tag])
         change_tags_after(msg, True)
     return [0, 0] + tags
 
 
 def get_msg_tags_list(tmp):
+    global DBASE
     """ vim からの呼び出しでメールのタグをリストで取得 """
     msg_id = get_msg_id()
     if msg_id == '':
@@ -2290,28 +2322,29 @@ def get_msg_tags_list(tmp):
     if is_draft():
         tags = vim.current.buffer.vars['notmuch']['tags'].decode().split(' ')
     else:
-        DBASE.open(PATH)
-        msg = DBASE.find_message(msg_id)
+        DBASE = notmuch2.Database()
+        msg = DBASE.find(msg_id)
         tags = []
-        for tag in msg.get_tags():
+        for tag in msg.tags:
             tags.append(tag)
         DBASE.close()
     return sorted(tags, key=str.lower)
 
 
 def get_msg_tags_any_kind(tmp):
+    global DBASE
     """ メールに含まれていないタグ取得には +を前置、含まれうタグには - を前置したリスト """
     msg_id = get_msg_id()
     if msg_id == '':
         return []
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     tags = get_msg_all_tags_list_core()
     if is_draft():
         msg_tags = vim.current.buffer.vars['notmuch']['tags'].decode().split(' ')
     else:
-        msg = DBASE.find_message(msg_id)
+        msg = DBASE.find(msg_id)
         msg_tags = []
-        for t in msg.get_tags():
+        for t in msg.tags:
             msg_tags.append(t)
     DBASE.close()
     add_tags = []
@@ -2324,18 +2357,19 @@ def get_msg_tags_any_kind(tmp):
 
 
 def get_msg_tags_diff(tmp):
+    global DBASE
     """ メールに含まれていないタグ取得 """
     msg_id = get_msg_id()
     if msg_id == '':
         return []
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     tags = get_msg_all_tags_list_core()
     if is_draft():
         for t in vim.current.buffer.vars['notmuch']['tags'].decode().split(' '):
             tags.remove(t)
     else:
-        msg = DBASE.find_message(msg_id)
-        for tag in msg.get_tags():
+        msg = DBASE.find(msg_id)
+        for tag in msg.tags:
             tags.remove(tag)
     DBASE.close()
     return sorted(tags, key=str.lower)
@@ -2358,6 +2392,7 @@ def get_search_snippet(word):
 
 
 def change_tags_after(msg, change_b_tags):
+    global DBASE
     """ 追加/削除した時の後始末 """
     # change_b_tags: thread, show の b:tags を書き換えるか?
     # ↑インポート、送信時は書き換え不要
@@ -2373,12 +2408,11 @@ def change_tags_after_core(msg, change_b_tags):
       * icons of tag in thread list
       * folder list information
     """
-    msg.thaw()
-    msg.tags_to_maildir_flags()
-    msg_id = msg.get_message_id()
+    msg.tags.to_maildir_flags()
+    msg_id = msg.messageid
     if change_b_tags:
         tags = get_msg_tags(msg)
-        ls_tags = list(msg.get_tags())
+        ls_tags = list(msg.tags)
         for b in vim.buffers:
             if not ('notmuch' in b.vars):
                 continue
@@ -2413,26 +2447,27 @@ def change_tags_after_core(msg, change_b_tags):
                 b.options['modifiable'] = 1
                 b[line] = msg.get_list(not ('list' in THREAD_LISTS[search_term]['sort']))
                 b.options['modifiable'] = 0
-                for t in vim.tabpages:
-                    for i in [i for i, x in enumerate(list(
-                            vim_tabpagebuflist(t.number))) if x == b_num]:
-                        reset_cursor_position(b, t.windows[i], line + 1)
+                reset_cursor_position(b, line + 1)
     reprint_folder()
 
 
-def reset_cursor_position(b, w, line):
+def reset_cursor_position(b, line):
     """ thread でタグ絵文字の後にカーソルを置く """
     s = b[line - 1]
     if s == '':
         return
-    w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
+    b_num = b.number
+    for t in vim.tabpages:
+        for i in [i for i, x in enumerate(list(
+                vim_tabpagebuflist(t.number))) if x == b_num]:
+            t.windows[i].cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
 
 
 def next_unread(active_win):
     """ 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない) """
     def open_mail_by_buf_kind_index(k, s, index):
         vim_goto_bufwinid(s_buf_num(k, s))
-        reset_cursor_position(vim.current.buffer, vim.current.window, index + 1)
+        reset_cursor_position(vim.current.buffer, index + 1)
         fold_open()
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
@@ -2444,7 +2479,7 @@ def next_unread(active_win):
         # search_term の検索方法で未読が有れば、そのスレッド/メールを開く
         search_term = search_term.decode()
         if search_term == '' \
-                or not notmuch.Query(DBASE, '(' + search_term + ') and tag:unread').count_messages():
+                or not DBASE.count_messages('(' + search_term + ') and tag:unread'):
             vim_goto_bufwinid(active_win)
             return False
         b_num = s_buf_num('folders', '')
@@ -2460,7 +2495,7 @@ def next_unread(active_win):
             print_thread_core(b_num, search_term, False, True)
             index = get_unread_in_THREAD_LISTS(search_term)
         index = index[0]
-        reset_cursor_position(vim.current.buffer, vim.current.window, index + 1)
+        reset_cursor_position(vim.current.buffer, index + 1)
         fold_open()
         change_buffer_vars_core()
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
@@ -2474,6 +2509,7 @@ def next_unread(active_win):
         DBASE.close()
         return True
 
+    global DBASE
     active_win = int(active_win)
     if not ('search_term' in vim.current.buffer.vars['notmuch']):
         if active_win == s_buf_num('folders', ''):
@@ -2494,7 +2530,7 @@ def next_unread(active_win):
     else:
         search_view = False
     # タグを変更することが有るので、書き込み権限も
-    DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合
         # if search_view:  # そもそも検索にヒットしなければ、search, view は開かれないはず
         #     vim_goto_bufwinid(active_win)
@@ -2632,6 +2668,7 @@ def get_attach_info(line):
             line_count[i] = name_count[j]
         return line_count
 
+    global DBASE
     b_v = vim.current.buffer.vars['notmuch']
     try:
         search_term = b_v['search_term'].decode()
@@ -2662,15 +2699,12 @@ def get_attach_info(line):
         decode = get_part_deocde(dirORmes_str)
         return name, dirORmes_str, decode, tmpdir
     msg_id = b_v['msg_id'].decode()
-    DBASE.open(PATH)
-    msg = list(notmuch.Query(
-        DBASE, '(' + search_term + ') id:"' + msg_id + '"').search_messages())
-    if msg:
-        msg = list(msg)[0]
-    else:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
+    DBASE = notmuch2.Database()
+    msg = get_message('(' + search_term + ') id:"' + msg_id + '"')
+    if msg is None:  # 同一条件+Message_ID で見つからなくなっているので Message_ID だけで検索
         print('Already Delete/Move/Change folder/tag')
-        msg = DBASE.find_message(msg_id)
-    with open(msg.get_filename(), 'rb') as fp:
+        msg = DBASE.find(msg_id)
+    with open(msg.path, 'rb') as fp:
         msg_file = email.message_from_binary_file(fp)
     DBASE.close()
     part_count = 1
@@ -2950,7 +2984,7 @@ def delete_attachment(args):
         if msg_id == '':
             return
         # メール本文表示だと未読→既読扱いでタグを変更することが有るので書き込み権限も
-        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+        DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
         deleted_attach = []  # 実際に削除する添付ファイルが書かれた行番号
         b_attachments = b_v['attachments']
@@ -2980,8 +3014,8 @@ def delete_attachment(args):
                                     break
                             b[i:] = None
                         b[line] = 'Del-' + b[line]
-                        msg = DBASE.find_message(msg_id)
-                        for f in msg.get_filenames():
+                        msg = DBASE.find(msg_id)
+                        for f in msg.filenames():
                             delete_attachment_only_part(f, part_num[0])
         b.options['modifiable'] = 0
         # 削除した添付ファイルに合わせて他の行の添付ファイルの情報 (part_num) 更新
@@ -3030,12 +3064,12 @@ def delete_attachment(args):
                 with open(fname, 'w') as fp:
                     fp.write(msg_file.as_string())
 
-        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+        DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
         args = [int(s) for s in args[0:2]]
         for i in range(args[0], args[1] + 1):
             msg_id = THREAD_LISTS[search_term]['list'][i - 1]._msg_id
-            msg = DBASE.find_message(msg_id)
-            for f in msg.get_filenames():
+            msg = DBASE.find(msg_id)
+            for f in msg.filenames():
                 delete_attachment_all(f)
         DBASE.close()
         bnum = vim.current.buffer.number
@@ -3065,6 +3099,8 @@ def delete_attachment(args):
         if deleted:
             print_warring('Don\'t delete: Encrypted/Local/Virtual!')
 
+    import time
+    global DBASE
     b = vim.current.buffer
     bufnr = b.number
     b_v = b.vars['notmuch']
@@ -3080,6 +3116,7 @@ def delete_attachment(args):
 
 
 def cut_thread(msg_id, dumy):
+    global DBASE
     if msg_id == '':
         msg_id = get_msg_id()
         if msg_id == '':
@@ -3087,14 +3124,14 @@ def cut_thread(msg_id, dumy):
     bufnr = vim.current.buffer.number
     if bufnr == s_buf_num('folders', ''):
         return
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
+    DBASE = notmuch2.Database()
+    msg = DBASE.find(msg_id)
     changed = False
-    for f in msg.get_filenames():
+    for f in msg.filenames():
         with open(f, 'r') as fp:
             msg_file = email.message_from_file(fp)
-        in_reply = msg_file.__getitem__('In-Reply-To')
-        if in_reply is None:
+        in_reply = get_msg_header(msg_file, 'In-Reply-To')
+        if in_reply != '':
             continue
         in_reply = in_reply.__str__()[1:-1]
         changed = True
@@ -3120,13 +3157,14 @@ def cut_thread(msg_id, dumy):
         index = [i for i, x in enumerate(
             THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id]
         if index:
-            reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)
+            reset_cursor_position(vim.current.buffer, index[0] + 1)
             fold_open()
         else:
             print('Already Delete/Move/Change folder/tag')
 
 
 def connect_thread_tree():
+    global DBASE
     r_msg_id = get_msg_id()
     if r_msg_id == '':
         return
@@ -3142,13 +3180,13 @@ def connect_thread_tree():
     if lines == []:
         print_warring('Mark the email that you want To connect. (:Notmuch mark)')
         return
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     for line in lines:
         msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
         if r_msg_id == msg_id:
             continue
-        msg = DBASE.find_message(msg_id)
-        for f in msg.get_filenames():
+        msg = DBASE.find(msg_id)
+        for f in msg.filenames():
             with open(f, 'r') as fp:
                 msg_file = email.message_from_file(fp)
             ref_all = ''
@@ -3175,7 +3213,7 @@ def connect_thread_tree():
     index = [i for i, x in enumerate(
         THREAD_LISTS[search_term]['list']) if x._msg_id == r_msg_id]
     if index:
-        reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)
+        reset_cursor_position(vim.current.buffer, index[0] + 1)
         fold_open()
     else:
         print('Already Delete/Move/Change folder/tag')
@@ -3251,14 +3289,16 @@ def view_mail_info():
         msg_id = get_msg_id()
         if msg_id == '':
             return None
-        DBASE.open(PATH)
-        msg = DBASE.find_message(msg_id)
-        if msg is None:  # メール・ファイルが全て削除されている場合
+        DBASE = notmuch2.Database()
+        try:
+            msg = DBASE.find(msg_id)
+        except LookupError:  # メール・ファイルが全て削除されている場合
             return None
         if f_type != 'notmuch-edit':
             search_term = b_v['search_term'].decode()
-        # msg = DBASE.find_message(msg_id)
-        # if msg is None:  # メール・ファイルが全て削除されている場合
+        # try:
+        #    msg = DBASE.find(msg_id)
+        # except LookupError:  # メール・ファイルが全て削除されている場合
         #     return None
         if f_type == 'notmuch-edit':
             lists = []
@@ -3269,14 +3309,14 @@ def view_mail_info():
         else:
             lists = []
         lists += ['msg-id     : ' + msg_id, 'tags       : ' + get_msg_tags(msg)]
-        for f in msg.get_filenames():
+        for f in msg.filenames():
             if os.path.isfile(f):
-                lists += ['file       : ' + f,
+                lists += ['file       : ' + str(f),
                           'Modified   : '
                           + datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime(DATE_FORMAT),
                           'Size       : ' + str(os.path.getsize(f)) + ' Bytes']
             else:
-                lists.append('file       : Already Delete.   ' + f)
+                lists.append('file       : Already Delete.   ' + str(f))
         DBASE.close()
         if f_type != 'notmuch-edit':
             pgp_result = b_v['pgp_result'].decode()
@@ -3287,6 +3327,7 @@ def view_mail_info():
                         lists.append('             ' + ls)
         return lists
 
+    global DBASE
     info = get_mail_info()
     if info is None:
         return
@@ -3309,22 +3350,24 @@ def view_mail_info():
 def open_original(msg_id, search_term, args):
     """ vim から呼び出しでメール・ファイルを開く """
     def find_mail_file(search_term):  # 条件に一致するファイルを探す
-        msgs = notmuch.Query(DBASE, search_term).search_messages()
+        msgs = dbase.messages(search_term)
         files = []
         for msg in msgs:
-            for filename in msg.get_filenames():
+            for filename in msg.filenames():
                 files.append(filename)
         if not files:
             return ''
         else:
-            return files[0]
+            return str(files[0])
 
-    DBASE.open(PATH)
+    dbase = notmuch2.Database()
     message = ''
     filename = find_mail_file('(' + search_term + ') id:"' + msg_id + '"')
+    filename = str(filename)
     if filename == '':
         message = 'Already Delete/Move/Change folder/tag'
         filename = find_mail_file('id:"' + msg_id + '"')
+    dbase.close()
     if filename == '':
         message = 'Not found file.'
     else:
@@ -3403,7 +3446,7 @@ def send_mail(filename):
     添付ファイルのエンコードなどの変換済みデータを送信済み保存
     """
     for b in vim.buffers:
-        if b.name == filename:  # Vim で開いている
+        if b.name == str(filename):  # Vim で開いている
             if b.options['modified'] or b.options['bufhidden'] != b'':
                 # 更新もしくは隠れバッファ等でもない普通に開いているバッファなので送信しない
                 return
@@ -3442,10 +3485,10 @@ def marge_tag(msg_id, send):
     send 送信時か?→draft, unread タグは削除
     """
     b = vim.current.buffer
-    DBASE.open(PATH)
+    dbase = notmuch2.Database()
     msg = change_tags_before(msg_id)
     if msg is None:
-        DBASE.close()
+        dbase.close()
     else:
         b_v = b.vars['notmuch']
         b_tag = b_v['tags'].decode().split(' ')
@@ -3466,18 +3509,18 @@ def marge_tag(msg_id, send):
             del_tag = []
         add_tag = []
         m_tag = []
-        for t in msg.get_tags():
+        for t in msg.tags:
             m_tag.append(t)
         for t in m_tag:
             if t in ['attachment', 'encrypted', 'signed']:
                 continue
             if not (t in b_tag):
                 del_tag.append(t)
-        delete_msg_tags(msg, del_tag)
+        delete_msg_tags(msg.tags, del_tag)
         for t in b_tag:
             if not (t in m_tag):
                 add_tag.append(t)
-        add_msg_tags(msg, add_tag)
+        add_msg_tags(msg.tags, add_tag)
         change_tags_after(msg, False)
 
 
@@ -3878,7 +3921,7 @@ def send_str(msg_data, msgid):
         in_reply = msg_send.get('In-Reply-To')
         if in_reply is not None:  # 送信メールに In-Reply-To が有れば、送信元ファイルに replied タグ追加
             msg = change_tags_before(in_reply.__str__()[1:-1])
-            add_msg_tags(msg, ['replied'])
+            add_msg_tags(msg.tags, ['replied'])
             change_tags_after(msg, True)
         return True
 
@@ -3909,14 +3952,14 @@ def send_str(msg_data, msgid):
             add_tag = [vim.vars['notmuch_sent_tag'].decode()]
         else:
             add_tag = [vim.vars['notmuch_sent_tag'].decode(), 'attachment']
-        DBASE.open(PATH)
+        dbase = notmuch2.Database()
         msg_id = msg_id[1:-1]
-        msg = DBASE.find_message(msg_id)
-        if msg is not None:
-            add_tag.append(msg.get_tags())
+        msg = list(dbase.messages(msg_id))
+        if msg:
+            add_tag.append(msg.tags)
             add_tag.remove('draft')
             add_tag.remove('unread')
-        DBASE.close()
+        dbase.close()
         move_mail_main(msg_id, send_tmp, sent_dir, ['draft', 'unread'], add_tag, True)  # 送信済み保存
         msgid.append(msg_id)
 
@@ -4169,14 +4212,14 @@ def send_str(msg_data, msgid):
             if not ('References' in header_data):
                 print_error('There is no transfer source file.: ' + f)
                 return False
-            DBASE.open(PATH)
-            msg = DBASE.find_message(header_data['References'][1:-1])
+            dbase = notmuch2.Database()
+            msg = dbase.find(header_data['References'][1:-1])
             if msg is None:
-                DBASE.close()
+                dbase.close()
                 print_error('There is no transfer source file.: ' + f)
                 return False
             f = msg.get_filename()
-            DBASE.close()
+            dbase.close()
             attachments[0] = f
         try:
             with open(f, 'r') as fp:
@@ -4240,10 +4283,9 @@ def send_str(msg_data, msgid):
 
 
 def send_search(search_term):
-    DBASE.open(PATH)
-    query = notmuch.Query(DBASE, search_term)
-    for msg in query.search_messages():
-        files = msg.get_filenames().__str__().split('\n')
+    dbase = notmuch2.Database()
+    for msg in dbase.messages(search_term):
+        files = msg.filenames()
         for f in files:
             if os.path.isfile(f):
                 if send_mail(f):
@@ -4253,7 +4295,7 @@ def send_search(search_term):
                 break
         else:
             print_warring('Not exist mail file.')
-    DBASE.close()
+    dbase.close()
     return
 
 
@@ -4330,12 +4372,12 @@ def new_mail(s):
         msg_id = get_msg_id()
         to = ''
         if msg_id != '':
-            DBASE.open(PATH)
+            dbase = notmuch2.Database()
             for i in vim.vars.get('notmuch_to', []):
                 s = i[0].decode()
-                if notmuch.Query(DBASE, '(' + s + ') and id:"' + msg_id + '"').count_messages():
+                if dbase.count_messages('(' + s + ') and id:"' + msg_id + '"'):
                     return i[1].decode()
-            DBASE.close()
+            dbase.close()
         elif is_same_tabpage('folders', ''):
             to = get_user_To_folder()
         return to
@@ -4435,6 +4477,7 @@ def reply_mail():
                 return adr
         return ''
 
+    global DBASE
     active_win, msg_id, subject = check_org_mail()
     if not active_win:
         return
@@ -4444,28 +4487,28 @@ def reply_mail():
     b.vars['notmuch'] = {}
     b_v = b.vars['notmuch']
     b_v['org_mail_body'] = msg_data
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
+    DBASE = notmuch2.Database()
+    msg = DBASE.find(msg_id)
+    msg_f = open_email_file_from_msg(msg)
     if msg is None:
         DBASE.close()
         print_error('Reply source email has been deleted.')
         return
     headers = vim.vars['notmuch_draft_header']
-    recive_from_name = msg.get_header('From')
+    recive_from_name = msg.header('From')
     b_v['org_mail_from'] = email2only_name(recive_from_name)
-    recive_to_name = msg.get_header('To')
+    recive_to_name = get_msg_header(msg_f, 'To')
     from_ls = [email2only_address(get_config('user.primary_email'))]
     for i in vim.vars.get('notmuch_from', []):
         from_ls.append(email2only_address(i['address'].decode()))
     send_from_name = ''
-    cc_name = []
+    cc_name = address2ls(get_msg_header(msg_f, 'Cc'))
     if email2only_address(recive_from_name) in from_ls:  # 自分のメールに対する返信
         send_to_name = recive_to_name
         send_from_name = recive_from_name
         recive_to_name = [recive_to_name]
     else:
         recive_to_name = address2ls(recive_to_name)
-        cc_name = address2ls(msg.get_header('Cc'))
         addr_exist = False
         addr_exist, send_from_name = delete_duplicate_addr(recive_to_name, from_ls)
         addr_tmp, send_tmp = delete_duplicate_addr(cc_name, from_ls)
@@ -4491,7 +4534,7 @@ def reply_mail():
             b.append('Subject: ' + subject)
             b_v['subject'] = subject
         elif header_lower == 'to':
-            to = msg.get_header('Reply-To')
+            to = get_msg_header(msg_f, 'Reply-To')
             if to == '':
                 to = send_to_name
             b.append('To: ' + to)
@@ -4502,8 +4545,8 @@ def reply_mail():
         else:
             b.append(header + ': ')
     b_v['org_mail_date'] = email.utils.parsedate_to_datetime(
-        msg.get_header('Date')).strftime('%Y-%m-%d %H:%M %z')
-    # date = email.utils.parsedate_to_datetime(msg.get_header('Date')).strftime(DATE_FORMAT)
+        msg.header('Date')).strftime('%Y-%m-%d %H:%M %z')
+    # date = email.utils.parsedate_to_datetime(msg.header('Date')).strftime(DATE_FORMAT)
     # ↑同じローカル時間同士でやり取りするとは限らない
     after_make_draft(b, msg, add_head | 0x0E)
     vim.command('call s:Au_reply_mail()')
@@ -4514,9 +4557,10 @@ def forward_mail():
     if not windo:
         return
     msg_data = get_mail_body(windo)  # 実際には後からヘッダ情報なども追加
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
-    if msg is None:
+    DBASE = notmuch2.Database()
+    try:
+        msg = DBASE.find(msg_id)
+    except LookupError:
         DBASE.close()
         print_error('Forward source email has been deleted.')
         return
@@ -4526,8 +4570,13 @@ def forward_mail():
     b.vars['notmuch'] = {}
     b_v = b.vars['notmuch']
     cut_line = 70
+    msg_f = open_email_file_from_msg(msg)
+    if msg_f is None:
+        DBASE.close()
+        print_error('Forward source email has been deleted.')
+        return
     for h in ['Cc', 'To', 'Date', 'Subject', 'From']:
-        s = msg.get_header(h).replace('\t', ' ')
+        s = get_msg_header(msg_f, h).replace('\t', ' ')
         if h == 'Subject':
             msg_data = h + ': ' + subject + '\n' + msg_data
             subject = 'FWD:' + subject
@@ -4558,12 +4607,14 @@ def forward_mail():
 
 
 def forward_mail_attach():
+    global DBASE
     windo, msg_id, s = check_org_mail()
     if not windo:
         return
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
-    if msg is None:
+    DBASE = notmuch2.Database()
+    try:
+        msg = DBASE.find(msg_id)
+    except LookupError:
         DBASE.close()
         print_error('Forward source email has been deleted.')
         return
@@ -4588,12 +4639,14 @@ def forward_mail_attach():
 
 
 def forward_mail_resent():
+    global DBASE
     windo, msg_id, s = check_org_mail()
     if not windo:
         return
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
-    if msg is None:
+    DBASE = notmuch2.Database()
+    try:
+        msg = DBASE.find(msg_id)
+    except LookupError:
         DBASE.close()
         print_error('Forward source email has been deleted.')
         return
@@ -4654,6 +4707,7 @@ def before_make_draft(active_win):
 
 
 def after_make_draft(b, msg, add_head):
+    global DBASE
     now = email.utils.localtime()
     msg_id = email.utils.make_msgid()
     b_v = vim.current.buffer.vars
@@ -4667,9 +4721,9 @@ def after_make_draft(b, msg, add_head):
     if add_head & 0x1C:
         set_reference(b, msg, add_head & 0x0C)
         if add_head & 0x10:
-            for f in msg.get_filenames():
+            for f in msg.filenames():
                 if os.path.isfile(f):
-                    b.append('Attach: ' + f)
+                    b.append('Attach: ' + str(f))
                     break
         DBASE.close()
     if add_head & 0x02:
@@ -4693,15 +4747,17 @@ def save_draft():
     下書きバッファと Notmuch database のタグをマージと notmuch-folders の更新
     下書き保存時に呼び出される
     """
+    global DBASE
     notmuch_new(False)
     b = vim.current.buffer
     msg_id = b.vars['notmuch']['msg_id'].decode()
     marge_tag(msg_id, False)
     # Maildir だとフラグの変更でファイル名が変わり得るので、その時はバッファのファイル名を変える
     b_f = b.name
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
-    if msg is None:
+    DBASE = notmuch2.Database()
+    try:
+        msg = DBASE.find(msg_id)
+    except LookupError:
         m_f = None
     else:
         m_f = msg.get_filename()
@@ -4728,9 +4784,9 @@ def check_org_mail():
     b_v = b.vars['notmuch']
     # JIS 外漢字が含まれ notmcuh データベースの取得結果とは異なる可能性がある
     show_win = s_buf_num('show', '')
-    is_search = not(s_buf_num('folders', '') == active_win
-                    or s_buf_num('thread', '') == active_win
-                    or show_win == active_win)
+    is_search = not (s_buf_num('folders', '') == active_win
+                     or s_buf_num('thread', '') == active_win
+                     or show_win == active_win)
     if is_search:
         show_win = s_buf_num('view', b_v['search_term'].decode())
     if vim_goto_bufwinid(show_win) == 0:
@@ -4762,11 +4818,16 @@ def set_reference(b, msg, flag):
     References, In-Reply-To, Fcc 追加
     In-Reply-To は flag == True
     """
-    re_msg_id = ' <' + msg.get_header('Message-ID') + '>'
-    b.append('References: ' + msg.get_header('References') + re_msg_id)
+    re_msg_id = ' <' + msg.header('Message-ID') + '>'
+    msg_f = open_email_file_from_msg(msg)
+    if msg_f is None:
+        DBASE.close()
+        print_error('Forward source email has been deleted.')
+        return
+    b.append('References: ' + get_msg_header(msg_f, 'References') + re_msg_id)
     if flag:
         b.append('In-Reply-To:' + re_msg_id)
-    fcc = msg.get_filenames().__str__().split('\n')[0]
+    fcc = msg.filenames().__str__().split('\n')[0]
     fcc = fcc[len(PATH) + 1:]
     if get_mailbox_type() == 'Maildir':
         fcc = re.sub(r'/(new|tmp|cur)/[^/]+', '', fcc)
@@ -5046,6 +5107,7 @@ def save_mail(msg_id, s, args):
             (args[2], args[4]) = os.path.splitext(args[2])
         return args[2] + '-1' + args[4]
 
+    global DBASE
     type = buf_kind()
     if type == 'show' or type == 'view':
         save_file = single_file()
@@ -5072,7 +5134,7 @@ def save_mail(msg_id, s, args):
             buf_num = s_buf_num('show', '')
         elif type == 'search':
             buf_num = s_buf_num('view', b.vars.search_term)
-        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+        DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
         open_mail_by_msgid(s, msg_id, buf_num, False)
         DBASE.close()
     with open(save_file, 'w') as fp:
@@ -5100,14 +5162,14 @@ def move_mail(msg_id, s, args):
     mbox = mbox[0]
     if mbox == '.':
         return
-    DBASE.open(PATH)  # 呼び出し元で開く処理で書いてみたが、それだと複数メールの処理で落ちる
-    msg = DBASE.find_message(msg_id)
-    tags = msg.get_tags()
-    for f in msg.get_filenames():
+    DBASE = notmuch2.Database()  # 呼び出し元で開く処理で書いてみたが、それだと複数メールの処理で落ちる
+    msg = DBASE.find(msg_id)
+    tags = list(msg.tags)
+    for f in msg.filenames():
         if os.path.isfile(f):
             move_mail_main(msg_id, f, mbox, [], tags, False)
         else:
-            print('Already Delete: ' + f)
+            print('Already Delete: ' + str(f))
     DBASE.close()
     reprint_folder2()  # 閉じた後でないと、メール・ファイル移動の情報がデータベースに更新されていないので、エラーになる
     return [1, 1, mbox]  # Notmuch mark-command (command_marked) から呼び出された時の為、リストで返す
@@ -5146,8 +5208,8 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
     notmuch_new(False)
     msg = change_tags_before(msg_id)
     delete_tag += ['unread']  # mbox.add() は必ず unread になる
-    delete_msg_tags(msg, delete_tag)
-    add_msg_tags(msg, add_tag)  # 元々未読かもしれないので、追加を後に
+    delete_msg_tags(msg.tags, delete_tag)
+    add_msg_tags(msg.tags, add_tag)  # 元々未読かもしれないので、追加を後に
     change_tags_after(msg, False)
     notmuch_new(False)
     vim.command('redraw')
@@ -5222,10 +5284,10 @@ def import_mail(args):
     mbox.unlock()
     # タグの付け直し
     notmuch_new(False)
-    # DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+    # DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     # for msg_id in msg_ids:
     #     msg = change_tags_before_core(msg_id)
-    #     add_msg_tags(msg, ['inbox'])
+    #     add_msg_tags(msg.tags, ['inbox'])
     #     change_tags_after_core(msg, True)
     # DBASE.close()
     print_folder()
@@ -5261,24 +5323,24 @@ def select_file(msg_id, question, s):
         msg_id = get_msg_id()
         if msg_id == '':
             return [], '', 0, ''
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
+    dbase = notmuch2.Database()
+    msg = dbase.find(msg_id)
     if msg is None:  # すでにファイルが削除されているとき
         print('The email has already been completely deleted.')
-        DBASE.close()
+        dbase.close()
         return [], '', 0, ''
     try:
-        subject = msg.get_header('Subject')
+        subject = get_msg_header(open_email_file_from_msg(msg), 'Subject')
     except notmuch2.NullPointerError:  # すでにファイルが削除されているとき
         print('The email has already been completely deleted.')
-        DBASE.close()
+        dbase.close()
         return [], '', 0, ''
     prefix = len(PATH) + 1
     files = []
     lst = ''
     size = 0
     len_i = 1
-    for i, f in enumerate(msg.get_filenames()):  # ファイル・サイズの最大桁数の算出
+    for i, f in enumerate(msg.filenames()):  # ファイル・サイズの最大桁数の算出
         if os.path.isfile(f):
             len_i += 1
             f_size = os.path.getsize(f)
@@ -5286,7 +5348,8 @@ def select_file(msg_id, question, s):
                 size = f_size
     size = len(str(size))
     len_i = len(str(len_i))
-    for i, f in enumerate(msg.get_filenames()):
+    for i, f in enumerate(msg.filenames()):
+        f = str(f)
         if os.path.isfile(f):
             fmt = '{0:<' + str(len_i) + '}|{1}{2:<5}{3:>' + str(size) + '} B| {4}\n'
             attach = get_attach_info(f)
@@ -5301,7 +5364,7 @@ def select_file(msg_id, question, s):
             files.append({'name': f, 'date': date, 'size': int(f_size)})
         else:
             print_warring('Already Delete. ' + f[prefix:])
-    DBASE.close()
+    dbase.close()
     if len(files) == 1:
         return files, subject, 1, ''
     i = i + 1
@@ -5495,8 +5558,8 @@ def run_shell_program(msg_id, s, args):
         else:
             prg_param = re.sub(
                 ' +$', '', re.sub('^ +', '', prg_param)).split(' ')
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
+    dbase = notmuch2.Database()
+    msg = dbase.find(msg_id)
     if not ('<path:>' in prg_param) and not ('<id:>' in prg_param):
         prg_param.append(msg.get_filename())
     else:
@@ -5506,7 +5569,7 @@ def run_shell_program(msg_id, s, args):
         if '<id:>' in prg_param:
             i = prg_param.index('<id:>')
             prg_param[i] = msg_id
-    DBASE.close()
+    dbase.close()
     shellcmd_popen(prg_param)
     print(' '.join(prg_param))
     return [0, 0, prg_param]
@@ -5643,12 +5706,13 @@ def command_marked(cmdline):
                 args = GLOBALS[py_cmd](msg_id, cmd[1])
             cmd_arg[i][1] = args  # 引数が空の場合があるので実行した引数で置き換え
     vim_sign_unplace('')
-    # DBASE.open(PATH)
+    # DBASE = notmuch2.Database()
     reprint_folder2()
     # DBASE.close()
 
 
 def notmuch_search(search_term):
+    global DBASE
     i_search_term = ''
     search_term = search_term[2:]
     if search_term == '' or search_term == []:  # コマンド空
@@ -5663,7 +5727,7 @@ def notmuch_search(search_term):
         search_term = ' '.join(search_term)
     if not check_search_term(search_term):
         return
-    DBASE.open(PATH)
+    DBASE = notmuch2.Database()
     search_term = RE_END_SPACE.sub('', search_term)
     if search_term == i_search_term:
         if vim.current.buffer.number == s_buf_num('folders', ''):
@@ -5678,7 +5742,7 @@ def notmuch_search(search_term):
                                        vim.buffers[s_buf_num('thread', '')].number)
         return
     try:
-        if notmuch.Query(DBASE, search_term).count_messages() == 0:
+        if DBASE.count_messages(search_term) == 0:
             DBASE.close()
             print_warring('Don\'t find mail.  (0 search mail).')
             return
@@ -5696,21 +5760,21 @@ def notmuch_search(search_term):
 
 
 def notmuch_thread():
+    global DBASE
     msg_id = get_msg_id()
     if msg_id == '':
         return
-    DBASE.open(PATH)
-    thread_id = 'thread:' + DBASE.find_message(msg_id).get_thread_id()
+    DBASE = notmuch2.Database()
+    thread_id = 'thread:' + DBASE.find(msg_id).threadid
     DBASE.close()
     notmuch_search([0, 0, thread_id])  # 先頭2つの0はダミーデータ
     fold_open_core()
     index = [i for i, msg in enumerate(
         THREAD_LISTS[thread_id]['list']) if msg._msg_id == msg_id]
-    w = vim.current.window
     b = vim.current.buffer
     if not index:  # 一度スレッド検索後、同じスレッドで受信したメールに対してスレッド検索
         notmuch_new(False)
-        DBASE.open(PATH)
+        DBASE = notmuch2.Database()
         print_thread_core(b.number, thread_id, False, True)
         DBASE.close()
         fold_open_core()
@@ -5718,11 +5782,11 @@ def notmuch_thread():
             THREAD_LISTS[thread_id]['list']) if msg._msg_id == msg_id]
     index = index[0] + 1
     if len(b) != len(THREAD_LISTS[thread_id]['list']):
-        DBASE.open(PATH)
+        DBASE = notmuch2.Database()
         print_thread_core(b.number, thread_id, False, True)
         DBASE.close()
         fold_open_core()
-    reset_cursor_position(b, w, index)
+    reset_cursor_position(b, index)
 
 
 def notmuch_address():
@@ -5737,20 +5801,24 @@ def notmuch_address():
     msg_id = get_msg_id()
     if msg_id == '':
         return
-    DBASE.open(PATH)
-    msg = DBASE.find_message(msg_id)
-    if vim.vars['notmuch_sent_tag'].decode() in msg.get_tags():
-        adr = only_address(address2ls(msg.get_header('To')))
+    dbase = notmuch2.Database()
+    msg = dbase.find(msg_id)
+    if msg is None:
+        print_error('Email data has been deleted.')
+        return
+    msg_f = open_email_file_from_msg(msg)
+    if vim.vars['notmuch_sent_tag'].decode() in list(msg.tags):
+        adr = only_address(address2ls(get_msg_header(msg_f, 'To')))
         if not adr:
-            adr = only_address(address2ls(msg.get_header('Cc')))
+            adr = only_address(address2ls(get_msg_header(msg_f, 'Cc')))
             if not adr:
-                adr = only_address(address2ls(msg.get_header('Bcc')))
+                adr = only_address(address2ls(get_msg_header(msg_f, 'Bcc')))
     else:
-        adr = only_address(address2ls(msg.get_header('From'))) + \
-            only_address(address2ls(msg.get_header('Reply-To')))
-    DBASE.close()
+        adr = only_address(address2ls(msg.header('From'))) + \
+            only_address(address2ls(get_msg_header(msg_f, 'Reply-To')))
+    dbase.close()
     if not adr:
-        if vim.vars['notmuch_sent_tag'].decode() in msg.get_tags():
+        if vim.vars['notmuch_sent_tag'].decode() in msg.tags:
             print_warring('To/Cc/Bcc header is empty.')
         else:
             print_warring('From header is empty.')
@@ -5763,22 +5831,20 @@ def notmuch_address():
     fold_open_core()
     index = [i for i, msg in enumerate(
         THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
-    reset_cursor_position(vim.current.buffer, vim.current.window, index[0] + 1)
+    reset_cursor_position(vim.current.buffer, index[0] + 1)
 
 
 def notmuch_duplication(remake):
+    global DBASE
     if not THREAD_LISTS:
         set_global_var()
     if remake or not ('*' in THREAD_LISTS):
-        DBASE.open(PATH)
-        query = notmuch.Query(DBASE, 'path:**')
-        msgs = query.search_messages()
+        DBASE = notmuch2.Database()
         # THREAD_LISTS の作成はマルチプロセスも試したが、大抵は数が少ないために反って遅くなる
         ls = []
-        for msg in msgs:
-            if len(list(msg.get_filenames())) >= 2:
-                thread = notmuch.Query(DBASE, 'thread:' + msg.get_thread_id())
-                thread = list(thread.search_threads())[0]  # thread_id で検索しているので元々該当するのは一つ
+        for msg in DBASE.messages('path:**'):
+            if len(list(msg.filenames())) >= 2:
+                thread = list(DBASE.threads('thread:' + msg.threadid))[0]  # thread_id で検索しているので元々該当するのは一つ
                 ls.append(MailData(msg, thread, 0, 0))
         DBASE.close()
         if not ls:
@@ -6123,20 +6189,20 @@ def get_refine_index():
         print_warring('Do not execute \'search-refine\'')
         return -1, '', []
     msg_id = get_msg_id()
-    DBASE.open(PATH)
+    dbase = notmuch2.Database()
     index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
-             if notmuch.Query(DBASE, 'id:"' + msg._msg_id + '" and ('
-                              + vim.bindeval('refined_search_term').decode() + ')'
-                              ).count_messages()]
+             if dbase.count_messages('id:"' + msg._msg_id + '" and ('
+                                     + vim.bindeval('refined_search_term').decode() + ')')]
     if not index:
         return -1, '', []
-    DBASE.close()
+    dbase.close()
     return [i for i, msg in enumerate(
             THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id][0], \
         search_term, index
 
 
 def notmuch_refine_common(s, index):
+    global DBASE
     org_b_num = vim.current.buffer.number
     b_num = org_b_num
     f_show = False
@@ -6150,15 +6216,12 @@ def notmuch_refine_common(s, index):
     for b in vim.buffers:
         if b.number == b_num:
             break
-    for t in vim.tabpages:
-        for i in [i for i, x in enumerate(list(
-                vim_tabpagebuflist(t.number))) if x == b_num]:
-            reset_cursor_position(b, t.windows[i], index + 1)
-            if (is_same_tabpage('thread', '') or is_same_tabpage('search', s)):
-                vim_goto_bufwinid(b.number)
-                fold_open()
+    reset_cursor_position(b, index + 1)
+    if (is_same_tabpage('thread', '') or is_same_tabpage('search', s)):
+        vim_goto_bufwinid(b.number)
+        fold_open()
     if f_show:
-        DBASE.open(PATH, mode=notmuch2.Database.MODE.READ_WRITE)
+        DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
         msg_id = THREAD_LISTS[s]['list'][index]._msg_id
         open_mail_by_msgid(s, msg_id, str(org_b_num), True)
         DBASE.close()
@@ -6563,8 +6626,6 @@ if not os.path.isdir(PATH):
 if not notmuch_new(True):
     raise notmuchVimError('Can\'t update database.')
     vim.command('redraw')  # notmuch new の結果をクリア←redraw しないとメッセージが表示されるので、続けるためにリターンが必要
-DBASE = notmuch.Database()
-DBASE.close()
 if 'notmuch_delete_top_subject' in vim.vars:  # Subject の先頭から削除する正規表現文字列
     DELETE_TOP_SUBJECT = vim.vars('notmuch_delete_top_subject').decode()
 else:
