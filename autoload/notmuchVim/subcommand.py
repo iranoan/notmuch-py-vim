@@ -480,31 +480,56 @@ def make_thread_core(search_term):
     threads = DBASE.threads(search_term)
     reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
     print('Making cache data:' + search_term)
-    threads = [i.threadid for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
-    # ValueError: ctypes objects containing pointers cannot be pickled
     set_global_var()
+    # シングル・スレッド版
     ls = []
     for i in threads:
         ls.extend(make_single_thread(i, search_term))
-    # マルチプロセス版 Mailbox で Subject 全体をの取得にしたら落ちる
+    # マルチプロセス版 Mailbox で Subject 全体を取得にしたら落ちる
+    # threads = [i.threadid for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
+    # # ValueError: ctypes objects containing pointers cannot be pickled
     # with ProcessPoolExecutor() as executor:
     #     f = [executor.submit(make_single_thread, i, search_term) for i in threads]
     #     for r in f:
     #         ls += r.result()
     ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
     THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
-    vim.command('redraw')
+    # vim.command('redraw')
     return True
 
 
-def make_single_thread(thread_id, search_term):
+# def make_single_thread(thread_id, search_term):  # マルチ・スレッド版
+#     def make_reply_ls(ls, message, depth):  # スレッド・ツリーの深さ情報取得
+#         ls.append((message.messageid, message, depth))
+#         for msg in message.replies():
+#             make_reply_ls(ls, msg, depth + 1)
+
+#     thread = list(DBASE.threads('(' + search_term + ') and thread:' + thread_id))[0]
+#     # thread_id で検索しているので元々該当するのは一つ
+#     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
+#         msgs = thread.toplevel()
+#     except notmuch2.NullPointerError:
+#         print_err('Error: get top-level message')
+#     replies = []
+#     for msg in msgs:
+#         make_reply_ls(replies, msg, 0)
+#     order = 0
+#     ls = []
+#     # search_term にヒットするメールに絞り込み
+#     for reply in replies:
+#         if DBASE.count_messages('(' + search_term + ') and id:"' + reply[0] + '"'):
+#             depth = reply[2]
+#             if depth > order:
+#                 depth = order
+#             ls.append(MailData(reply[1], thread, order, depth))
+#             order = order + 1
+#     return ls
+def make_single_thread(thread, search_term):
     def make_reply_ls(ls, message, depth):  # スレッド・ツリーの深さ情報取得
-        ls.append((message.messageid, message, depth))
+        ls.append((message, message, depth))
         for msg in message.replies():
             make_reply_ls(ls, msg, depth + 1)
 
-    thread = list(DBASE.threads('(' + search_term + ') and thread:' + thread_id))[0]
-    # thread_id で検索しているので元々該当するのは一つ
     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
         msgs = thread.toplevel()
     except notmuch2.NullPointerError:
@@ -516,7 +541,7 @@ def make_single_thread(thread_id, search_term):
     ls = []
     # search_term にヒットするメールに絞り込み
     for reply in replies:
-        if DBASE.count_messages('(' + search_term + ') and id:"' + reply[0] + '"'):
+        if reply[0].matched:
             depth = reply[2]
             if depth > order:
                 depth = order
