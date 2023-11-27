@@ -50,6 +50,8 @@ win_id2tabwin = vim.Function('win_id2tabwin')
 bufwinnr = vim.Function('bufwinnr')
 sign_unplace = vim.Function('sign_unplace')
 vim_strdisplaywidth = vim.Function('strdisplaywidth')
+vim_win_execute = vim.Function('win_execute')
+vim_win_getid = vim.Function('win_getid')
 
 
 def vim_input(p, *s):
@@ -2458,9 +2460,12 @@ def reset_cursor_position(b, line):
         return
     b_num = b.number
     for t in vim.tabpages:
+        t_num = t.number
         for i in [i for i, x in enumerate(list(
-                vim_tabpagebuflist(t.number))) if x == b_num]:
-            t.windows[i].cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
+                vim_tabpagebuflist(t_num))) if x == b_num]:
+            w = t.windows[i]
+            w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
+            vim_win_execute(vim_win_getid(w.number, t_num), 'redraw')  # ←カーソル移動しても点滅する描画位置が行頭になる時が有る対策
 
 
 def next_unread(active_win):
