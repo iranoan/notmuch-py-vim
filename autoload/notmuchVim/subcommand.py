@@ -2045,7 +2045,8 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         vim_append_content(main_out)
         if check_end_view() and ('unread' in msg.tags):
             msg = change_tags_before_core(msg.messageid)
-            delete_msg_tags(msg.tags, ['unread'])
+            with msg.frozen():
+                msg.tags.discard('unread')
             change_tags_after_core(msg, True)
     vim.command('silent file! notmuch://show?' + search_term.replace('#', r'\#'))
     vim_goto_bufwinid(active_win)
@@ -2224,8 +2225,9 @@ def set_tags(msg_id, s, args):
         else:
             if tag not in delete_tags:
                 add_tags.append(tag)
-    delete_msg_tags(msg.tags, delete_tags)
-    add_msg_tags(msg.tags, add_tags)
+    with msg.frozen():
+        delete_msg_tags(msg.tags, delete_tags)
+        add_msg_tags(msg.tags, add_tags)
     change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -2250,7 +2252,8 @@ def add_tags(msg_id, s, args):
     msg = change_tags_before(msg_id)
     if msg is None:
         return
-    add_msg_tags(msg.tags, tags)
+    with msg.frozen():
+        add_msg_tags(msg.tags, tags)
     change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -2275,7 +2278,8 @@ def delete_tags(msg_id, s, args):
     msg = change_tags_before(msg_id)
     if msg is None:
         return
-    delete_msg_tags(msg.tags, tags)
+    with msg.frozen():
+        delete_msg_tags(msg.tags, tags)
     change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -2306,11 +2310,12 @@ def toggle_tags(msg_id, s, args):
         msg_tags = []
         for t in msg.tags:
             msg_tags.append(t)
-        for tag in tags:
-            if tag in msg_tags:
-                delete_msg_tags(msg.tags, [tag])
-            else:
-                add_msg_tags(msg.tags, [tag])
+        with msg.frozen():
+            for tag in tags:
+                if tag in msg_tags:
+                    msg.tags.discard(tag)
+                else:
+                    msg.tags.add(tag)
         change_tags_after(msg, True)
     return [0, 0] + tags
 
@@ -3521,11 +3526,12 @@ def marge_tag(msg_id, send):
                 continue
             if not (t in b_tag):
                 del_tag.append(t)
-        delete_msg_tags(msg.tags, del_tag)
         for t in b_tag:
             if not (t in m_tag):
                 add_tag.append(t)
-        add_msg_tags(msg.tags, add_tag)
+        with msg.frozen():
+            delete_msg_tags(msg.tags, del_tag)
+            add_msg_tags(msg.tags, add_tag)
         change_tags_after(msg, False)
 
 
@@ -3926,7 +3932,8 @@ def send_str(msg_data, msgid):
         in_reply = msg_send.get('In-Reply-To')
         if in_reply is not None:  # 送信メールに In-Reply-To が有れば、送信元ファイルに replied タグ追加
             msg = change_tags_before(in_reply.__str__()[1:-1])
-            add_msg_tags(msg.tags, ['replied'])
+            with msg.frozen():
+                msg.tags('replied')
             change_tags_after(msg, True)
         return True
 
@@ -5213,8 +5220,9 @@ def move_mail_main(msg_id, path, move_mbox, delete_tag, add_tag, draft):
     notmuch_new(False)
     msg = change_tags_before(msg_id)
     delete_tag += ['unread']  # mbox.add() は必ず unread になる
-    delete_msg_tags(msg.tags, delete_tag)
-    add_msg_tags(msg.tags, add_tag)  # 元々未読かもしれないので、追加を後に
+    with msg.frozen():
+        delete_msg_tags(msg.tags, delete_tag)
+        add_msg_tags(msg.tags, add_tag)  # 元々未読かもしれないので、追加を後に
     change_tags_after(msg, False)
     notmuch_new(False)
     vim.command('redraw')
