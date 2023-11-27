@@ -916,7 +916,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
         elif unread:  # フォルダリストに未読はないが新規メールを受信していた場合
             print_thread_core(b_num, search_term, True, True)
         else:
-            vim.command('normal! Gzb')
+            vim.command('keepjump normal! Gzb')
             reset_cursor_position(b, vim.current.window.cursor[0])
             fold_open()
     vim.command('silent file! notmuch://thread?' + search_term.replace('#', r'\#'))
@@ -1042,12 +1042,12 @@ def thread_change_sort(sort_way):
     b[0] = None
     b.options['modifiable'] = 0
     index = [i for i, msg in enumerate(threadlist) if msg._msg_id == msg_id]
-    vim.command('normal! Gzb')
+    vim.command('keepjump normal! Gzb')
     if index:  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, index[0] + 1)
     else:
         print('Don\'t select same mail.\nBecase already Delete/Move/Change folder/tag.')
-        vim.command('normal! G')
+        vim.command('keepjump normal! G')
     fold_open()
 
 
@@ -1153,7 +1153,7 @@ def reload_thread():
             empty_show()
         return
     # ウィンドウ下部にできるだけ空間表示がない様にする為一度最後のメールに移動後にウィンドウ最下部にして表示
-    vim.command('normal! Gzb')
+    vim.command('keepjump normal! Gzb')
     if msg_id != '' and len(index):  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, index[0] + 1)
     else:
