@@ -2272,12 +2272,14 @@ def add_tags(msg_id, s, args):
     if not tags:
         return
     if is_draft():
-        b_v = vim.current.buffer.vars['notmuch']
+        b = vim.current.buffer
+        b_v = b.vars['notmuch']
         b_tags = b_v['tags'].decode().split(' ')
         for t in tags:
             if not (t in b_tags):
                 b_tags.append(t)
         b_v['tags'] = ' '.join(b_tags)
+        b.options['modified'] = 1
         return
     msg = change_tags_before(msg_id)
     if msg is None:
@@ -2298,12 +2300,14 @@ def delete_tags(msg_id, s, args):
     if not tags:
         return
     if is_draft():
-        b_v = vim.current.buffer.vars['notmuch']
+        b = vim.current.buffer
+        b_v = b.vars['notmuch']
         b_tags = b_v['tags'].decode().split(' ')
         for t in tags:
             if t in b_tags:
                 b_tags.remove(t)
         b_v['tags'] = ' '.join(b_tags)
+        b.options['modified'] = 1
         return
     msg = change_tags_before(msg_id)
     if msg is None:
