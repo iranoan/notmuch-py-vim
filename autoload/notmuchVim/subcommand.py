@@ -943,7 +943,9 @@ def print_thread_core(b_num, search_term, select_unread, remake):
             vim.command('keepjump normal! Gzb')
             reset_cursor_position(b, vim.current.window.cursor[0])
             fold_open()
+    b_name = b.name
     vim.command('silent file! notmuch://thread?' + search_term.replace('#', r'\#'))
+    Bwipeout(b_name, b.name)
 
 
 def thread_change_sort(sort_way):
@@ -2074,7 +2076,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             with msg.frozen():
                 msg.tags.discard('unread')
             change_tags_after_core(msg, True)
+    b_name = b.name
     vim.command('silent file! notmuch://show?' + search_term.replace('#', r'\#'))
+    Bwipeout(b_name, b.name)
     vim_goto_bufwinid(active_win)
     vim.command('redrawstatus!')
 
@@ -4798,12 +4802,22 @@ def save_draft():
     except LookupError:
         m_f = None
     else:
-        m_f = msg.get_filename()
-    if not (m_f is None) and m_f != b_f:
-        b_f = m_f
-        vim.command('write! ' + b_f)
+        m_f = str(next(msg.filenames()))
+    if m_f is not None and m_f != b_f:
+        vim.command('saveas! ' + m_f)
+        Bwipeout(b_f, m_f)
+        if os.path.isfile(b_f):
+            os.remove(b_f)
     reprint_folder()
     DBASE.close()
+
+
+def Bwipeout(b_n, n_n):  # 変更前の名前で隠しバッファとして残っているので削除する
+    if b_n == n_n:
+        return
+    for b in vim.buffers:
+        if b.name == b_n:
+            vim.command('bwipeout! ' + str(b.number))
 
 
 def set_new_after(n):
