@@ -253,7 +253,6 @@ class MailData:  # メール毎の各種データ
             return None
         self.__subject = get_msg_header(msg_f, 'Subject')
         self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.header('From'))).lower()
-        # self.__path = msg.filenames().__str__().split('\n')  # file name (full path)
         # ↑同一 Message-ID メールが複数でも取り敢えず全て
         # 整形した日付
         self.__reformed_date = RE_TAB2SPACE.sub(
@@ -280,8 +279,8 @@ class MailData:  # メール毎の各種データ
             else:
                 name = RE_TAB2SPACE.sub(' ', m_from_name)
         self.__reformed_name = name
+        # self.__path = msg.filenames() ←ファイル自体は削除されていることも有る
         # 以下はどれもファイルをオープンしっぱなしになるもよう
-        # self.__path = msg.filenames()
         # self.__msg = msg                               # msg_p
         # self.__thread = thread                         # thread_p
 
@@ -323,7 +322,7 @@ class MailData:  # メール毎の各種データ
         return RE_END_SPACE.sub('', DISPLAY_FORMAT2.format(subject, adr, date))
 
     def make_sort_key(self):
-        thread = list(DBASE.threads('id:"' + self._msg_id + '"'))[0]
+        thread = next(DBASE.threads('id:"' + self._msg_id + '"'))
         # 同一スレッド中のメール作成者
         string = thread.authors
         if string is None:
@@ -333,7 +332,7 @@ class MailData:  # メール毎の各種データ
                                      for s in re.split('[,|]', string.lower())]))
             # ↑おそらく | で区切られているのは、使用している search_term では含まれれないが、同じ thread_id に含まれているメールの作成者
         # スレッド・トップの Subject
-        string = get_msg_header(open_email_file_from_msg(list(thread.toplevel())[0]), 'Subject')
+        string = get_msg_header(open_email_file_from_msg(next(thread.toplevel())), 'Subject')
         self._thread_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
 
     def get_date(self):
@@ -504,7 +503,7 @@ def make_thread_core(search_term):
 #         for msg in message.replies():
 #             make_reply_ls(ls, msg, depth + 1)
 
-#     thread = list(DBASE.threads('(' + search_term + ') and thread:' + thread_id))[0]
+#     thread = next(DBASE.threads('(' + search_term + ') and thread:' + thread_id))
 #     # thread_id で検索しているので元々該当するのは一つ
 #     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
 #         msgs = thread.toplevel()
@@ -1301,11 +1300,13 @@ def get_message(s):
     * 見つからないときは None
     * 見つかったときは最初の一つ
     * list(DBASE.messages(s))[0] では上手く行かなかったので…
+    * next(DBASE.messages(s)) は見つからないときの処理がわからない
     '''
     global DBASE
     for m in DBASE.messages(s):
         return m
     return None
+
 
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     """ open mail by Message-ID (not threader order)
@@ -4864,7 +4865,7 @@ def set_reference(b, msg, flag):
     b.append('References: ' + get_msg_header(msg_f, 'References') + re_msg_id)
     if flag:
         b.append('In-Reply-To:' + re_msg_id)
-    fcc = msg.filenames().__str__().split('\n')[0]
+    fcc = str(next(msg.filenames()))
     fcc = fcc[len(PATH) + 1:]
     if get_mailbox_type() == 'Maildir':
         fcc = re.sub(r'/(new|tmp|cur)/[^/]+', '', fcc)
@@ -5882,7 +5883,7 @@ def notmuch_duplication(remake):
         ls = []
         for msg in DBASE.messages('path:**'):
             if len(list(msg.filenames())) >= 2:
-                thread = list(DBASE.threads('thread:' + msg.threadid))[0]  # thread_id で検索しているので元々該当するのは一つ
+                thread = next(DBASE.threads('thread:' + msg.threadid))  # threadid で検索しているので元々該当するのは一つ
                 ls.append(MailData(msg, thread, 0, 0))
         DBASE.close()
         if not ls:
