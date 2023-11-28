@@ -3528,11 +3528,11 @@ def marge_tag(msg_id, send):
     下書きバッファと notmuch database のタグをマージ
     send 送信時か?→draft, unread タグは削除
     """
+    global DBASE
     b = vim.current.buffer
-    dbase = notmuch2.Database()
     msg = change_tags_before(msg_id)
     if msg is None:
-        dbase.close()
+        DBASE.close()
     else:
         b_v = b.vars['notmuch']
         b_tag = b_v['tags'].decode().split(' ')
