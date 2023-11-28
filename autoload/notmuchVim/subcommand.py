@@ -2450,8 +2450,8 @@ def change_tags_after_core(msg, change_b_tags):
       * folder list information
     """
     msg.tags.to_maildir_flags()
-    msg_id = msg.messageid
     if change_b_tags:
+        msg_id = msg.messageid
         tags = get_msg_tags(msg)
         ls_tags = list(msg.tags)
         for b in vim.buffers:
@@ -4794,12 +4794,19 @@ def save_draft():
     下書き保存時に呼び出される
     """
     global DBASE
-    notmuch_new(False)
+    # notmuch_new(False)
+    # ↑だと上書きで自分を含め呼び出し元の編集バッファを閉じてしまうので、やるとしたら警告を無視して↓
+    # run(['notmuch', 'new'], stdout=PIPE, stderr=PIPE)
     b = vim.current.buffer
     msg_id = b.vars['notmuch']['msg_id'].decode()
+    b_f = b.name
+    db = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
+    if db.count_messages('id:' + msg_id) == 0:
+        vim.command('write ' + b_f)
+        db.add(b_f)
+    db.close()
     marge_tag(msg_id, False)
     # Maildir だとフラグの変更でファイル名が変わり得るので、その時はバッファのファイル名を変える
-    b_f = b.name
     DBASE = notmuch2.Database()
     try:
         msg = DBASE.find(msg_id)
