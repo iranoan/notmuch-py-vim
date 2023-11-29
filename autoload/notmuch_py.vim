@@ -124,8 +124,7 @@ def Make_thread_list(): void # スレッド・バッファを用意するだけ
 		return
 	endif
 	New_buffer('thread', '')
-	silent file! notmuch://thread
-	Set_thread()
+	Set_thread(buf_num.thread)
 	augroup NotmuchMakeThread
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.thread
@@ -141,24 +140,29 @@ def Make_search_list(search_term: string): void
 		return
 	endif
 	New_buffer('search', search_term)
-	silent file! notmuch://thread
-	Set_thread()
-	augroup NotmuchMakeSearch
-		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd BufWipeout <buffer> unlet buf_num.search[b:notmuch.search_term]
+	var l_bufnr = bufnr()
+	Set_thread(l_bufnr)
+	execute 'augroup NotmuchMakeSearch' .. l_bufnr
+		autocmd!
+		execute 'autocmd BufWipeout <buffer=' .. l_bufnr .. '> unlet buf_num.search[b:notmuch.search_term]' ..
+					'| autocmd! NotmuchMakeSearch' .. l_bufnr ..
+					'| augroup! NotmuchMakeSearch' .. l_bufnr ..
+					'| autocmd! NotmuchSetThread' .. l_bufnr ..
+					'| augroup! NotmuchSetThread' .. l_bufnr
 	augroup END
 	if g:notmuch_open_way.view !=? 'enew' && g:notmuch_open_way.view !=? 'tabedit'
 		Make_view(search_term)
 	endif
 enddef
 
-def Set_thread(): void
+def Set_thread(n: number): void
 	b:notmuch.tags = ''
 	b:notmuch.search_term = ''
 	b:notmuch.msg_id = ''
-	augroup NotmuchSetThread
-		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
-		autocmd CursorMoved <buffer> Cursor_move_thread(b:notmuch.search_term)
+	silent file! notmuch://thread
+	execute 'augroup NotmuchSetThread' .. n
+		autocmd!
+		execute 'autocmd CursorMoved <buffer=' .. n .. '> Cursor_move_thread(b:notmuch.search_term)'
 	augroup END
 enddef
 
@@ -181,7 +185,6 @@ def Make_show(): void # メール・バッファを用意するだけ
 	endif
 	call New_buffer('show', '')
 	call Set_show()
-	:silent file! notmuch://show
 	augroup NotmuchMakeShow
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.show
@@ -194,11 +197,13 @@ def Make_view(search_term: string): void # メール・バッファを用意す�
 		return
 	endif
 	New_buffer('view', search_term)
-	silent file! notmuch://show
+	var l_bufnr = bufnr()
 	Set_show()
-	augroup NotmuchMakeView
-		# autocmd!
-		autocmd BufWipeout <buffer> unlet buf_num.view[b:notmuch.search_term]
+	execute 'augroup NotmuchMakeView' .. l_bufnr
+		autocmd!
+		execute 'autocmd BufWipeout <buffer=' .. l_bufnr .. '> unlet buf_num.view[b:notmuch.search_term]' ..
+					'| autocmd! NotmuchMakeView' .. l_bufnr ..
+					'| augroup! NotmuchMakeView' .. l_bufnr
 	augroup END
 enddef
 
@@ -207,6 +212,7 @@ def Set_show(): void
 	b:notmuch.subject = ''
 	b:notmuch.date = ''
 	b:notmuch.tags = ''
+	silent file! notmuch://show
 enddef
 
 def Next_unread_page(args: list<any>): void # メール最後の行が表示されていればスクロールしない+既読にする
@@ -920,7 +926,7 @@ def Au_new_mail(): void # 新規/添付転送メールでファイル末尾移�
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchNewAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_new_after(' .. l_bufnr .. ')")'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_new_after(' .. l_bufnr .. ')")'
 	augroup END
 enddef
 
@@ -928,7 +934,7 @@ def Au_reply_mail(): void # 返信メールでファイル末尾移動時に Fro
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchReplyAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_reply_after(' .. l_bufnr .. ')")'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_reply_after(' .. l_bufnr .. ')")'
 	augroup END
 enddef
 
@@ -936,7 +942,7 @@ def Au_forward_mail(): void # 転送メールでファイル末尾移動時に F
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchForwardAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_forward_after(' .. l_bufnr .. ')")'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_forward_after(' .. l_bufnr .. ')")'
 	augroup END
 enddef
 
@@ -944,7 +950,7 @@ def Au_resent_mail(): void # 転送メールでファイル末尾移動時に Fr
 	var l_bufnr = bufnr()
 	execute 'augroup NotmuchResentAfter' .. l_bufnr
 		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer> py3eval("set_resent_after(' .. l_bufnr .. ')")'
+		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_resent_after(' .. l_bufnr .. ')")'
 	augroup END
 enddef
 
@@ -953,7 +959,7 @@ def Au_write_draft(): void # draft mail の保存
 	execute 'augroup NotmuchSaveDraft' .. l_bufnr
 		autocmd!
 		autocmd BufWrite <buffer> py3 save_draft()
-		execute 'autocmd BufWipeout <buffer> autocmd! NotmuchSaveDraft' .. l_bufnr
+		execute 'autocmd BufWipeout <buffer=' .. l_bufnr .. '> autocmd! NotmuchSaveDraft' .. l_bufnr
 	augroup END
 enddef
 
@@ -1363,7 +1369,6 @@ export def FoldThread(n: number): any # スレッド・リストの折畳設定
 	endif
 	return b:notmuch.levels[v:lnum]
 enddef
-defcompile
 
 export def FoldHeaderText(): string # メールでは foldtext を変更する
 	var line: string
