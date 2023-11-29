@@ -12,13 +12,13 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 
 メール数が多い検索条件だとスレッド一覧の表示に時間がかかる
 
-* Ubuntu 23.04
-* Linux kernel 6.2.0
+* Ubuntu 23.10
+* Linux kernel 6.5.0
 * VIM - Vi IMproved 9.0
 * CPU: 12th Gen Intel© Core™ i7-1270P×16
 * Memory: 32&nbsp;GB
 
-の環境で、約 29000 通にヒットする検索条件のスレッド一覧の表示に 17 秒ほどかかるかかる
+の環境で、約 28000 通にヒットする検索条件のスレッド一覧の表示に 18 秒ほど
 
 個人的には今の所、普段は 3 ヶ月以内のメールのみ一覧するように検索条件を指定している
 
@@ -48,18 +48,18 @@ Notmuch が動作条件なので、対応しているメール・ボックスの
 
 #### Python Ver.3.x
 
-加えて Python Ver.3 の notmuch, html2text パッケージが必要
+加えて Python Ver.3 の notmuch2, html2text パッケージが必要
 
 Ubuntu 等の Debian 系なら
 
 ````sh
-$ sudo apt install -y python3-notmuch python3-html2text
+$ sudo apt install -y python3-notmuch2 python3-html2text
 ````
 
 他では
 
 ````sh
-$ python3 -m pip install notmuch html2text
+$ python3 -m pip install notmuch2 html2text
 ````
 
 #### MTA
