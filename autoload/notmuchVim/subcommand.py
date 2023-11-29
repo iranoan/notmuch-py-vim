@@ -4802,9 +4802,11 @@ def save_draft():
     b_f = b.name
     db = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     if db.count_messages('id:' + msg_id) == 0:
+        db.close()
         vim.command('write ' + b_f)
-        db.add(b_f)
-    db.close()
+        run(['notmuch', 'new'], stdout=PIPE, stderr=PIPE)
+    else:
+        db.close()
     marge_tag(msg_id, False)
     # Maildir だとフラグの変更でファイル名が変わり得るので、その時はバッファのファイル名を変える
     DBASE = notmuch2.Database()
