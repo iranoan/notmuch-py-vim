@@ -2141,7 +2141,7 @@ def get_msg_id():
 
 def change_tags_before(msg_id):
     global DBASE
-    """ タグ変更前の前処理 """
+    """ タグ変更の前処理 """
     DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     return change_tags_before_core(msg_id)
 
