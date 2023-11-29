@@ -141,6 +141,7 @@ def Make_search_list(search_term: string): void
 		return
 	endif
 	New_buffer('search', search_term)
+	silent file! notmuch://thread
 	Set_thread()
 	augroup NotmuchMakeSearch
 		# autocmd! 残しておくと他の検索方法を実行した時に、キャンセルされてしまう
@@ -193,6 +194,7 @@ def Make_view(search_term: string): void # メール・バッファを用意す�
 		return
 	endif
 	New_buffer('view', search_term)
+	silent file! notmuch://show
 	Set_show()
 	augroup NotmuchMakeView
 		# autocmd!
@@ -841,10 +843,12 @@ enddef
 def CloseTab(args: list<any>): void # notmuch-* を閉じる
 	# タブ・ページに notmuch-folder があれば、notmuch-* すべての終了を試みる
 	# そうでない場合、互いに対応する notmuch-thread/notmuch-show を閉じる
-	def ClosePare(pair_b: number, current: number)
+	var bufnum: number = bufnr('')
+
+	def ClosePareCore(pair_b: number)
 		var c_tab: number = tabpagenr()
 		for b in tabpagebuflist()
-			if b == current || b == pair_b
+			if b == bufnum || b == pair_b
 				for w in getbufinfo(b)[0].windows
 					if c_tab == win_id2tabwin(w)[0]
 						win_gotoid(w)
@@ -855,23 +859,42 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 		endfor
 	enddef
 
+	def ClosePare(buf_dic: dict<any>, s: string)
+		if !has_key(buf_dic, s)
+			CloseCore()
+			return
+		endif
+		ClosePareCore(buf_dic[s])
+	enddef
+
+	def ClosePareSearch(buf_dic: dict<any>, k: string): void
+		var s: string = getbufinfo('')[0].variables.notmuch.search_term
+		if !has_key(buf_dic, k)
+			CloseCore()
+			return
+		elseif !has_key(buf_dic[k], s)
+			CloseCore()
+			return
+		endif
+		ClosePareCore(buf_dic[k][s])
+	enddef
+
 	for b in tabpagebuflist()
 		if b == buf_num.folders
 			execute 'bwipeout ' .. b
 			return
 		endif
 	endfor
-	var bufnum: number = bufnr('')
 	if &filetype ==# 'notmuch-edit' || &filetype ==# 'notmuch-draft'
 		close
 	elseif buf_num['thread'] == bufnum
-		ClosePare(buf_num['show'], bufnum)
+		ClosePare(buf_num, 'show')
 	elseif buf_num['show'] == bufnum
-		ClosePare(buf_num['thread'], bufnum)
+		ClosePare(buf_num, 'thread')
 	elseif &filetype ==# 'notmuch-thread'
-		ClosePare(buf_num['view'][getbufinfo('')[0].variables.notmuch.search_term], bufnum)
+		ClosePareSearch(buf_num, 'view')
 	elseif &filetype ==#  'notmuch-show'
-		ClosePare(buf_num['search'][getbufinfo('')[0].variables.notmuch.search_term], bufnum)
+		ClosePareSearch(buf_num, 'search')
 	endif
 enddef
 
