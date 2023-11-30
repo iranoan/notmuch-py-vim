@@ -5941,12 +5941,12 @@ def check_search_term(s):
         print_warring('Error: When you want to search all mail, use \'path:**\'.')
         return False
     elif len(re.sub(r'[^"]', '', s.replace(r'\\', '').replace(r'\"', ''))) % 2:
-        print_warring('Error: \'"\' (double quotes) is not pared.')
+        print_warring('Error: \'"\' (double quotes) is not pair.')
         return False
     bra = len(re.sub(r'[^(]', '', s.replace(r'\\', '').replace(r'\(', '')))
     cket = len(re.sub(r'[^)]', '', s.replace(r'\\', '').replace(r'\)', '')))
     if bra != cket:
-        print_warring('Error: \'()\', round bracket is not pared.')
+        print_warring('Error: \'()\', round bracket is not pair.')
         return False
     return True
 

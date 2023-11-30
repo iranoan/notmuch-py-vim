@@ -851,7 +851,7 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 	# そうでない場合、互いに対応する notmuch-thread/notmuch-show を閉じる
 	var bufnum: number = bufnr('')
 
-	def ClosePareCore(pair_b: number)
+	def ClosePairCore(pair_b: number)
 		var c_tab: number = tabpagenr()
 		for b in tabpagebuflist()
 			if b == bufnum || b == pair_b
@@ -865,15 +865,15 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 		endfor
 	enddef
 
-	def ClosePare(buf_dic: dict<any>, s: string)
+	def ClosePair(buf_dic: dict<any>, s: string)
 		if !has_key(buf_dic, s)
 			CloseCore()
 			return
 		endif
-		ClosePareCore(buf_dic[s])
+		ClosePairCore(buf_dic[s])
 	enddef
 
-	def ClosePareSearch(buf_dic: dict<any>, k: string): void
+	def ClosePairSearch(buf_dic: dict<any>, k: string): void
 		var s: string = getbufinfo('')[0].variables.notmuch.search_term
 		if !has_key(buf_dic, k)
 			CloseCore()
@@ -882,7 +882,7 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 			CloseCore()
 			return
 		endif
-		ClosePareCore(buf_dic[k][s])
+		ClosePairCore(buf_dic[k][s])
 	enddef
 
 	for b in tabpagebuflist()
@@ -893,14 +893,14 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 	endfor
 	if &filetype ==# 'notmuch-edit' || &filetype ==# 'notmuch-draft'
 		close
-	elseif buf_num['thread'] == bufnum
-		ClosePare(buf_num, 'show')
-	elseif buf_num['show'] == bufnum
-		ClosePare(buf_num, 'thread')
+	elseif py3eval('s_buf_num("thread", "")') == bufnum
+		ClosePair(buf_num, 'show')
+	elseif py3eval('s_buf_num("show", "")')  == bufnum
+		ClosePair(buf_num, 'thread')
 	elseif &filetype ==# 'notmuch-thread'
-		ClosePareSearch(buf_num, 'view')
+		ClosePairSearch(buf_num, 'view')
 	elseif &filetype ==#  'notmuch-show'
-		ClosePareSearch(buf_num, 'search')
+		ClosePairSearch(buf_num, 'search')
 	endif
 enddef
 
