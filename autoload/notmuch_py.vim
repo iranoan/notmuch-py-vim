@@ -93,22 +93,22 @@ enddef
 
 def Make_folders_list(): void
 	if has_key(buf_num, 'folders') # && bufname(buf_num.folders) !=? ''
-		call Change_exist_tabpage_core(buf_num.folders)
+		Change_exist_tabpage_core(buf_num.folders)
 		if bufwinid(buf_num.folders) == -1
 			py3 reopen('folders', '')
 		else
-			call win_gotoid(bufwinid(buf_num.folders))
+			win_gotoid(bufwinid(buf_num.folders))
 		endif
-		call Close_notmuch('thread')
-		call Close_notmuch('show')
-		call Close_notmuch('search')
-		call Close_notmuch('view')
+		Close_notmuch('thread')
+		Close_notmuch('show')
+		Close_notmuch('search')
+		Close_notmuch('view')
 		var open_way: string = g:notmuch_open_way.folders
 		if open_way ==# 'enew' || open_way ==# 'tabedit'
 			silent only
 		endif
 	else
-		call New_buffer('folders', '')
+		New_buffer('folders', '')
 		execute('silent file! notmuch://folder?' .. getcwd())
 		py3 print_folder()
 		augroup NotmuchMakeFolder
@@ -183,8 +183,8 @@ def Make_show(): void # メール・バッファを用意するだけ
 		py3 reopen('show', '')
 		return
 	endif
-	call New_buffer('show', '')
-	call Set_show()
+	New_buffer('show', '')
+	Set_show()
 	augroup NotmuchMakeShow
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.show
@@ -750,7 +750,7 @@ def Cursor_move_thread(search_term: string): void
 	if line('.') != line('v')
 		return
 	endif
-	call py3eval('cursor_move_thread("' .. escape(search_term, '"') .. '")')
+	py3eval('cursor_move_thread("' .. escape(search_term, '"') .. '")')
 enddef
 
 function New_mail(...) abort
