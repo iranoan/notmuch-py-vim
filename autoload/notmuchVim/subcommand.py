@@ -98,6 +98,8 @@ def script_root():
 
 
 def s_buf_num(k, s):
+    if k not in s_buf_num_dic():
+        return 0
     if s != '':
         return s_buf_num_dic()[k][s]
     return s_buf_num_dic()[k]
@@ -2035,10 +2037,10 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         or s_buf_num('show', '') == not_search
     if not_search:
         thread_b = vim.buffers[s_buf_num('thread', '')]
-        thread_b_v = vim.buffers[s_buf_num('thread', '')].vars['notmuch']
+        thread_b_v = thread_b.vars['notmuch']
     else:
         thread_b = vim.buffers[s_buf_num('search', search_term)]
-        thread_b_v = vim.buffers[s_buf_num('search', search_term)].vars['notmuch']
+        thread_b_v = thread_b.vars['notmuch']
     # ↓thread から移す方法だと、逆に show で next_unread などを実行して別の search_term の thread に写った場合、その thread でのバッファ変数が書き換わらない
     # subject = thread_b_v['subject']
     # date = thread_b_v['date']
