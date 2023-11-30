@@ -875,15 +875,18 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 	enddef
 
 	def ClosePairSearch(buf_dic: dict<any>, k: string): void
-		var s: string = getbufinfo('')[0].variables.notmuch.search_term
-		if !has_key(buf_dic, k)
-			CloseCore()
-			return
-		elseif !has_key(buf_dic[k], s)
-			CloseCore()
+		var s: string = b:notmuch.search_term
+		if py3eval('s_buf_num("' .. k .. '",  "' .. escape(s, '"') .. '")') != bufnum
 			return
 		endif
-		ClosePairCore(buf_dic[k][s])
+		var pair_k: string = {search: 'view', view: 'search'}[k]
+		if !has_key(buf_dic, pair_k)
+			CloseCore()
+		elseif !has_key(buf_dic[pair_k], s)
+			CloseCore()
+		else
+			ClosePairCore(buf_dic[pair_k][s])
+		endif
 	enddef
 
 	for b in tabpagebuflist()
@@ -899,9 +902,9 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 	elseif py3eval('s_buf_num("show", "")')  == bufnum
 		ClosePair(buf_num, 'thread')
 	elseif &filetype ==# 'notmuch-thread'
-		ClosePairSearch(buf_num, 'view')
-	elseif &filetype ==#  'notmuch-show'
 		ClosePairSearch(buf_num, 'search')
+	elseif &filetype ==#  'notmuch-show'
+		ClosePairSearch(buf_num, 'view')
 	endif
 enddef
 
