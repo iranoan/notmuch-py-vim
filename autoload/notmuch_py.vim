@@ -512,7 +512,6 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import reply_mail
     from notmuchVim.subcommand import reset_cursor_position
     from notmuchVim.subcommand import run_shell_program
-    from notmuchVim.subcommand import s_buf_num
     from notmuchVim.subcommand import save_attachment
     from notmuchVim.subcommand import save_mail
     from notmuchVim.subcommand import save_draft
@@ -876,7 +875,7 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 
 	def ClosePairSearch(buf_dic: dict<any>, k: string): void
 		var s: string = b:notmuch.search_term
-		if py3eval('s_buf_num("' .. k .. '",  "' .. escape(s, '"') .. '")') != bufnum
+		if get(buf_num[k], s, 0) != bufnum
 			return
 		endif
 		var pair_k: string = {search: 'view', view: 'search'}[k]
@@ -897,9 +896,9 @@ def CloseTab(args: list<any>): void # notmuch-* を閉じる
 	endfor
 	if &filetype ==# 'notmuch-edit' || &filetype ==# 'notmuch-draft'
 		close
-	elseif py3eval('s_buf_num("thread", "")') == bufnum
+	elseif get(buf_num, 'thread', 0) == bufnum
 		ClosePair(buf_num, 'show')
-	elseif py3eval('s_buf_num("show", "")')  == bufnum
+	elseif get(buf_num, 'show', 0)  == bufnum
 		ClosePair(buf_num, 'thread')
 	elseif &filetype ==# 'notmuch-thread'
 		ClosePairSearch(buf_num, 'search')
