@@ -512,6 +512,7 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import reply_mail
     from notmuchVim.subcommand import reset_cursor_position
     from notmuchVim.subcommand import run_shell_program
+    from notmuchVim.subcommand import s_buf_num
     from notmuchVim.subcommand import save_attachment
     from notmuchVim.subcommand import save_mail
     from notmuchVim.subcommand import save_draft
