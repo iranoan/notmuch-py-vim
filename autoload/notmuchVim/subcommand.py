@@ -945,7 +945,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
             fold_open()
     b_name = b.name
     vim.command('silent file! notmuch://thread?' + search_term.replace('#', r'\#'))
-    Bwipeout(b_name, b.name)
+    Bwipeout(b_name)
 
 
 def thread_change_sort(sort_way):
@@ -2078,7 +2078,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             change_tags_after_core(msg, True)
     b_name = b.name
     vim.command('silent file! notmuch://show?' + search_term.replace('#', r'\#'))
-    Bwipeout(b_name, b.name)
+    Bwipeout(b_name)
     vim_goto_bufwinid(active_win)
     vim.command('redrawstatus!')
 
@@ -4818,18 +4818,27 @@ def save_draft():
         m_f = str(next(msg.filenames()))
     if m_f is not None and m_f != b_f:
         vim.command('saveas! ' + m_f)
-        Bwipeout(b_f, m_f)
+        Bwipeout(b_f)
         if os.path.isfile(b_f):
             os.remove(b_f)
     reprint_folder()
     DBASE.close()
 
 
-def Bwipeout(b_n, n_n):  # 変更前の名前で隠しバッファとして残っているので削除する
-    if b_n == n_n:
-        return
+def Bwipeout(b_n):  # notmuch-thread, notmuch-show でバッファ名変更前の名前で隠しバッファが残っているれば完全に削除する
+    b_num = [s_buf_num('folders', '')]
+    if 'thread' in s_buf_num_dic():
+        b_num.append(s_buf_num('thread', ''))
+    if 'show' in s_buf_num_dic():
+        b_num.append(s_buf_num('show', ''))
+    for v in s_buf_num_dic()['search'].values():
+        b_num.append(v)
+    for v in s_buf_num_dic()['view'].values():
+        b_num.append(v)
     for b in vim.buffers:
         if b.name == b_n:
+            if b.number in b_num:
+                return
             vim.command('bwipeout! ' + str(b.number))
 
 

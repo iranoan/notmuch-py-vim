@@ -125,6 +125,7 @@ def Make_thread_list(): void # スレッド・バッファを用意するだけ
 	endif
 	New_buffer('thread', '')
 	Set_thread(buf_num.thread)
+	silent file! notmuch://thread
 	augroup NotmuchMakeThread
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.thread
@@ -159,7 +160,6 @@ def Set_thread(n: number): void
 	b:notmuch.tags = ''
 	b:notmuch.search_term = ''
 	b:notmuch.msg_id = ''
-	silent file! notmuch://thread
 	execute 'augroup NotmuchSetThread' .. n
 		autocmd!
 		execute 'autocmd CursorMoved <buffer=' .. n .. '> Cursor_move_thread(b:notmuch.search_term)'
@@ -185,6 +185,7 @@ def Make_show(): void # メール・バッファを用意するだけ
 	endif
 	New_buffer('show', '')
 	Set_show()
+	silent file! notmuch://show
 	augroup NotmuchMakeShow
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.show
@@ -212,7 +213,6 @@ def Set_show(): void
 	b:notmuch.subject = ''
 	b:notmuch.date = ''
 	b:notmuch.tags = ''
-	silent file! notmuch://show
 enddef
 
 def Next_unread_page(args: list<any>): void # メール最後の行が表示されていればスクロールしない+既読にする
