@@ -3969,7 +3969,7 @@ def send_str(msg_data, msgid):
         if in_reply is not None:  # 送信メールに In-Reply-To が有れば、送信元ファイルに replied タグ追加
             msg = change_tags_before(in_reply.__str__()[1:-1])
             with msg.frozen():
-                msg.tags('replied')
+                msg.tags.add('replied')
             change_tags_after(msg, True)
         return True
 
