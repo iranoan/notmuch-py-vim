@@ -567,6 +567,7 @@ def set_subcmd_start():
         cmd['mail-import'] = ['Import_mail', 0x05]
         cmd['mail-info'] = ['View_mail_info', 0x0c]
         cmd['mail-move'] = ['Move_mail', 0x07]
+        cmd['mail-new'] = ['New_mail', 0x07]
         cmd['mail-reply'] = ['Reply_mail', 0x04]
         cmd['mail-reindex'] = ['Reindex_mail', 0x06]
         cmd['mail-resent-forward'] = ['Forward_mail_resent', 0x04]
