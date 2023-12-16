@@ -679,8 +679,8 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 			open				|{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
 									に最後に試みるコマンド
 									- URL を開くなど好みのコマンドを指定可能
-		- open 以外で値に指定できるのは、'new', 'vnew', 'tabedit', 'enew' と
-			'rightbelow', 'belowright', 'topleft', 'botright' と数の組み合わせのみ
+		- open 以外で値に指定できるのは、'new', 'vnew', 'tabedit', 'tabnew', 'enew'
+			と 'rightbelow', 'belowright', 'topleft', 'botright' と数の組み合わせのみ
 	* Default の ?? は、デフォルト・レイアウト (|notmuch-python-vim-layout|) が
 		次を満たすように計算される
 			|{F-WIN}|	|g:notmuch_folders| の見出しだけ表示し |search-term| が隠れる

@@ -634,12 +634,12 @@ def set_folder_format():
         if 'notmuch_open_way' not in vim.vars:
             vim.vars['notmuch_open_way'] = {}
         open_way = vim.vars['notmuch_open_way']
-        # 設定が有れば new, vnew, tabedit, enew 限定
+        # 設定が有れば new, vnew, tabedit, tabnew, enew 限定
         for k, v in open_way.items():
             if k == b'open':
                 continue
             v = v.decode()
-            if re.match(r'(((rightbelow|belowright|topleft|botright)\s+)?\d*(new|vnew)|tabedit|enew)',
+            if re.match(r'(((rightbelow|belowright|topleft|botright)\s+)?\d*(new|vnew)|tabedit|tabnew|enew)',
                         v) is None:
                 del open_way[k]  # 条件に一致しない設定削除
                 print_warring("For g:notmuch_open_way[" + k.decode()
@@ -1233,7 +1233,7 @@ def reopen(kind, search_term):
         open_way = vim.vars['notmuch_open_way'][kind].decode()
         if open_way == 'enew':
             vim.command('silent buffer ' + str(buf_num))
-        elif open_way == 'tabedit':
+        elif open_way == 'tabedit' or open_way == 'tabnew':
             vim.command('silent tab sbuffer ' + str(buf_num))
         else:
             open_way = re.sub(r'\bnew\b', 'split', open_way)
@@ -1244,11 +1244,11 @@ def reopen(kind, search_term):
             vim.command('silent buffer ' + str(buf_num))
         if kind == 'thread':
             open_way = vim.vars['notmuch_open_way']['show'].decode()
-            if open_way != 'enew' and open_way != 'tabedit':
+            if open_way != 'enew' and open_way != 'tabedit' and open_way != 'tabnew':
                 vim.command('call s:Make_show()')
         elif kind == 'search':
             open_way = vim.vars['notmuch_open_way']['view'].decode()
-            if open_way != 'enew' and open_way != 'tabedit':
+            if open_way != 'enew' and open_way != 'tabedit' and open_way != 'tabnew':
                 vim.command('call s:Make_view(\'' + vim_escape(search_term) + '\')')
         vim_goto_bufwinid(buf_num)
 

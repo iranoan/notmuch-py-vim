@@ -104,7 +104,7 @@ def Make_folders_list(): void
 		Close_notmuch('search')
 		Close_notmuch('view')
 		var open_way: string = g:notmuch_open_way.folders
-		if open_way ==# 'enew' || open_way ==# 'tabedit'
+		if open_way ==# 'enew' || open_way ==# 'tabedit' || open_way != 'tabnew'
 			silent only
 		endif
 	else
@@ -130,7 +130,7 @@ def Make_thread_list(): void # スレッド・バッファを用意するだけ
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.thread
 	augroup END
-	if g:notmuch_open_way.show !=? 'enew' && g:notmuch_open_way.show !=? 'tabedit'
+	if g:notmuch_open_way.show !=? 'enew' && g:notmuch_open_way.show !=? 'tabedit' && g:notmuch_open_way.show !=? 'tabnew'
 		Make_show()
 	endif
 enddef
@@ -151,7 +151,7 @@ def Make_search_list(search_term: string): void
 					'| autocmd! NotmuchSetThread' .. l_bufnr ..
 					'| augroup! NotmuchSetThread' .. l_bufnr
 	augroup END
-	if g:notmuch_open_way.view !=? 'enew' && g:notmuch_open_way.view !=? 'tabedit'
+	if g:notmuch_open_way.view !=? 'enew' && g:notmuch_open_way.view !=? 'tabedit' && g:notmuch_open_way.show !=? 'tabnew'
 		Make_view(search_term)
 	endif
 enddef
@@ -547,7 +547,7 @@ def Start_notmuch(): void
 	execute 'cd ' .. py3eval('get_save_dir()')
 	Make_folders_list()
 	Set_title_etc()
-	if g:notmuch_open_way.thread !=? 'enew' && g:notmuch_open_way.thread !=? 'tabedit'
+	if g:notmuch_open_way.thread !=? 'enew' && g:notmuch_open_way.thread !=? 'tabedit' && g:notmuch_open_way.show !=? 'tabnew'
 		Make_thread_list()
 		win_gotoid(bufwinid(buf_num.folders))
 	endif
@@ -722,7 +722,7 @@ def Swich_buffer(bufnr: number): void # できるだけ指定されたバッフ�
 			var open_way: string = g:notmuch_open_way[strpart(type, 8)]
 			if open_way ==# 'enew'
 				execute 'silent buffer ' .. bufnr
-			elseif open_way ==# 'tabedit'
+			elseif open_way ==# 'tabedit' || open_way ==# 'tabnew'
 				execute 'silent tab sbuffer ' .. bufnr
 			else
 				open_way = substitute(open_way, '\<new\>',           'split',     '')
