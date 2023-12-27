@@ -948,6 +948,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
             fold_open()
     b_name = b.name
     vim.command('silent file! notmuch://thread?' + search_term.replace('#', r'\#'))
+    vim.command('call filter(v:oldfiles, \'v:val !~ "^notmuch://"\')')
     Bwipeout(b_name)
 
 
@@ -2081,6 +2082,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             change_tags_after_core(msg, True)
     b_name = b.name
     vim.command('silent file! notmuch://show?' + search_term.replace('#', r'\#'))
+    vim.command('call filter(v:oldfiles, \'v:val !~ "^notmuch://"\')')
     Bwipeout(b_name)
     vim_goto_bufwinid(active_win)
     vim.command('redrawstatus!')

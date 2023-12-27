@@ -110,6 +110,7 @@ def Make_folders_list(): void
 	else
 		New_buffer('folders', '')
 		execute('silent file! notmuch://folder?' .. getcwd())
+		filter(v:oldfiles, 'v:val !~ "^notmuch://folder?' .. getcwd() .. '"')
 		py3 print_folder()
 		augroup NotmuchMakeFolder
 			autocmd!
@@ -126,6 +127,7 @@ def Make_thread_list(): void # スレッド・バッファを用意するだけ
 	New_buffer('thread', '')
 	Set_thread(buf_num.thread)
 	silent file! notmuch://thread
+	filter(v:oldfiles, 'v:val !~ "^notmuch://thread"')
 	augroup NotmuchMakeThread
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.thread
@@ -186,6 +188,7 @@ def Make_show(): void # メール・バッファを用意するだけ
 	New_buffer('show', '')
 	Set_show()
 	silent file! notmuch://show
+	filter(v:oldfiles, 'v:val !~ "^notmuch://show"')
 	augroup NotmuchMakeShow
 		autocmd!
 		autocmd BufWipeout <buffer> unlet buf_num.show
@@ -702,6 +705,7 @@ def End_notmuch(): void # 全て終了 (notmuch-folders が bwipeout された�
 	Change_fold_highlight()
 	buf_num = {}
 	s_select_thread = -1
+	filter(v:oldfiles, 'v:val !~ "^notmuch://"')
 enddef
 
 def Swich_buffer(bufnr: number): void # できるだけ指定されたバッファに切り替える
