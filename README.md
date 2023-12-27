@@ -28,9 +28,9 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 
 ### Vim
 
-````sh
+```sh
 vim --version | grep +python3
-````
+```
 
 他には +folding 等も必要だが、調べきれていない
 
@@ -38,9 +38,9 @@ vim --version | grep +python3
 
 Notmuch をセットアップし、
 
-````sh
+```sh
 notmuch new
-````
+```
 
 でデータベースを作成しておく必要が有る
 
@@ -52,15 +52,15 @@ Notmuch が動作条件なので、対応しているメール・ボックスの
 
 Ubuntu 等の Debian 系なら
 
-````sh
+```sh
 sudo apt install -y python3-notmuch2 python3-html2text
-````
+```
 
 他では
 
-````sh
+```sh
 python3 -m pip install notmuch2 html2text
-````
+```
 
 #### MTA
 
@@ -72,70 +72,70 @@ python3 -m pip install notmuch2 html2text
 
 ### [Vundle](https://github.com/gmarik/vundle)
 
-````vim
+```vim
 Plug 'iranoan/notmuch-py-vim'
-````
+```
 
 ### [Vim-Plug](https://github.com/junegunn/vim-plug)
 
-````vim
+```vim
 Plug 'iranoan/notmuch-py-vim'
-````
+```
 
 ### [NeoBundle](https://github.com/Shougo/neobundle.vim)
 
-````vim
+```vim
 NeoBundle 'iranoan/notmuch-py-vim'
-````
+```
 
 ### [dein.nvim](https://github.com/Shougo/dein.vim)
 
-````vim
+```vim
 call dein#add('iranoan/notmuch-py-vim')
-````
+```
 
 ### Vim packadd
 
-````sh
+```sh
 git clone https://github.com/iranoan/notmuch-py-vim ~/.vim/pack/iranoan/start/notmuch-py-vim
-````
+```
 
 遅延読み込みをさせるなら
 
-````sh
+```sh
 git clone https://github.com/iranoan/notmuch-py-vim ~/.vim/pack/iranoan/opt/notmuch-py-vim
-````
+```
 
 ~/.vim/vimrc などの設定ファイルにに次のような記載を加える
 
-````vim
+```vim
 augroup loadNotmuchPy
   autocmd!
   autocmd CmdUndefined Notmuch packadd notmuch-py-vim
 augroup END
-````
+```
 
 ## 使用方法
 
 次のように起動する
 
-````sh
+```sh
 vim +'Notmuch start'
-````
+```
 
 Vim 起動後なら
 
-````vim
+```vim
 :Notmuch start
-````
+```
 
 ### デフォルト・レイアウト
 
 デフォルトでは
 
-````vim
+```vim
 :Notmuch start
-````
+```
 
 で次のレイアウトで起動する
 

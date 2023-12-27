@@ -5628,6 +5628,12 @@ def get_mail_folders():
 
 
 def run_shell_program(msg_id, s, args):
+    def msg_file(msg):
+        for f in msg.filenames():
+            if os.path.isfile(f):
+                return str(f)
+        return None
+
     prg_param = args[2:]
     if not prg_param:
         prg_param = vim_input('Program and args: ', '', 'customlist,notmuch_py#Comp_run')
@@ -5639,15 +5645,22 @@ def run_shell_program(msg_id, s, args):
     dbase = notmuch2.Database()
     msg = dbase.find(msg_id)
     if not ('<path:>' in prg_param) and not ('<id:>' in prg_param):
-        prg_param.append(msg.get_filename())
+        f = msg_file(msg)
+        if f is None:
+            return
+        prg_param.append(f)
     else:
         if '<path:>' in prg_param:
             i = prg_param.index('<path:>')
-            prg_param[i] = msg.get_filename()
+            f = msg_file(msg)
+            if f is None:
+                return
+            prg_param[i] = f
         if '<id:>' in prg_param:
             i = prg_param.index('<id:>')
             prg_param[i] = msg_id
     dbase.close()
+    print(prg_param)
     shellcmd_popen(prg_param)
     print(' '.join(prg_param))
     return [0, 0, prg_param]
