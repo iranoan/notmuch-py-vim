@@ -4269,9 +4269,11 @@ def send_str(msg_data, msgid):
                 dbase.close()
                 print_error('There is no transfer source file.: ' + f)
                 return False
-            f = msg.get_filename()
+            for f in msg.filenames():
+                if os.path.isfile(f):
+                    attachments[0] = str(f)
+                    break
             dbase.close()
-            attachments[0] = f
         try:
             with open(f, 'r') as fp:
                 msg_send = email.message_from_file(fp)
