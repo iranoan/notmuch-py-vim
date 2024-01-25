@@ -1147,7 +1147,7 @@ def reload_show():
     global DBASE
     b = vim.current.buffer
     print('reload', b.options['filetype'].decode()[8:])
-    DBASE = notmuch2.Database()
+    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     b_v = b.vars['notmuch']
     open_mail_by_msgid(b_v['search_term'].decode(),
                        b_v['msg_id'].decode(), b.number, True)
