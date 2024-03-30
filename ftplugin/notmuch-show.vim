@@ -27,7 +27,7 @@ endif
 if &statusline ==? ''
 	setlocal statusline=%{%printf(printf("%%.%dS",&columns-53-strdisplaywidth(b:notmuch.date)),b:notmuch.subject)%}%=\ %{b:notmuch.date}\ %c:%v\ %3l/%-3L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
-setlocal tabstop=1 nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=notmuch_py#FoldHeaderText() foldlevel=2 nolist
+setlocal nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=notmuch_py#FoldHeaderText() foldlevel=2 nolist
 if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif
