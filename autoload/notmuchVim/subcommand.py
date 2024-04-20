@@ -673,7 +673,7 @@ def set_folder_format():
             DBASE.close()
             raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
         vim.vars['notmuch_folder_format'] = '{0:<' + str(max_len) + '} ' + \
-            '{1:>' + str(len(str(DBASE.count_messages('tag:unread') + 1))) + '}/' + \
+            '{1:>' + str(len(str(DBASE.count_messages('tag:unread'))) + 1) + '}/' + \
             '{2:>' + str(len(str(int(DBASE.count_messages('path:**') * 1.2)))) + '}│' + \
             '{3:>' + str(len(str(DBASE.count_messages('tag:flagged'))) + 1) + '} ' + \
             '[{4}]'
