@@ -167,7 +167,7 @@ License: GPL Ver.3.
 * バグ修正
 	- バッファに残っているメール・ファイルを開いたとき、折り畳み等のウィンドウ・
 		ローカルな変数がデフォルトになってしまう
-	- 演算子 . -> .., .= -> ..= に変更に漏れがあった
+	- 演算子 . -> .., .= -> ..= の変更に漏れがあった
 	- |{S-WIN}| の添付ファイル削除
 		+ 複数の場合うまく働いていなかった
 		+ 複数あった時に削除後の |notmuch-python-vim-attach-save| 等で他の添付ファイル
@@ -185,7 +185,7 @@ License: GPL Ver.3.
 	- 演算子 . -> .., .= -> ..= に変更
 
 2022/05/08 Ver.1.24~
-* 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定処理改善
+* できるだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定処理改善
 * 送信時にスワップ・ファイルがまだ残っていても警告が出ないようにした
 * 送信方法を使い分けられるように |g:notmuch_send_param| で複数指定を可能にした
 
@@ -273,7 +273,7 @@ License: GPL Ver.3.
 	- search-up-refine (|notmuch-python-vim-search-up-refine|)
 
 2022/01/31 Ver.1.10~
-* 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定処理改善
+* できるだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定処理改善
 * |{T-WIN}| の一覧を対象に |search-term| で検索するサブコマンド追加
 	- search-refine (|notmuch-python-vim-search-refine|),
 	- search-down-refine (|notmuch-python-vim-search-down-refine|),
@@ -286,7 +286,7 @@ License: GPL Ver.3.
 
 2022/01/28 Ver.1.08~
 * ドキュメントに |{T-WIN}| の行頭に📩📝⭐🗑📎🔑🖋️を付ける記述追加
-* 出来るだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定する
+* できるだけ |{T-WIN}| のカーソル位置を Subject/From/Date 情報の前に固定する
 	- 折り畳みでは Vim の仕様のため常に行頭
 * バッファ再表示処理の見直し
 * notmuch-thread, notmuch-show setlocal の設定を ftplgin/* に移動
@@ -394,7 +394,7 @@ License: GPL Ver.3.
 * 使用できないサブコマンドはできる限り補完候補に表示しない
 * メールのタグを追加/削除/トグルを全て一度に指定できる tag-set
 	(|notmuch-python-vim-tag-set|) 追加
-* タグ指定時に既に引数に含まれていれば補完候補から除外
+* タグ指定時、既に引数に含まれていれば補完候補から除外
 
 2021/12/26 Ver.0.65~
 * Fcc の設定する set-fcc (|notmuch-python-vim-set-fcc|) 追加
@@ -422,7 +422,7 @@ License: GPL Ver.3.
 
 2021/12/21 Ver.0.62~
 * バグ修正
-	- g:notmuch_save_draft (|g:notmuch_save_draft|) が 1 の時に送信時にエラーになる
+	- g:notmuch_save_draft (|g:notmuch_save_draft|) が 1 の時は送信時にエラーになる
 
 2021/12/20 Ver.0.60~
 * バグ修正

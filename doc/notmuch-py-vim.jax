@@ -383,7 +383,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 が入力される
 
 実際の送信は <leader>s                  |notmuch-python-vim-mail-send|
-	* 送信時は必須でないヘッダは「:」以降の内容がなければそのヘッダ自身がないもの
+	* 送信時に必須でないヘッダは「:」以降の内容がなければそのヘッダ自身がないもの
 	  として処理する
 	* メール送信には、別途 sendmail 等の MTA と |g:notmuch_send_param| の設定が必要
 
@@ -580,7 +580,7 @@ g:notmuch_folders                                    *g:notmuch_folders*
 	NOTE: >
 		$ man notmuch-search-terms
 <	* 見出し、|search-term| の両方が `''` だと空行に変換
-	* Default の [ 'New Search','' ] の様に `|search-term| だけ `''` だと、|{F-WIN}| の
+	* Default にある [ 'New Search','' ] の様に `|search-term| だけ `''` だと、|{F-WIN}| の
 		open (|notmuch-python-vim-open|) が search (|notmuch-python-vim-search|) 置き換わる
 
 g:notmuch_from                                                  *g:notmuch_from*
@@ -676,8 +676,8 @@ g:notmuch_open_way                                   *g:notmuch_open_way*
 									search-duplication (|notmuch-python-vim-search-duplication|)
 			edit				mail-edit (|notmuch-python-vim-mail-edit|)
 			view				search/search-thread/search-duplication とペアになる |{S-WIN}|
-			open				|{S-WIN}| で open (|notmuch-python-vim-open|) 使用時
-									に最後に試みるコマンド
+			open				|{S-WIN}| で open (|notmuch-python-vim-open|) 使用時に最後に試みる
+									コマンド
 									- URL を開くなど好みのコマンドを指定可能
 		- open 以外で値に指定できるのは、'new', 'vnew', 'tabedit', 'tabnew', 'enew'
 			と 'rightbelow', 'belowright', 'topleft', 'botright' と数の組み合わせのみ
@@ -1141,7 +1141,7 @@ set-attach [{attachment}]                        *notmuch-python-vim-set-attach*
 
 set-encrypt [{encrypt/signature}]               *notmuch-python-vim-set-encrypt*
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
-	  方法 を {encrypt/signature} で設定
+		方法を {encrypt/signature} で設定
 	* {encrypt/signature} に指定できるのは、Encrypt, Signature ヘッダの直接編集
 		時と同じで、大文字小文字の区別もなく次の通り
 				指定できる文字列				意味~
