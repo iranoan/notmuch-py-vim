@@ -5141,11 +5141,10 @@ def insert_signature(to_name, from_name):
 
 def get_config(config):
     """ get notmuch setting """
-    ret = run(['notmuch', 'config', 'get', config], stdout=PIPE, stderr=PIPE)
-    # if ret.returncode:  # 何某か標準の設定が返される
-    #     print_err(ret.stderr.decode('utf-8'))
-    #     return ''
-    return ret.stdout.decode('utf-8').replace('\n', '')
+    DBASE = notmuch2.Database()
+    ret = DBASE.config[config]
+    DBASE.close()
+    return ret
 
 
 def save_mail(msg_id, s, args):
@@ -6716,6 +6715,7 @@ ZEN2HAN = str.maketrans('０１２３４５６７８９'
                         + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
                         + r'!"#$%&' + r"'()*+,-./:;<=>?@[⧵]^_`{|}~ ")
 PATH = get_config('database.path')
+print(PATH)
 if not os.path.isdir(PATH):
     raise notmuchVimError('\'' + PATH + '\' don\'t exist.')
 if not notmuch_new(True):
