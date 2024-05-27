@@ -431,11 +431,27 @@ export def Comp_tag(ArgLead: string, CmdLine: string, CursorPos: number): list<a
 enddef
 
 export def Notmuch_main(...arg: list<any>): void
+	def Str2ls(str: string): list<string>
+		var args_ls: list<string>
+		var s: string = str
+		var sep: list<any>
+
+		while true
+			sep = matchstrpos(s, ' *\zs\(''\(\\''\|[^'']\)\+''\|"\(\\"\|[^"]\)\+"\|[^ ]\+\)')
+			add(args_ls, sep[0])
+			s = strpart(s, sep[2])
+			if s ==# '' || s =~# '^\s\+$'
+				break
+			endif
+		endwhile
+		return args_ls
+	enddef
+
 	if len(arg) == 2
 		help notmuch-python-vim-command
 		echohl WarningMsg | echomsg 'Requires argument (subcommand).' | echomsg 'open help.' | echohl None
 	else
-		var cmd: list<any> = copy(arg)
+		var cmd: list<any> = [arg[0], arg[1]] + Str2ls(arg[2])
 		var sub_cmd: string = remove(cmd, 2)
 		if !has_key(g:notmuch_command, sub_cmd)
 			help notmuch-python-vim-command
