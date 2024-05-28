@@ -109,8 +109,9 @@ def Make_folders_list(): void
 		endif
 	else
 		New_buffer('folders', '')
-		execute('silent file! notmuch://folder?' .. getcwd())
-		filter(v:oldfiles, 'v:val !~ "^notmuch://folder?' .. getcwd() .. '"')
+		var cwd: string = escape(getcwd(), "'")
+		execute('silent file! notmuch://folder?' .. cwd)
+		filter(v:oldfiles, 'v:val !~ ''^notmuch://folder?' .. cwd .. '''')
 		py3 print_folder()
 		augroup NotmuchMakeFolder
 			autocmd!
@@ -139,7 +140,7 @@ enddef
 
 def Make_search_list(search_term: string): void
 	if has_key(buf_num.search, search_term)
-		py3eval('reopen("search", "' .. escape(search_term, '"') .. '")')
+		py3eval('reopen(''search'', ''' .. escape(search_term, '''\') .. ''')')
 		return
 	endif
 	New_buffer('search', search_term)
@@ -197,7 +198,7 @@ enddef
 
 def Make_view(search_term: string): void # メール・バッファを用意するだけ
 	if has_key(buf_num.view, search_term)
-		py3eval('reopen("view", "' .. escape(search_term, '"') .. '")')
+		py3eval('reopen(''view'', ''' .. escape(search_term, '''\') .. ''')')
 		return
 	endif
 	New_buffer('view', search_term)
@@ -770,7 +771,7 @@ def Cursor_move_thread(search_term: string): void
 	if line('.') != line('v')
 		return
 	endif
-	py3eval('cursor_move_thread("' .. escape(search_term, '"') .. '")')
+	py3eval('cursor_move_thread(''' .. escape(search_term, '''\') .. ''')')
 enddef
 
 function New_mail(...) abort
@@ -934,7 +935,7 @@ def Au_edit(win: number, search_term: string, reload: bool): void # 閉じた時
 		execute 'autocmd BufWinLeave <buffer> Change_exist_tabpage_core(' .. win .. ') |' ..
 					(reload ?
 						(search_term ==# '' ?  'if py3eval(''is_same_tabpage("show", "")'') |'
-						: 'if py3eval(''is_same_tabpage("view", "' .. escape(search_term, '"') .. '")'') |') ..
+						: 'if py3eval(''is_same_tabpage(''''view'''', ''''' .. escape(search_term, '''\') .. ''''')'') |') ..
 								'win_gotoid(bufwinid(buf_num["show"])) | ' ..
 								'Reload([]) |' ..
 							'endif | '
