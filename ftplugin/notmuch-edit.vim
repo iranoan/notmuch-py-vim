@@ -5,7 +5,7 @@ scriptencoding utf-8
 scriptversion 4
 
 if !exists('w:did_ftplugin_plugin') || !w:did_ftplugin_plugin
-	setlocal signcolumn=auto foldmethod=syntax foldlevel=1
+	setlocal signcolumn=auto foldmethod=syntax foldlevel=1 nomodeline
 	let w:did_ftplugin_plugin = 1
 endif
 
