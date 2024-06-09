@@ -1219,7 +1219,7 @@ def cursor_move_thread(search_term):
 
 def reopen(kind, search_term):
     """ スレッド・リスト、メール・ヴューを開き直す """
-    if type(search_term) == bytes:
+    if type(search_term) is bytes:
         search_term = search_term.decode()
     # まずタブの移動
     vim.command('call s:Change_exist_tabpage("' + kind + '", \'' + vim_escape(search_term) + '\')')
@@ -1388,7 +1388,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def header(msg, output, notmuch_headers):  # vim からの呼び出し時に msg に有るヘッダ出力
         for header in notmuch_headers:
-            if type(header) == bytes:
+            if type(header) is bytes:
                 header = header.decode()
             h_cont = msg.get_all(header)
             if h_cont is None:
@@ -1745,7 +1745,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     def set_pgp_result(b_v, thread_b_v, ret):
         # gpg/gpgsm の処理の成否は stderr に出力され、stdout にはデコードされた内容
         result = ret.stderr
-        if type(result) == bytes:
+        if type(result) is bytes:
             result = result.decode('utf-8')
         if 'pgp_result' in b_v:  # 暗号化が繰り返されているケースがある
             b_v['pgp_result'] = b_v['pgp_result'].decode() + result
@@ -1759,18 +1759,18 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         if c_type == 'message/external-body' \
                 and part.get('Content-Type').find('access-type=x-mutt-deleted;') != -1:
             subpart = part.get_payload()
-            if type(subpart) == list:
+            if type(subpart) is list:
                 for p in subpart:
                     if p.get_content_type().lower() == 'message/rfc822' \
                             or p.get_content_type().lower() == 'message/rfc2822':
                         return True
         elif c_type == 'message/rfc822' or c_type == 'message/rfc2822':
             subpart = part.get_payload()
-            if type(subpart) == list:
+            if type(subpart) is list:
                 is_delete = False
                 for p in subpart:
                     subsub = p.get_payload()
-                    if type(subsub) == list:
+                    if type(subsub) is list:
                         for subp in subsub:
                             is_delete = is_delete or is_delete_rfc(subp)
                     else:
@@ -1782,7 +1782,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def decrypt_core(cmd, part, decode, out, pgp_info):
         if decode:
-            if type(part) == email.message.Message \
+            if type(part) is email.message.Message \
                 and (part.get_content_type().lower() == 'message/rfc822'
                      or part.get_content_type().lower() == 'message/rfc2822'):
                 if type(part.get_payload()) == list:
@@ -2835,7 +2835,7 @@ def get_top(part, i):
         part = part.decode('utf-8', 'replace')
     elif t == email.message.Message:
         part = part.as_string()
-    if type(part) == str:
+    if type(part) is str:
         s = re.sub(r'\r\n', r'\n', re.sub(r'\r', r'\n', part))
         match = re.search(r'\n\n', s)
         if match is not None:
@@ -2921,7 +2921,7 @@ def write_file(part, decode, save_path):
             with open(save_path, 'wb') as fp:
                 fp.write(codecs.encode(part))
     elif decode:
-        if type(part) == email.message.Message \
+        if type(part) is email.message.Message \
                 and (part.get_content_type().lower() == 'message/rfc822'
                      or part.get_content_type().lower() == 'message/rfc2822'):
             if type(part.get_payload()) == list:
@@ -5816,7 +5816,7 @@ def notmuch_search(search_term):
         search_term = vim_input('search term: ', i_search_term, 'customlist,notmuch_py#Comp_search')
         if search_term == '':
             return
-    elif type(search_term) == list:
+    elif type(search_term) is list:
         search_term = ' '.join(search_term)
     if not check_search_term(search_term):
         return
