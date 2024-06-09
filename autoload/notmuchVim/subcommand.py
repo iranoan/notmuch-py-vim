@@ -1096,7 +1096,6 @@ def change_buffer_vars_core():
         b_v['date'] = ''
         b_v['tags'] = ''
     else:
-        global DBASE
         msg = THREAD_LISTS[b_v['search_term'].decode()]['list'][vim.current.window.cursor[0] - 1]
         msg_id = msg._msg_id
         b_v['msg_id'] = msg_id
@@ -1307,7 +1306,6 @@ def get_message(s):
     * list(DBASE.messages(s))[0] では上手く行かなかったので…
     * next(DBASE.messages(s)) は見つからないときの処理がわからない
     '''
-    global DBASE
     for m in DBASE.messages(s):
         return m
     return None
