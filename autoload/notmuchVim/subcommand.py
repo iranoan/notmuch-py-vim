@@ -1083,15 +1083,11 @@ def thread_change_sort(sort_way):
 
 def change_buffer_vars():
     """ スレッド・リストのバッファ変数更新 """
-    global DBASE
-    DBASE = notmuch2.Database()
     change_buffer_vars_core()
-    DBASE.close()
     vim.command('redrawstatus!')
 
 
 def change_buffer_vars_core():
-    global DBASE
     b_v = vim.current.buffer.vars['notmuch']
     b_v['pgp_result'] = ''
     if vim.current.buffer[0] == '':  # ←スレッドなので最初の行が空か見れば十分
@@ -1100,12 +1096,15 @@ def change_buffer_vars_core():
         b_v['date'] = ''
         b_v['tags'] = ''
     else:
+        global DBASE
         msg = THREAD_LISTS[b_v['search_term'].decode()]['list'][vim.current.window.cursor[0] - 1]
-        msg_id = get_msg_id()
+        msg_id = msg._msg_id
         b_v['msg_id'] = msg_id
         b_v['subject'] = msg.get_subject()
         b_v['date'] = msg.get_date()
+        DBASE = notmuch2.Database()
         b_v['tags'] = get_msg_tags(DBASE.find(msg_id))
+        DBASE.close()
 
 
 def vim_escape(s):
