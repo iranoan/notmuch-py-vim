@@ -2614,7 +2614,7 @@ def next_unread(active_win):
     # 同一スレッド内に未読がない、または同一スレッド内に未読メールが有っても後ろには無い
     if search_view:  # search, view では先頭の未読に移動
         if indexes:
-            open_mail_by_buf_kind_index('search', search_term, index[0])
+            open_mail_by_buf_kind_index('search', search_term, indexes[0])
         return
     folders = vim.vars['notmuch_folders']
     for index, folder_way in enumerate(folders):  # 同一検索方法までスキップ
