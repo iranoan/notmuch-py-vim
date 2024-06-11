@@ -1088,9 +1088,15 @@ def change_buffer_vars_core():
         b_v['msg_id'] = msg_id
         b_v['subject'] = msg.get_subject()
         b_v['date'] = msg.get_date()
-        DBASE = notmuch2.Database()
-        b_v['tags'] = get_msg_tags(DBASE.find(msg_id))
-        DBASE.close()
+        emoji_tags = ''
+        tags = copy.copy(msg._tags)
+        for t, emoji in {'unread': '📩', 'draft': '📝', 'flagged': '⭐',
+                         'Trash': '🗑', 'attachment': '📎',
+                         'encrypted': '🔑', 'signed': '🖋️'}.items():
+            if t in tags:
+                emoji_tags += emoji
+                tags.remove(t)
+        b_v['tags'] = emoji_tags + ' '.join(tags)
 
 
 def vim_escape(s):
@@ -2812,7 +2818,6 @@ def open_attachment(args):
 def get_top(part, i):
     """ multipart の最初の情報を取得したいときチェック用 """
     t = type(part)
-    print(t)
     if t == bytes:
         part = part.decode('utf-8', 'replace')
     elif t == email.message.Message:
@@ -6695,7 +6700,6 @@ ZEN2HAN = str.maketrans('０１２３４５６７８９'
                         + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
                         + r'!"#$%&' + r"'()*+,-./:;<=>?@[⧵]^_`{|}~ ")
 PATH = get_config('database.path')
-print(PATH)
 if not os.path.isdir(PATH):
     raise notmuchVimError('\'' + PATH + '\' don\'t exist.')
 if not notmuch_new(True):
