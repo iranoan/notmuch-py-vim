@@ -1303,12 +1303,10 @@ def get_message(s):
     * search-term: s にヒットする notmuch2.Message を返す
     * 見つからないときは None
     * 見つかったときは最初の一つ
-    * list(DBASE.messages(s))[0] では上手く行かなかったので…
-    * next(DBASE.messages(s)) は見つからないときの処理がわからない
     '''
-    for m in DBASE.messages(s):
-        return m
-    return None
+    if DBASE.count_messages(s) == 0:
+        return None
+    return next(DBASE.messages(s))
 
 
 def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
