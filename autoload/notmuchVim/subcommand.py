@@ -900,8 +900,6 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     except notmuch2.XapianError:
         print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
-    # if vim_goto_bufwinid("thread") == 0:
-    #     reopen('thread', search_term)
     b = vim.buffers[b_num]
     vim_sign_unplace(b_num)
     if remake or not (search_term in THREAD_LISTS):
@@ -925,6 +923,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     #     f = [executor.submit(i.get_list, flag) for i in threadlist]
     #     for r in f:
     #         ls.append(r.result())
+    vim_win_gotoid(vim_bufwinid(b.number))  # これがないと直前より行数の多いスレッドを開くと固まる場合が有る (すぐ下のスレッドも条件?)
     b.append(ls)
     b[0] = None
     b.options['modifiable'] = 0
