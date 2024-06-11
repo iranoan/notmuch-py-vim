@@ -4529,7 +4529,7 @@ def reply_mail():
     DBASE = notmuch2.Database()
     msg = DBASE.find(msg_id)
     msg_f = open_email_file_from_msg(msg)
-    if msg is None:
+    if msg_f is None:
         DBASE.close()
         print_error('Reply source email has been deleted.')
         return
