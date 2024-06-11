@@ -2501,10 +2501,11 @@ def reset_cursor_position(b, line):
 
 def next_unread(active_win):
     """ 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない) """
-    def open_mail_by_buf_kind_index(k, s, index):
+    def open_mail_by_buf_kind_index(k, s, index):  # 同一スレッド内の未読メール
         vim_goto_bufwinid(s_buf_num(k, s))
         reset_cursor_position(vim.current.buffer, index + 1)
         fold_open()
+        DBASE.close()  # 無いと固まる←open_mail_by_msgid() 内で DBASE を使っているので本来は閉じるとエラーが起きるはずなので謎????
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
                                THREAD_LISTS[search_term]['list'][index]._msg_id,
