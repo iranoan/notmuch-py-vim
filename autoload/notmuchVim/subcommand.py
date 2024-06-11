@@ -281,6 +281,16 @@ class MailData:  # メール毎の各種データ
             else:
                 name = RE_TAB2SPACE.sub(' ', m_from_name)
         self.__reformed_name = name
+        string = thread.authors
+        if string is None:
+            self._authors = ''
+        else:
+            self._authors = ','.join(sorted([RE_TOP_SPACE.sub('', s)
+                                     for s in re.split('[,|]', string.lower())]))
+            # ↑おそらく | で区切られているのは、使用している search_term では含まれれないが、同じ thread_id に含まれているメールの作成者
+        # スレッド・トップの Subject
+        string = get_msg_header(open_email_file_from_msg(next(thread.toplevel())), 'Subject')
+        self._thread_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
         # self.__path = msg.filenames() ←ファイル自体は削除されていることも有る
         # 以下はどれもファイルをオープンしっぱなしになるもよう
         # self.__msg = msg                               # msg_p
@@ -322,20 +332,6 @@ class MailData:  # メール毎の各種データ
                                   SUBJECT_LENGTH)
         adr = str_just_length(RE_TAB2SPACE.sub(' ', self.__reformed_name), FROM_LENGTH)
         return RE_END_SPACE.sub('', DISPLAY_FORMAT2.format(subject, adr, date))
-
-    def make_sort_key(self):
-        thread = next(DBASE.threads('id:"' + self._msg_id + '"'))
-        # 同一スレッド中のメール作成者
-        string = thread.authors
-        if string is None:
-            self._authors = ''
-        else:
-            self._authors = ','.join(sorted([RE_TOP_SPACE.sub('', s)
-                                     for s in re.split('[,|]', string.lower())]))
-            # ↑おそらく | で区切られているのは、使用している search_term では含まれれないが、同じ thread_id に含まれているメールの作成者
-        # スレッド・トップの Subject
-        string = get_msg_header(open_email_file_from_msg(next(thread.toplevel())), 'Subject')
-        self._thread_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
 
     def get_date(self):
         return self.__reformed_date
@@ -494,7 +490,7 @@ def make_thread_core(search_term):
     #     for r in f:
     #         ls += r.result()
     ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
-    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
+    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date']}
     # vim.command('redraw')
     return True
 
@@ -1007,13 +1003,6 @@ def thread_change_sort(sort_way):
     if sort_way == THREAD_LISTS[search_term]['sort']:
         return
     vim_sign_unplace(bufnr)
-    global DBASE
-    if not THREAD_LISTS[search_term]['make_sort_key']:
-        DBASE = notmuch2.Database()
-        for msg in THREAD_LISTS[search_term]['list']:
-            msg.make_sort_key()
-        DBASE.close()
-        THREAD_LISTS[search_term]['make_sort_key'] = True
     if 'list' in sort_way:
         if 'Subject' in sort_way:
             THREAD_LISTS[search_term]['list'].sort(
@@ -5938,7 +5927,7 @@ def notmuch_duplication(remake):
             print_warring('Don\'t duple mail.')
             return
         ls.sort(key=attrgetter('_date', '_from'))
-        THREAD_LISTS['*'] = {'list': ls, 'sort': ['date', 'list'], 'make_sort_key': False}
+        THREAD_LISTS['*'] = {'list': ls, 'sort': ['date', 'list']}
     vim.command('call s:Make_search_list(\'*\')')
     b_num = s_buf_num('search', '*')
     print_thread(b_num, '*', False, False)
@@ -6743,11 +6732,10 @@ THREAD_LISTS = {}
 """ スレッド・リスト・データの辞書
 
     Example:
-    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date'], 'make_sort_key': False}
+    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date']}
         search_term:   辞書のキーで検索キーワード
         list:          メール・データ
         sort:          ソート方法
-        make_sort_key: デフォルト・ソート方法以外のソートに用いるキーを作成済みか?
 """
 GLOBALS = globals()
 # 一次処理に使うディレクトリの削除や異常終了して残っていたファイルを削除
