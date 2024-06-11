@@ -2251,9 +2251,8 @@ def set_tags(msg_id, s, args):
         if tag in msg_tags:
             if tag not in add_tags:
                 delete_tags.append(tag)
-        else:
-            if tag not in delete_tags:
-                add_tags.append(tag)
+        elif tag not in delete_tags:
+            add_tags.append(tag)
     with msg.frozen():
         delete_msg_tags(msg.tags, delete_tags)
         add_msg_tags(msg.tags, add_tags)
