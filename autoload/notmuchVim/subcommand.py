@@ -3200,7 +3200,6 @@ def cut_thread(msg_id, dumy):
 
 
 def connect_thread_tree():
-    global DBASE
     r_msg_id = get_msg_id()
     if r_msg_id == '':
         return
@@ -3216,12 +3215,12 @@ def connect_thread_tree():
     if lines == []:
         print_warring('Mark the email that you want To connect. (:Notmuch mark)')
         return
-    DBASE = notmuch2.Database()
+    db = notmuch2.Database()
     for line in lines:
         msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
         if r_msg_id == msg_id:
             continue
-        msg = DBASE.find(msg_id)
+        msg = db.find(msg_id)
         for f in msg.filenames():
             with open(f, 'r') as fp:
                 msg_file = email.message_from_file(fp)
@@ -3244,7 +3243,7 @@ def connect_thread_tree():
             with open(f, 'w') as fp:
                 fp.write(msg_file.as_string())
             shellcmd_popen(['notmuch', 'reindex', 'id:"' + msg_id + '"'])
-    DBASE.close()
+    db.close()
     print_thread(bufnr, search_term, False, True)
     index = [i for i, x in enumerate(
         THREAD_LISTS[search_term]['list']) if x._msg_id == r_msg_id]
@@ -5127,9 +5126,9 @@ def insert_signature(to_name, from_name):
 
 def get_config(config):
     """ get notmuch setting """
-    DBASE = notmuch2.Database()
-    ret = DBASE.config[config]
-    DBASE.close()
+    db = notmuch2.Database()
+    ret = db.config[config]
+    db.close()
     return ret
 
 
@@ -5228,15 +5227,15 @@ def move_mail(msg_id, s, args):
     mbox = mbox[0]
     if mbox == '.':
         return
-    DBASE = notmuch2.Database()  # 呼び出し元で開く処理で書いてみたが、それだと複数メールの処理で落ちる
-    msg = DBASE.find(msg_id)
+    db = notmuch2.Database()  # 呼び出し元で開く処理で書いてみたが、それだと複数メールの処理で落ちる
+    msg = db.find(msg_id)
     tags = list(msg.tags)
     for f in msg.filenames():
         if os.path.isfile(f):
             move_mail_main(msg_id, f, mbox, [], tags, False)
         else:
             print('Already Delete: ' + str(f))
-    DBASE.close()
+    db.close()
     reprint_folder2()  # 閉じた後でないと、メール・ファイル移動の情報がデータベースに更新されていないので、エラーになる
     return [1, 1, mbox]  # Notmuch mark-command (command_marked) から呼び出された時の為、リストで返す
 
@@ -5351,12 +5350,12 @@ def import_mail(args):
     mbox.unlock()
     # タグの付け直し
     notmuch_new(False)
-    # DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
+    # db = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     # for msg_id in msg_ids:
     #     msg = change_tags_before_core(msg_id)
     #     add_msg_tags(msg.tags, ['inbox'])
     #     change_tags_after_core(msg, True)
-    # DBASE.close()
+    # db.close()
     print_folder()
     vim.command('redraw')
 
@@ -5792,7 +5791,6 @@ def command_marked(cmdline):
 
 
 def notmuch_search(search_term):
-    global DBASE
     i_search_term = ''
     search_term = search_term[2:]
     if search_term == '' or search_term == []:  # コマンド空
@@ -5807,7 +5805,7 @@ def notmuch_search(search_term):
         search_term = ' '.join(search_term)
     if not check_search_term(search_term):
         return
-    DBASE = notmuch2.Database()
+    db = notmuch2.Database()
     search_term = RE_END_SPACE.sub('', search_term)
     if search_term == i_search_term:
         if vim.current.buffer.number == s_buf_num('folders', ''):
@@ -5822,16 +5820,16 @@ def notmuch_search(search_term):
                                        vim.buffers[s_buf_num('thread', '')].number)
         return
     try:
-        if DBASE.count_messages(search_term) == 0:
-            DBASE.close()
+        if db.count_messages(search_term) == 0:
+            db.close()
             print_warring('Don\'t find mail.  (0 search mail).')
             return
     except notmuch2.XapianError:
-        DBASE.close()
+        db.close()
         vim.command('redraw')
         print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
-    DBASE.close()
+    db.close()
     vim.command('call s:Make_search_list(\'' + vim_escape(search_term) + '\')')
     b_num = s_buf_num('search', search_term)
     print_thread(b_num, search_term, False, False)
@@ -5915,18 +5913,17 @@ def notmuch_address():
 
 
 def notmuch_duplication(remake):
-    global DBASE
     if not THREAD_LISTS:
         set_global_var()
     if remake or not ('*' in THREAD_LISTS):
-        DBASE = notmuch2.Database()
+        db = notmuch2.Database()
         # THREAD_LISTS の作成はマルチプロセスも試したが、大抵は数が少ないために反って遅くなる
         ls = []
-        for msg in DBASE.messages('path:**'):
+        for msg in db.messages('path:**'):
             if len(list(msg.filenames())) >= 2:
-                thread = next(DBASE.threads('thread:' + msg.threadid))  # threadid で検索しているので元々該当するのは一つ
+                thread = next(db.threads('thread:' + msg.threadid))  # threadid で検索しているので元々該当するのは一つ
                 ls.append(MailData(msg, thread, 0, 0))
-        DBASE.close()
+        db.close()
         if not ls:
             print_warring('Don\'t duple mail.')
             return
