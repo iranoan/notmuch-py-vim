@@ -656,7 +656,6 @@ def set_folder_format():
         if 'view' not in open_way:
             open_way['view'] = 'belowright ' + str(height) + 'new'
 
-    global DBASE
     max_len = 0
     for s in vim.vars['notmuch_folders']:
         s_len = len(s[0].decode())
@@ -664,17 +663,17 @@ def set_folder_format():
             max_len = s_len
     if 'notmuch_folder_format' not in vim.vars:
         try:
-            DBASE = notmuch2.Database()
+            db = notmuch2.Database()
         except NameError:
-            DBASE.close()
+            db.close()
             raise notmuchVimError('Do\'not open notmuch Database: \'' + PATH + '\'.')
         vim.vars['notmuch_folder_format'] = '{0:<' + str(max_len) + '} ' + \
-            '{1:>' + str(len(str(DBASE.count_messages('tag:unread'))) + 1) + '}/' + \
-            '{2:>' + str(len(str(int(DBASE.count_messages('path:**') * 1.2)))) + '}│' + \
-            '{3:>' + str(len(str(DBASE.count_messages('tag:flagged'))) + 1) + '} ' + \
+            '{1:>' + str(len(str(db.count_messages('tag:unread'))) + 1) + '}/' + \
+            '{2:>' + str(len(str(int(db.count_messages('path:**') * 1.2)))) + '}│' + \
+            '{3:>' + str(len(str(db.count_messages('tag:flagged'))) + 1) + '} ' + \
             '[{4}]'
         # ↑上から順に、未読/全/重要メールの数の桁数計算、末尾付近の * 1.2 や + 1 は増加したときのために余裕を見ておく為
-        DBASE.close()
+        db.close()
     set_open_way(vim_strdisplaywidth(vim.vars['notmuch_folder_format'].decode().format('', 0, 0, 0, '')) - 1)
 
 
