@@ -4763,7 +4763,7 @@ def after_make_draft(b, msg, add_head):
                 if os.path.isfile(f):
                     b.append('Attach: ' + str(f))
                     break
-        DBASE.close()
+    DBASE.close()
     if add_head & 0x02:
         b.append('Attach: ')
     if add_head & 0x01:
@@ -4887,7 +4887,6 @@ def set_reference(b, msg, flag):
     re_msg_id = ' <' + msg.header('Message-ID') + '>'
     msg_f = open_email_file_from_msg(msg)
     if msg_f is None:
-        DBASE.close()
         print_error('Forward source email has been deleted.')
         return
     b.append('References: ' + get_msg_header(msg_f, 'References') + re_msg_id)
