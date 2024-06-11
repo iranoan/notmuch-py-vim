@@ -3320,15 +3320,15 @@ def view_mail_info():
         msg_id = get_msg_id()
         if msg_id == '':
             return None
-        DBASE = notmuch2.Database()
+        db = notmuch2.Database()
         try:
-            msg = DBASE.find(msg_id)
+            msg = db.find(msg_id)
         except LookupError:  # メール・ファイルが全て削除されている場合
             return None
         if f_type != 'notmuch-edit':
             search_term = b_v['search_term'].decode()
         # try:
-        #    msg = DBASE.find(msg_id)
+        #    msg = db.find(msg_id)
         # except LookupError:  # メール・ファイルが全て削除されている場合
         #     return None
         if f_type == 'notmuch-edit':
@@ -3348,7 +3348,7 @@ def view_mail_info():
                           'Size       : ' + str(os.path.getsize(f)) + ' Bytes']
             else:
                 lists.append('file       : Already Delete.   ' + str(f))
-        DBASE.close()
+        db.close()
         if f_type != 'notmuch-edit':
             pgp_result = b_v['pgp_result'].decode()
             if pgp_result != '':
@@ -3358,7 +3358,6 @@ def view_mail_info():
                         lists.append('             ' + ls)
         return lists
 
-    global DBASE
     info = get_mail_info()
     if info is None:
         return
