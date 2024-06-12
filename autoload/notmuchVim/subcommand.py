@@ -3151,7 +3151,6 @@ def delete_attachment(args):
 
 
 def cut_thread(msg_id, dumy):
-    global DBASE
     if msg_id == '':
         msg_id = get_msg_id()
         if msg_id == '':
@@ -3159,14 +3158,14 @@ def cut_thread(msg_id, dumy):
     bufnr = vim.current.buffer.number
     if bufnr == s_buf_num('folders', ''):
         return
-    DBASE = notmuch2.Database()
-    msg = DBASE.find(msg_id)
+    db = notmuch2.Database()
+    msg = db.find(msg_id)
     changed = False
     for f in msg.filenames():
         with open(f, 'r') as fp:
             msg_file = email.message_from_file(fp)
         in_reply = get_msg_header(msg_file, 'In-Reply-To')
-        if in_reply != '':
+        if in_reply == '':
             continue
         in_reply = in_reply.__str__()[1:-1]
         changed = True
@@ -3184,7 +3183,7 @@ def cut_thread(msg_id, dumy):
             msg_file.replace_header('References', ref_all)
         with open(f, 'w') as fp:
             fp.write(msg_file.as_string())
-    DBASE.close()
+    db.close()
     if changed:
         shellcmd_popen(['notmuch', 'reindex', 'id:"' + msg_id + '"'])
         search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
