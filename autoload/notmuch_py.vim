@@ -220,6 +220,7 @@ def Set_show(): void
 enddef
 
 def Next_unread_page(args: list<any>): void # メール最後の行が表示されていればスクロールしない+既読にする
+	b:notmuch.running_open_mail = true
 	var l_buf_num = bufnr('')
 	if !has_key(buf_num, 'thread')
 		Make_thread_list()
@@ -239,6 +240,7 @@ def Next_unread_page(args: list<any>): void # メール最後の行が表示さ�
 	endif
 	if !exists('b:notmuch.msg_id') || b:notmuch.msg_id ==# ''
 		py3eval('next_unread(' .. l_buf_num .. ')')
+		b:notmuch.running_open_mail = false
 		return
 	endif
 	if line('w$') == line('$') # 最終行表示
@@ -274,10 +276,13 @@ def Next_unread_page(args: list<any>): void # メール最後の行が表示さ�
 		endif
 	endif
 	win_gotoid(bufwinid(l_buf_num))
+	b:notmuch.running_open_mail = false
 enddef
 
 def Next_unread(args: list<any>): void
+	b:notmuch.running_open_mail = true
 	py3eval('next_unread(' .. bufnr('') .. ')')
+	b:notmuch.running_open_mail = false
 enddef
 
 def Previous_page(args: list<any>): void
@@ -768,7 +773,7 @@ def Reload(args: list<any>): void
 enddef
 
 def Cursor_move_thread(search_term: string): void
-	if line('.') != line('v')
+	if line('.') != line('v') || get(b:notmuch, 'running_open_mail')
 		return
 	endif
 	py3eval('cursor_move_thread(''' .. escape(search_term, '''\') .. ''')')

@@ -2505,7 +2505,6 @@ def next_unread(active_win):
         vim_goto_bufwinid(s_buf_num(k, s))
         reset_cursor_position(vim.current.buffer, index + 1)
         fold_open()
-        DBASE.close()  # 無いと固まる←open_mail_by_msgid() 内で DBASE を使っているので本来は閉じるとエラーが起きるはずなので謎????
         if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
             open_mail_by_msgid(search_term,
                                THREAD_LISTS[search_term]['list'][index]._msg_id,
