@@ -1358,45 +1358,28 @@ enddef
 
 export def FoldThread(n: number): any # スレッド・リストの折畳設定
 	# n Subject が何番目に表示されるのか?
-	def Calculate(): dict<any>
-		var i: number = 1
-		var str: string
-		var endl: number = line('$')
-		var lines: list<string> = getbufline(bufnr('%'), 1, endl)
-		var n_depth: number
-		var c_depth: number
-		var levels: dict<any>
+	var str: string
+	var n_depth: number
+	var c_depth: number
 
-		if n == 0
-			str = '^[^\t]\+\t  \zs *'
-		elseif n == 1
-			str = '^[^\t]\+\t[^\t]\+\t  \zs *'
-		elseif n == 2
-			str = '^[^\t]\+\t[^\t]\+\t[^\t]\+\t  \zs *'
-		endif
-		n_depth = strlen(matchstr(lines[0], str)) / 2
-		while i < endl
-			c_depth = n_depth
-			n_depth = strlen(matchstr(lines[i], str)) / 2
-			if c_depth != 0
-				levels[i] = c_depth + 1
-			else
-				if n_depth == 0
-					levels[i] = 0
-				else
-					levels[i] = '>1'
-				endif
-			endif
-			i += 1
-		endwhile
-		levels[i] = n_depth
-		return levels
-	enddef
-	if b:changedtick != get(b:notmuch, 'changedtick', -1)
-		b:notmuch.changedtick = b:changedtick
-		b:notmuch.levels = Calculate()
+	if n == 0
+		str = '^[^\t]\+\t  \zs *'
+	elseif n == 1
+		str = '^[^\t]\+\t[^\t]\+\t  \zs *'
+	elseif n == 2
+		str = '^[^\t]\+\t[^\t]\+\t[^\t]\+\t  \zs *'
 	endif
-	return b:notmuch.levels[v:lnum]
+	c_depth = strlen(matchstr(getbufoneline(bufnr('%'), v:lnum), str)) / 2
+	if c_depth != 0
+		return c_depth + 1
+	else
+		n_depth = strlen(matchstr(getbufoneline(bufnr('%'), v:lnum + 1), str)) / 2
+		if n_depth == 0
+			return 0
+		else
+			return '>1'
+		endif
+	endif
 enddef
 
 export def FoldHeaderText(): string # メールでは foldtext を変更する
