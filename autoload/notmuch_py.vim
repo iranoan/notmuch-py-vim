@@ -220,6 +220,28 @@ def Set_show(): void
 	b:notmuch.tags = ''
 enddef
 
+def SelectMailView(n: number): void
+	# {F-WIN}/{T-WIN} なら {S-WIN} を選択する
+	# 検索による {T-WIN} ならそれに対応する {S-WIN} を選択する
+	if n == buf_num.show
+		return
+	elseif n == buf_num.folders
+		if win_gotoid(bufwinid(buf_num.show)) == 0
+			py3 reopen('show', '')
+		endif
+	elseif n == buf_num.thread
+		if win_gotoid(bufwinid(buf_num.show)) == 0
+			py3 reopen('show', '')
+		endif
+	elseif n == buf_num.view[b:notmuch.search_term]
+		return
+	elseif n == buf_num.search[b:notmuch.search_term]
+		if win_gotoid(bufwinid(buf_num.view[b:notmuch.search_term])) == 0
+			py3eval('reopen(''view'', ''' .. escape(b:notmuch.search_term, '''\') .. ''')')
+		endif
+	endif
+enddef
+
 def Next_unread_page(args: list<any>): void # メール最後の行が表示されていればスクロールしない+既読にする
 	var l_buf_num = bufnr('')
 	if !has_key(buf_num, 'thread')
@@ -228,16 +250,7 @@ def Next_unread_page(args: list<any>): void # メール最後の行が表示さ�
 	if !has_key(buf_num, 'show')
 		Make_show()
 	endif
-	if win_gotoid(bufwinid(buf_num.show)) == 0
-		if has_key(buf_num, 'view')
-					&& has_key(b:notmuch, 'search_term')
-					&& b:notmuch.search_term !=# ''
-					&& has_key(buf_num.view, b:notmuch.search_term)
-			win_gotoid(bufwinid(buf_num.view[b:notmuch.search_term]))
-		else
-			py3 reopen('show', '')
-		endif
-	endif
+	SelectMailView(l_buf_num)
 	if !exists('b:notmuch.msg_id') || b:notmuch.msg_id ==# ''
 		py3eval('next_unread(' .. l_buf_num .. ')')
 		return
@@ -289,16 +302,7 @@ def Previous_page(args: list<any>): void
 	if !has_key(buf_num, 'show')
 		Make_show()
 	endif
-	if win_gotoid(bufwinid(buf_num.show)) == 0
-		if has_key(buf_num, 'view')
-					&& has_key(b:notmuch, 'search_term')
-					&& b:notmuch.search_term !=# ''
-					&& has_key(buf_num.view, b:notmuch.search_term)
-			win_gotoid(bufwinid(buf_num.view[b:notmuch.search_term]))
-		else
-			py3 reopen('show', '')
-		endif
-	endif
+	SelectMailView(l_buf_num)
 	execute "normal! \<PageUp>"
 	win_gotoid(bufwinid(l_buf_num))
 enddef
