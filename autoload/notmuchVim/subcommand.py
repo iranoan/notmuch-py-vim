@@ -2567,8 +2567,6 @@ def next_unread(active_win):
         search_view = True  # 検索スレッドや検索ビューや否かのフラグ
     else:
         search_view = False
-    # タグを変更することが有るので、書き込み権限も
-    # b:notmuch['running_open_mail'] = false
     if search_view:
         b_num = s_buf_num('search', search_term)
     else:
@@ -2578,6 +2576,7 @@ def next_unread(active_win):
             v_thread = b.vars['notmuch']
             break
     v_thread['running_open_mail'] = True
+    # タグを変更することが有るので、書き込み権限も
     DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合
         # if search_view:  # そもそも検索にヒットしなければ、search, view は開かれないはず
