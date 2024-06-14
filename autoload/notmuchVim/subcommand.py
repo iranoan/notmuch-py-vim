@@ -246,8 +246,6 @@ class MailData:  # メール毎の各種データ
         self.__thread_depth = depth        # 同一スレッド中での深さ
         self._msg_id = msg.messageid       # Message-ID
         self._tags = list(msg.tags)
-        # self._authors = ''                            # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
-        # self._thread_subject = ''                     # スレッド・トップの Subject (初期化時はダミーの空文字)
         # self.__subject = msg.header('Subject') # ←元のメール・ファイルのヘッダの途中で改行されていると最初の行しか取得しない
         # ↑の問題に対応する→スレッド生成でマルチ・スレッドが使えなくなる
         msg_f = open_email_file_from_msg(msg)
@@ -282,6 +280,7 @@ class MailData:  # メール毎の各種データ
                 name = RE_TAB2SPACE.sub(' ', m_from_name)
         self.__reformed_name = name
         string = thread.authors
+        # 同一スレッド中のメール作成者 (初期化時はダミーの空文字)
         if string is None:
             self._authors = ''
         else:
@@ -291,10 +290,10 @@ class MailData:  # メール毎の各種データ
         # スレッド・トップの Subject
         string = get_msg_header(open_email_file_from_msg(next(thread.toplevel())), 'Subject')
         self._thread_subject = RE_TAB2SPACE.sub(' ', RE_END_SPACE.sub('', RE_SUBJECT.sub('', string)))
-        # self.__path = msg.filenames() ←ファイル自体は削除されていることも有る
-        # 以下はどれもファイルをオープンしっぱなしになるもよう
+        # 以下はどれもファイルを DBASE.close() で使えなくなる
         # self.__msg = msg                               # msg_p
         # self.__thread = thread                         # thread_p
+        # self.__path = msg.filenames()
 
     def __del__(self):  # デストラクタ←本当に必要か不明
         del self
@@ -500,7 +499,7 @@ def make_thread_core(search_term):
 #         ls.append((message.messageid, message, depth))
 #         for msg in message.replies():
 #             make_reply_ls(ls, msg, depth + 1)
-
+#
 #     thread = next(DBASE.threads('(' + search_term + ') and thread:' + thread_id))
 #     # thread_id で検索しているので元々該当するのは一つ
 #     try:  # スレッドの深さを調べる為のリスト作成開始 (search_term に合致しないメッセージも含まれる)
@@ -2496,7 +2495,7 @@ def reset_cursor_position(b, line):
                 vim_tabpagebuflist(t_num))) if x == b_num]:
             w = t.windows[i]
             w.cursor = (line, len(s[:re.match(r'^[^\t]+', s).end()].encode()) + 1)
-            vim_win_execute(vim_win_getid(w.number, t_num), 'redraw')  # ←カーソル移動しても点滅する描画位置が行頭になる時が有る対策
+            # vim_win_execute(vim_win_getid(w.number, t_num), 'redraw')  # ←カーソル移動しても点滅する描画位置が行頭になる時が有る対策
 
 
 def next_unread(active_win):
