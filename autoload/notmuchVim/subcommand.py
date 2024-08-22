@@ -4774,7 +4774,8 @@ def after_make_draft(b, msg, add_head):
                 if os.path.isfile(f):
                     b.append('Attach: ' + str(f))
                     break
-    DBASE.close()
+    if msg is not None:
+        DBASE.close()
     if add_head & 0x02:
         b.append('Attach: ')
     if add_head & 0x01:
