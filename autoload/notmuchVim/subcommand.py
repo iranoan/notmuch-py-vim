@@ -1695,12 +1695,13 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     output.html['content'],
                     re.sub(r'(?<![A-Za-z]) (?=(_|\*\*))', r'',  # ASCII 外が前後にあると勝手に空白が入る
                            re.sub(r'(_|\*\*) (?![A-Za-z])', r'\1',  # '(?<=(_|\*\*)) (?![A-Za-z])'←エラー
-                                  re.sub(r'\s+$', '',  # 行末空白削除
-                                         re.sub(r'^\[\s*\]\([^)]+\)\n', '',  # リンク文字列がないリンクを削除
-                                                re.sub(r'\[\s*\]\([^)]+\)', '',
+                                  re.sub(r'\s+$', '', re.sub(r'\s+$', '',  # 行末空白削除
+                                         re.sub(r'\[\s*\]\([^)]+\)', '',  # リンク文字列がないリンクを削除
+                                                re.sub(r'([\n\r]+)\[\s*\]\([^)]+\)\s*[\n\r]', r'\1',
                                                        re.sub(r'!\[\s*\]\([^)]+\)', '',
-                                                              re.sub(r'^!\[\s*\]\([^)]+\)\n', '',
-                                                                     html_converter.handle(tmp_text)))))))))
+                                                              re.sub(r'([\n\r]+)!\[\s*\]\([^)]+\)\s*[\n\r]',
+                                                                     r'\1',
+                                                                     html_converter.handle(tmp_text))))))))))
                 if output.html['part_num']:  # 2 個目以降があれば連番
                     s = 'index' + str(output.html['part_num']) + '.html'
                 else:
