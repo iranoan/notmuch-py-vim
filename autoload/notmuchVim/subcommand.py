@@ -3299,6 +3299,7 @@ def get_save_filename(path):
             path = vim_browse(1, 'Save', os.path.dirname(path), os.path.basename(path)).decode()
         else:
             path = vim_input('Save as: ', path, 'file')
+        path = os.path.expandvars(os.path.expanduser(path))
         if path == '':
             return ''
         elif os.path.isfile(path):
