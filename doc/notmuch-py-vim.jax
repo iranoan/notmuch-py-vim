@@ -271,7 +271,7 @@ p					|search-term| やメールの各種情報や OpenPGP, S/MIME 処理の詳�
 					ポップアップやコマンド・ラインで表示 (Popup information)
 					                                |notmuch-python-vim-mail-info|
 					表示されたポップアップはカーソル移動や C/X/Q/P/O/<Esc> で閉じる
-P					|{S-WIN}|	'conceallevel' によって表示されていない HTML メール内のリ
+X					|{S-WIN}|	'conceallevel' によって表示されていない HTML メール内のリ
 										ンク URL をポップアップやコマンド・ラインで表示
 s					|{F-WIN}|/|{T-WIN}|  検索一覧 (Search)
 					                                |notmuch-python-vim-search|

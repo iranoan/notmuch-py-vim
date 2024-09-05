@@ -95,4 +95,4 @@ vnoremap <buffer><silent>s :Notmuch attach-save<CR>
 nnoremap <buffer><silent>S :Notmuch mail-save<CR>
 nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>
 nnoremap <buffer><silent>O <Cmd>call <SID>SwitchConceal()<CR>
-nnoremap <buffer><silent>P <Cmd>call <SID>ViewURL()<CR>
+nnoremap <buffer><silent>X <Cmd>call <SID>ViewURL()<CR>
