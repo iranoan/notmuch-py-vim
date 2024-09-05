@@ -574,6 +574,7 @@ def set_subcmd_start():
         cmd['view-previous'] = ['Previous_page', 0x04]
         cmd['view-unread-page'] = ['Next_unread_page', 0x04]
         cmd['view-unread-mail'] = ['Next_unread', 0x04]
+        cmd['view-previous-unread'] = ['Previous_unread', 0x04]
         cmd['reload'] = ['Reload', 0x04]
         cmd['run'] = ['Run_shell_program', 0x07]
         cmd['search'] = ['Notmuch_search', 0x05]
@@ -2505,55 +2506,8 @@ def reset_cursor_position(b, line):
             # vim_win_execute(vim_win_getid(w.number, t_num), 'redraw')  # ←カーソル移動しても点滅する描画位置が行頭になる時が有る対策
 
 
-def next_unread(active_win):
-    """ 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない) """
-    def open_mail_by_buf_kind_index(k, s, index, v):  # 同一スレッド内の未読メール
-        vim_goto_bufwinid(s_buf_num(k, s))
-        reset_cursor_position(vim.current.buffer, index + 1)
-        fold_open()
-        if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
-            open_mail_by_msgid(search_term,
-                               THREAD_LISTS[search_term]['list'][index]._msg_id,
-                               active_win, False)
-        DBASE.close()
-        v['running_open_mail'] = False
-
-    def seach_and_open_unread(index, search_term, v):
-        # search_term の検索方法で未読が有れば、そのスレッド/メールを開く
-        search_term = search_term.decode()
-        if search_term == '' \
-                or not DBASE.count_messages('(' + search_term + ') and tag:unread'):
-            vim_goto_bufwinid(active_win)
-            return False
-        b_num = s_buf_num('folders', '')
-        for t in vim.tabpages:
-            for i in [i for i, x in enumerate(list(
-                    vim_tabpagebuflist(t.number))) if x == b_num]:
-                t.windows[i].cursor = (index + 1, 0)  # ここまではフォルダ・リストの順番としてindex使用
-        b_num = s_buf_num('thread', '')
-        print_thread_core(b_num, search_term, False, False)
-        # ここからはスレッド・リストの順番としてindex使用
-        index = get_unread_in_THREAD_LISTS(search_term)
-        if not index:  # 作成済み THREAD_LISTS[search_term] には未読メールがない→作成後にメール受信
-            print_thread_core(b_num, search_term, False, True)
-            index = get_unread_in_THREAD_LISTS(search_term)
-        index = index[0]
-        reset_cursor_position(vim.current.buffer, index + 1)
-        fold_open()
-        change_buffer_vars_core()
-        if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
-            open_mail_by_msgid(search_term,
-                               THREAD_LISTS[search_term]['list'][index]._msg_id,
-                               active_win, False)
-        if s_buf_num('folders', '') == active_win:
-            vim_goto_bufwinid(s_buf_num('thread', ''))
-        else:
-            vim_goto_bufwinid(active_win)
-        DBASE.close()
-        v['running_open_mail'] = False
-        return True
-
-    global DBASE
+def unread_before(active_win):
+    """ 未読メールを探すときの前処理 (previos_unread(), next_unread() の共通部分) """
     active_win = int(active_win)
     if not ('search_term' in vim.current.buffer.vars['notmuch']):
         if active_win == s_buf_num('folders', ''):
@@ -2582,6 +2536,77 @@ def next_unread(active_win):
             v_thread = b.vars['notmuch']
             break
     v_thread['running_open_mail'] = True
+    return active_win, msg_id, search_term, search_view, v_thread
+
+
+def search_and_open_unread(active_win, index, search_term, v, top):
+    ''' search_term の検索方法で未読が有れば、そのスレッド/メールを開く
+    v: thread window vlues
+    top: 0/-1 => view top/last mail
+    '''
+    if type(search_term) is bytes:
+        search_term = search_term.decode()
+    if search_term == '' \
+            or not DBASE.count_messages('(' + search_term + ') and tag:unread'):
+        vim_goto_bufwinid(active_win)
+        return False
+    b_num = s_buf_num('folders', '')
+    for t in vim.tabpages:
+        for i in [i for i, x in enumerate(list(
+                vim_tabpagebuflist(t.number))) if x == b_num]:
+            t.windows[i].cursor = (index + 1, 0)  # ここまではフォルダ・リストの順番としてindex使用
+    b_num = s_buf_num('thread', '')
+    print_thread_core(b_num, search_term, False, False)
+    # ここからはスレッド・リストの順番としてindex使用
+    index = get_unread_in_THREAD_LISTS(search_term)
+    if not index:  # 作成済み THREAD_LISTS[search_term] には未読メールがない→作成後にメール受信
+        print_thread_core(b_num, search_term, False, True)
+        index = get_unread_in_THREAD_LISTS(search_term)
+    index = index[top]
+    reset_cursor_position(vim.current.buffer, index + 1)
+    fold_open()
+    change_buffer_vars_core()
+    if is_same_tabpage('show', '') or is_same_tabpage('view', search_term):
+        open_mail_by_msgid(search_term,
+                           THREAD_LISTS[search_term]['list'][index]._msg_id,
+                           active_win, False)
+    if s_buf_num('folders', '') == active_win:
+        vim_goto_bufwinid(s_buf_num('thread', ''))
+    else:
+        vim_goto_bufwinid(active_win)
+    DBASE.close()
+    v['running_open_mail'] = False
+    return True
+
+
+def open_mail_by_buf_kind_index(w, k, s, index, v):
+    """ 同一スレッド内の未読メール """
+    vim_goto_bufwinid(s_buf_num(k, s if k == 'search' else ''))
+    reset_cursor_position(vim.current.buffer, index + 1)
+    fold_open()
+    if is_same_tabpage('show', '') or is_same_tabpage('view', s):
+        open_mail_by_msgid(s, THREAD_LISTS[s]['list'][index]._msg_id, w, False)
+    DBASE.close()
+    v['running_open_mail'] = False
+
+
+def get_serach_term(search_term, folders):
+    """ search_term が folders の何番目か?
+    search_term が空なら一つ前の扱いに書き換える
+    """
+    for index, folder_way in enumerate(folders):
+        if search_term == folder_way[1].decode():
+            if search_term == '':
+                index -= 1
+                search_term = folders[index][1].decode()
+            break
+    return search_term, index
+
+
+def next_unread(active_win):
+    """ 次の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない) """
+    global DBASE
+    active_win, msg_id, search_term, search_view, v_thread = unread_before(active_win)
     # タグを変更することが有るので、書き込み権限も
     DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
     if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合
@@ -2592,18 +2617,13 @@ def next_unread(active_win):
         if vim_goto_bufwinid(s_buf_num("thread", '')) == 0:
             reopen('thread', search_term)
         folders = vim.vars['notmuch_folders']
-        for index, folder_way in enumerate(folders):  # まず search_term が何番目か
-            if search_term == folder_way[1].decode():
-                if search_term == '':
-                    index = index + 1
-                    search_term = folders[index][1].decode()
-                break
+        search_term, index = get_serach_term(search_term, folders)
         for folder_way in folders[index:]:  # search_term 以降で未読が有るか?
-            if seach_and_open_unread(index, folder_way[1], v_thread):
+            if search_and_open_unread(active_win, index, folder_way[1], v_thread, 0):
                 return
             index = index + 1
         for index, folder_way in enumerate(folders):  # 見つからなかったので最初から
-            if seach_and_open_unread(index, folder_way[1], v_thread):
+            if search_and_open_unread(active_win, index, folder_way[1], v_thread, 0):
                 return
         vim_goto_bufwinid(active_win)
         DBASE.close()
@@ -2615,10 +2635,9 @@ def next_unread(active_win):
     # ↑ len(indexes) > 0 なら未読有り
     index = [i for i, i in enumerate(indexes) if i > index]
     if index:  # 未読メールが同一スレッド内の後ろに有る
-        if search_view:
-            open_mail_by_buf_kind_index('search', search_term, index[0], v_thread)
-        else:
-            open_mail_by_buf_kind_index('thread', '', index[0], v_thread)
+        open_mail_by_buf_kind_index(active_win,
+                                    'search' if search_view else 'thread',
+                                    search_term, index[0], v_thread)
         return
     # else:  # 同一スレッド内に未読メールが有っても後ろには無い
     #     pass
@@ -2627,7 +2646,7 @@ def next_unread(active_win):
     # 同一スレッド内に未読がない、または同一スレッド内に未読メールが有っても後ろには無い
     if search_view:  # search, view では先頭の未読に移動
         if indexes:
-            open_mail_by_buf_kind_index('search', search_term, indexes[0], v_thread)
+            open_mail_by_buf_kind_index(active_win, 'search', search_term, indexes[0], v_thread)
         return
     folders = vim.vars['notmuch_folders']
     for index, folder_way in enumerate(folders):  # 同一検索方法までスキップ
@@ -2636,13 +2655,65 @@ def next_unread(active_win):
     if index < len(folders):
         next_index = index + 1  # 現在開いている検索条件の次から未読が有るか? を調べるのでカウント・アップ
         for folder_way in folders[next_index:]:
-            if seach_and_open_unread(next_index, folder_way[1], v_thread):
+            if search_and_open_unread(active_win, next_index, folder_way[1], v_thread, 0):
                 return
             next_index += 1
     # フォルダ・リストの最初から未読が有るか? を探し直す
     for index_refirst, folder_way in enumerate(folders[:index + 1]):
-        if seach_and_open_unread(index_refirst, folder_way[1], v_thread):
+        if search_and_open_unread(active_win, index_refirst, folder_way[1], v_thread, 0):
             return
+    DBASE.close()
+    v_thread['running_open_mail'] = False
+
+
+def previous_unread(active_win):
+    """ 前の未読メッセージが有れば移動(表示した時全体を表示していれば既読になるがそれは戻せない) """
+    def search_previos_unread(index):
+        ret = False
+        count_folder = len(folders)
+        while True:
+            index = (index + count_folder - 1) % count_folder
+            f_search_term = folders[index][1].decode()
+            if search_term == f_search_term:
+                break
+            if search_and_open_unread(active_win, index, f_search_term, v_thread, -1):
+                ret = True
+                break
+        DBASE.close()
+        v_thread['running_open_mail'] = False
+        return ret
+
+    global DBASE
+    # タグを変更することが有るので、書き込み権限も
+    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
+    active_win, msg_id, search_term, search_view, v_thread = unread_before(active_win)
+    folders = vim.vars['notmuch_folders']
+    if msg_id == '':  # 空のメール/スレッド、notmuch_folders から実行された場合
+        if vim_goto_bufwinid(s_buf_num("thread", '')) == 0:
+            reopen('thread', search_term)
+        search_term, index = get_serach_term(search_term, folders)
+        if search_and_open_unread(active_win, index, search_term, v_thread, -1):  # 該当 search_term に未読あり
+            return
+        search_previos_unread(index)
+        return
+    index = [i for i, x in enumerate(
+        THREAD_LISTS[search_term]['list']) if x._msg_id == msg_id][0]
+    indexes = get_unread_in_THREAD_LISTS(search_term)
+    # ↑ len(indexes) > 0 なら未読有り
+    index = [i for i, i in enumerate(indexes) if i < index]
+    if index:  # 未読メールが同一スレッド内の前に有る
+        open_mail_by_buf_kind_index(active_win,
+                                    'search' if search_view else 'thread',
+                                    search_term, index[-1], v_thread)
+        return
+    search_term, index = get_serach_term(search_term, folders)
+    if search_previos_unread(index):
+        return
+    if indexes:
+        open_mail_by_buf_kind_index(active_win,
+                                    'search' if search_view else 'thread',
+                                    search_term, indexes[-1], v_thread)
+        return
     DBASE.close()
     v_thread['running_open_mail'] = False
 

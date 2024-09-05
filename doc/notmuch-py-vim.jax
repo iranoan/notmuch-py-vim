@@ -258,6 +258,7 @@ R					転送メール                      |notmuch-python-vim-mail-forward|
 u					未読/既読トグル (toggle Unread) |notmuch-python-vim-tag-toggle|
 					|{T-WIN}| では加えて次のメールを選択 (|j|)
 J					次の未読メール (j の拡張)       |notmuch-python-vim-view-unread-mail|
+P					前の未読メール              |notmuch-python-vim-view-previous-unread|
 d					メールの Trash タグをトグル (追加/削除) と既読化
 					                                |notmuch-python-vim-tag-toggle|
 					|{T-WIN}| では加えて次のメールを選択 (|j|)
@@ -1298,6 +1299,10 @@ thread-toggle                                 *notmuch-python-vim-thread-toggle*
 view-previous                                 *notmuch-python-vim-view-previous*
 	スクリーンに |{S-WIN}| が有れば |{F-WIN}|/|{T-WIN}| がアクティブでも |{S-WIN}| を
 	スクロール・アップ
+
+view-previous-unread                   *notmuch-python-vim-view-previous-unread*
+	* 前の未読メールに移動
+	* 現在表示しているメールの未読/既読は変更しない (unread タグの削除しない)
 
 view-unread-mail                           *notmuch-python-vim-view-unread-mail*
 	* 次の未読メールに移動

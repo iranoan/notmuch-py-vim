@@ -50,6 +50,7 @@ def New_buffer(type: string, search_term: string): void
 	nnoremap <buffer><silent><space> :Notmuch view-unread-page<CR>
 	nnoremap <buffer><silent><BS> :Notmuch view-previous<CR>
 	nnoremap <buffer><silent>J :Notmuch view-unread-mail<CR>
+	nnoremap <buffer><silent>P :Notmuch view-previous-unread<CR>
 	nnoremap <buffer><silent><C-R> :Notmuch reload<CR>
 	nnoremap <buffer><silent>p :Notmuch mail-info<CR>
 	nnoremap <buffer><silent>I :Notmuch mail-export<CR>
@@ -294,6 +295,10 @@ def Next_unread(args: list<any>): void
 	py3eval('next_unread(' .. bufnr('') .. ')')
 enddef
 
+def Previous_unread(args: list<any>): void
+	py3eval('previous_unread(' .. bufnr('') .. ')')
+enddef
+
 def Previous_page(args: list<any>): void
 	var l_buf_num = bufnr('')
 	if !has_key(buf_num, 'thread')
@@ -521,6 +526,7 @@ if 'notmuchVim' not in sys.modules:
     from notmuchVim.subcommand import move_mail
     from notmuchVim.subcommand import new_mail
     from notmuchVim.subcommand import next_unread
+    from notmuchVim.subcommand import previous_unread
     from notmuchVim.subcommand import notmuch_address
     from notmuchVim.subcommand import notmuch_down_refine
     from notmuchVim.subcommand import notmuch_duplication
