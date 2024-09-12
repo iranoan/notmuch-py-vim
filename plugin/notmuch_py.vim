@@ -11,15 +11,11 @@ let g:loaded_notmuch_py = 1
 let s:save_cpo = &cpoptions
 set cpoptions&vim
 
-if !has('python3') || v:version < 900 || !has('vim9script')
-	echohl ErrorMsg | echomsg 'Require +python3 and Ver.9.00, Vim9 script.' | echohl None
-	let &cpoptions = s:save_cpo
-	unlet s:save_cpo
-	finish
-endif
-
-if has('nvim')
-	echohl ErrorMsg | echomsg 'The plugin don''t work with NeoVim.' | echohl None
+if !has('python3') || v:version < 900 || !has('vim9script') || has('nvim')
+	echohl ErrorMsg
+		| echomsg 'Require +python3 and Ver.9.00, Vim9 script.'
+		| echomsg 'The plugin don''t work with NeoVim.'
+		| echohl None
 	let &cpoptions = s:save_cpo
 	unlet s:save_cpo
 	finish
