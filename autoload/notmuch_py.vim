@@ -1146,6 +1146,7 @@ def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): 
 				ls = py3eval('get_mail_folders()')
 			endif
 		elseif cmd ==# 'run' # -complete=shellcmd 相当のことがしたいけどやり方不明
+			# getcompletion
 			# ls = []
 			return []
 		elseif !and(cmds[cmd], 0x01) # 引数を必要としないコマンド→次のコマンドを補完対象

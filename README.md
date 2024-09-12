@@ -28,9 +28,11 @@ Notmuch には元々送受信機能がないので、送信には sendmail 等�
 
 ### Vim
 
-```sh
-vim --version | grep +python3
-```
+* NeoVim では動作しない
+* Ver. 9.0 以上
+* ```sh
+  vim --version | grep +python3
+  ```
 
 他には +folding 等も必要だが、調べきれていない
 
