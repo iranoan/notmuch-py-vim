@@ -5726,21 +5726,27 @@ def run_shell_program(msg_id, s, args):
         f = msg_file(msg)
         if f is None:
             return
+        while '<pipe:>' in prg_param:
+            i = prg_param.index('<pipe:>')
+            prg_param[i] = '|'
         prg_param.append(f)
     else:
-        if '<path:>' in prg_param:
+        while '<path:>' in prg_param:
             i = prg_param.index('<path:>')
             f = msg_file(msg)
             if f is None:
+                print_warring('Delte mail file.')
                 return
             prg_param[i] = f
-        if '<id:>' in prg_param:
+        while '<id:>' in prg_param:
             i = prg_param.index('<id:>')
             prg_param[i] = msg_id
+        while '<pipe:>' in prg_param:
+            i = prg_param.index('<pipe:>')
+            prg_param[i] = '|'
     dbase.close()
-    print(prg_param)
-    shellcmd_popen(prg_param)
     print(' '.join(prg_param))
+    shellcmd_popen(prg_param)
     return [0, 0, prg_param]
 
 
@@ -6432,10 +6438,7 @@ def get_sys_command(cmdline, last):
                 path.add(c)
         return path
 
-    num = len(cmdline.split())
-    if num > 3 or (num >= 3 and last == ''):
-        cmd = {'<path:>', '<id:>'} | sub_path()
-    else:
+    def get_cmd():
         cmd = set()
         for p in os.environ.get('path',
                                 os.environ.get('PATH', [])).split(os.pathsep):
@@ -6451,6 +6454,16 @@ def get_sys_command(cmdline, last):
                     cmd.add(c)
             elif os.path.isdir(c):
                 cmd.add(c)
+        return cmd
+
+    num = len(cmdline.split())
+    if (num >= 3
+            and re.search(r'(<pipe:><pipe:>|<pipe:>|&&|;) *$', cmdline) is not None):
+        cmd = get_cmd()
+    elif num > 3 or (num >= 3 and last == ''):
+        cmd = {'<path:>', '<id:>', '<pipe:>'} | sub_path()
+    else:
+        cmd = get_cmd()
     return sorted(list(cmd))
 
 

@@ -1145,10 +1145,8 @@ def Complete_command(CmdLine: string, CursorPos: number, direct_command: bool): 
 			else
 				ls = py3eval('get_mail_folders()')
 			endif
-		elseif cmd ==# 'run' # -complete=shellcmd 相当のことがしたいけどやり方不明
-			# getcompletion
-			# ls = []
-			return []
+		elseif cmd ==# 'run'
+			ls = py3eval('get_sys_command(''mark_cmd ' .. Vim_escape(cmdline) .. ''' , ''' .. Vim_escape(s_filter) .. ''')')
 		elseif !and(cmds[cmd], 0x01) # 引数を必要としないコマンド→次のコマンドを補完対象
 			ls = py3eval('get_mark_cmd_name()')
 		else
@@ -1216,7 +1214,7 @@ export def Comp_run(ArgLead: string, CmdLine: string, CursorPos: number): list<a
 	if prefix !=?  ''
 		prefix = prefix .. ' '
 	endif
-	var list: list<string> =  py3eval('get_sys_command(''' .. Vim_escape('Notmuch run ' .. CmdLine) .. ''' , ''' .. Vim_escape(filter) .. ''')')
+	var list: list<string> = py3eval('get_sys_command(''' .. Vim_escape('Notmuch run ' .. CmdLine) .. ''' , ''' .. Vim_escape(filter) .. ''')')
 	filter = printf('v:val =~? "^%s"', filter)
 	var snippet_org: list<any> = filter(list, filter)
 	# 補完候補にカーソル前の文字列を追加
