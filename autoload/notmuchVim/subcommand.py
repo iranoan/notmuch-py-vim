@@ -5745,8 +5745,8 @@ def run_shell_program(msg_id, s, args):
             i = prg_param.index('<pipe:>')
             prg_param[i] = '|'
     dbase.close()
-    print(' '.join(prg_param))
     shellcmd_popen(prg_param)
+    print(' '.join(prg_param))
     return [0, 0, prg_param]
 
 
