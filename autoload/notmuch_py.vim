@@ -684,7 +684,7 @@ def Search_not_notmuch(): number # notmuch-? 以外のリストされていて�
 	var notmuch_kind: list<string> = ['notmuch-folders', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
 	var changed: number = 0
 	for buf in getbufinfo()
-		if count(notmuch_kind, getbufvar(buf.bufnr, '&filetype')) == 0
+		if index(notmuch_kind, getbufvar(buf.bufnr, '&filetype')) == -1
 			if !buf.listed
 				continue
 			elseif buf.hidden
@@ -726,7 +726,7 @@ def End_notmuch(): void # 全て終了 (notmuch-folders が bwipeout された�
 	var notmuch_kind: list<string> = ['notmuch-folder', 'notmuch-thread', 'notmuch-show', 'notmuch-edit', 'notmuch-draft']
 	for buf in bufinfo
 		bufnr = buf.bufnr
-		if count(notmuch_kind, getbufvar(bufnr, '&filetype'))
+		if index(notmuch_kind, getbufvar(bufnr, '&filetype')) != -1
 			execute ':' .. bufnr .. 'bwipeout'
 		endif
 	endfor

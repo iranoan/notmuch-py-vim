@@ -57,7 +57,7 @@ def ViewURL(): void
 		if start == -1
 			continue
 		endif
-		if count(urls, url) == 0
+		if index(urls, url) == -1
 			call add(urls, url)
 		endif
 	endwhile
