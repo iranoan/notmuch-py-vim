@@ -15,12 +15,61 @@ if !exists('g:ft_notmuch_show')
 		autocmd!
 		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show' |
 					\ setlocal concealcursor=nvic conceallevel=3 nolist|
-					\ 	call matchadd('Conceal', '\m[\x0C]') |
-					\ 	call matchadd('Conceal', '\m[\u200B]') |
+					\ 	matchadd('Conceal', '\m[\x0C]') |
+					\ 	matchadd('Conceal', '\m[\u200B]') |
 					\ endif
 		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-show' |
 					\ 	setlocal foldlevel=2 |
 					\ endif
+
+	def SwitchConceal(): void
+		if &conceallevel != 0
+			setlocal conceallevel=0
+		else
+			setlocal conceallevel=3
+		endif
+		setlocal conceallevel?
+	enddef
+
+	def ViewURL(): void
+		var line_str: string = getline('.')
+		var url: string
+		var start: number
+		var end = 0
+		var urls: list<string>
+		while 1
+			[url, start, end] = matchstrpos(line_str, ']([^)]\+)', end)
+			if start == -1
+				break
+			endif
+			[url, start, start] = matchstrpos(url, '\v<(((https?|ftp|gopher)://|(mailto|file|news):)[^'' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^'' \t<>"]+)[a-z0-9/]|(\~?/)?([-A-Za-z._0-9]+/)*[-A-Za-z._0-9]+(\.\a([A-Za-z0-9]{,3})|/)', 1)
+			if start == -1
+				continue
+			endif
+			if index(urls, url) == -1
+				add(urls, url)
+			endif
+		endwhile
+		urls = sort(urls, 'l')
+		if len(urls) != 0
+			if has('popupwin')
+				popup_atcursor(map(urls, '" " .. v:val'),
+					{border: [1, 1, 1, 1],
+						borderchars: ['─', '│', '─', '│', '┌', '┐', '┘', '└'],
+						drag: 1,
+						close: 'click',
+						moved: 'any',
+						col: 'cursor',
+						filter: "notmuch_py#Close_popup",
+						wrap: 1,
+						mapping: 0})
+			else
+				echo join(urls, "\n")
+			endif
+		endif
+		return
+	enddef
+
 	augroup END
 endif
 
@@ -31,55 +80,6 @@ setlocal nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod
 if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif
-
-def SwitchConceal(): void
-	var lv: number
-	lv = &conceallevel
-	if lv != 0
-		setlocal conceallevel=0
-	else
-		setlocal conceallevel=3
-	endif
-enddef
-
-def ViewURL(): void
-	var line_str: string = getline('.')
-	var url: string
-	var start: number
-	var end = 0
-	var urls: list<string>
-	while 1
-		[url, start, end] = matchstrpos(line_str, ']([^)]\+)', end)
-		if start == -1
-			break
-		endif
-		[url, start, start] = matchstrpos(url, '\v<(((https?|ftp|gopher)://|(mailto|file|news):)[^'' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^'' \t<>"]+)[a-z0-9/]|(\~?/)?([-A-Za-z._0-9]+/)*[-A-Za-z._0-9]+(\.\a([A-Za-z0-9]{,3})|/)', 1)
-		if start == -1
-			continue
-		endif
-		if index(urls, url) == -1
-			call add(urls, url)
-		endif
-	endwhile
-	urls = sort(urls, 'l')
-	if len(urls) != 0
-		if has('popupwin')
-			call popup_atcursor(map(urls, '" " .. v:val'),
-				{border: [1, 1, 1, 1],
-					borderchars: ['─', '│', '─', '│', '┌', '┐', '┘', '└'],
-					drag: 1,
-					close: 'click',
-					moved: 'any',
-					col: 'cursor',
-					'filter': "notmuch_py#Close_popup",
-					wrap: 1,
-					mapping: 0})
-		else
-			echo join(urls, "\n")
-		endif
-	endif
-	return
-enddef
 
 # keymap
 nnoremap <buffer><silent>a :Notmuch tag-add<CR>
@@ -96,3 +96,9 @@ nnoremap <buffer><silent>S :Notmuch mail-save<CR>
 nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>
 nnoremap <buffer><silent>O <Cmd>call <SID>SwitchConceal()<CR>
 nnoremap <buffer><silent>X <Cmd>call <SID>ViewURL()<CR>
+
+if exists('b:undo_ftplugin')
+	b:undo_ftplugin ..= '| setlocal comments< concealcursor< conceallevel< expandtab< foldcolumn< foldlevel< foldlevel< foldmethod< foldtext< list< modifiable< number< signcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+else
+	b:undo_ftplugin = 'setlocal comments< concealcursor< conceallevel< expandtab< foldcolumn< foldlevel< foldlevel< foldmethod< foldtext< list< modifiable< number< signcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+endif
