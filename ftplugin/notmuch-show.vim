@@ -82,20 +82,20 @@ if &foldcolumn == 0
 endif
 
 # keymap
-nnoremap <buffer><silent>a :Notmuch tag-add<CR>
-nnoremap <buffer><silent>A :Notmuch tag-delete<CR>
-nnoremap <buffer><silent>d :Notmuch tag-set +Trash -unread<CR>
-nnoremap <buffer><silent>D :Notmuch attach-delete<CR>
-vnoremap <buffer><silent>D :Notmuch attach-delete<CR>
-nnoremap <buffer><silent>o :Notmuch open<CR>
-vnoremap <buffer><silent>o :Notmuch open<CR>
-nnoremap <2-LeftMouse>     :Notmuch open<CR>
-nnoremap <buffer><silent>s :Notmuch attach-save<CR>
-vnoremap <buffer><silent>s :Notmuch attach-save<CR>
-nnoremap <buffer><silent>S :Notmuch mail-save<CR>
-nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>
-nnoremap <buffer><silent>O <Cmd>call <SID>SwitchConceal()<CR>
-nnoremap <buffer><silent>X <Cmd>call <SID>ViewURL()<CR>
+nnoremap <buffer><silent>a     <Cmd>Notmuch tag-add<CR>
+nnoremap <buffer><silent>A     <Cmd>Notmuch tag-delete<CR>
+nnoremap <buffer><silent>d     <Cmd>Notmuch tag-set +Trash -unread<CR>
+nnoremap <buffer><silent>D     <Cmd>Notmuch attach-delete<CR>
+vnoremap <buffer><silent>D     :Notmuch attach-delete<CR>
+nnoremap <buffer><silent>o     <Cmd>Notmuch open<CR>
+vnoremap <buffer><silent>o     :Notmuch open<CR>
+nnoremap <buffer><2-LeftMouse> <Cmd>Notmuch open<CR>
+nnoremap <buffer><silent>s     <Cmd>Notmuch attach-save<CR>
+vnoremap <buffer><silent>s     :Notmuch attach-save<CR>
+nnoremap <buffer><silent>S     <Cmd>Notmuch mail-save<CR>
+nnoremap <buffer><silent>u     <Cmd>Notmuch tag-toggle unread<CR>
+nnoremap <buffer><silent>O     <Cmd>call <SID>SwitchConceal()<CR>
+nnoremap <buffer><silent>X     <Cmd>call <SID>ViewURL()<CR>
 
 if exists('b:undo_ftplugin')
 	b:undo_ftplugin ..= '| setlocal comments< concealcursor< conceallevel< expandtab< foldcolumn< foldlevel< foldlevel< foldmethod< foldtext< list< modifiable< number< signcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
