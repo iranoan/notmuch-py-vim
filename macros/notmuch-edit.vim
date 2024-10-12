@@ -11,4 +11,4 @@ setlocal foldtext=notmuch_py#FoldHeaderText()
 # keymap
 nnoremap <buffer><silent><leader>q : if len(getbufinfo()) == 1 \| quit!  \|else \| bwipeout!  \|endif<CR>
 
-b:undo_ftplugin ..= '| setlocal autoindent< cindent< comments< expandtab< foldtext< formatoptions< indentexpr< smartindent<'
+b:undo_ftplugin ..= '| call undoftplgin#EditDraft()'

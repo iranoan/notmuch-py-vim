@@ -79,7 +79,7 @@ nnoremap <buffer><silent>zn <Nop>
 
 
 if exists('b:undo_ftplugin')
-	b:undo_ftplugin ..= '| setlocal concealcursor< conceallevel< cursorline< foldcolumn< foldexpr< foldlevel< foldlevel< foldmethod< foldminlines< foldtext< list< listchars< modifiable< number< signcolumn< tabstop< wrap< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+	b:undo_ftplugin ..= '| call undoftplgin#Thread()'
 else
-	b:undo_ftplugin = 'setlocal concealcursor< conceallevel< cursorline< foldcolumn< foldexpr< foldlevel< foldlevel< foldmethod< foldminlines< foldtext< list< listchars< modifiable< number< signcolumn< tabstop< wrap< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+	b:undo_ftplugin = 'call undoftplgin#Thread()'
 endif

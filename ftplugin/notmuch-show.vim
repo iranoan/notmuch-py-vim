@@ -98,7 +98,7 @@ nnoremap <buffer><silent>O     <Cmd>call <SID>SwitchConceal()<CR>
 nnoremap <buffer><silent>X     <Cmd>call <SID>ViewURL()<CR>
 
 if exists('b:undo_ftplugin')
-	b:undo_ftplugin ..= '| setlocal comments< concealcursor< conceallevel< expandtab< foldcolumn< foldlevel< foldlevel< foldmethod< foldtext< list< modifiable< number< signcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+	b:undo_ftplugin ..= '| call undoftplgin#Show()'
 else
-	b:undo_ftplugin = 'setlocal comments< concealcursor< conceallevel< expandtab< foldcolumn< foldlevel< foldlevel< foldmethod< foldtext< list< modifiable< number< signcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+	b:undo_ftplugin = 'call undoftplgin#Show()'
 endif

@@ -28,9 +28,9 @@ nnoremap <buffer><silent><leader>h :topleft help notmuch-python-vim-draft-keymap
 nnoremap <buffer><silent><F1>      :topleft help notmuch-python-vim-draft-keymap<CR>
 
 if exists('b:undo_ftplugin')
-	b:undo_ftplugin ..= '| setlocal foldcolumn< foldtext< signcolumn< foldmethod<'
+	b:undo_ftplugin ..= '| call undoftplgin#Draft()'
 else
-	b:undo_ftplugin = 'setlocal foldcolumn< foldtext< signcolumn< foldmethod<'
+	b:undo_ftplugin = 'call undoftplgin#Draft()'
 endif
 
 execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/notmuch-edit.vim'

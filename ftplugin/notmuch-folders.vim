@@ -18,8 +18,8 @@ nnoremap <buffer><2-LeftMouse> :Notmuch open<CR>
 nnoremap <buffer><silent>s     :Notmuch search<CR>
 
 if exists('b:undo_ftplugin')
-	b:undo_ftplugin ..= '| setlocal statusline< cursorline< wrap< winminwidth< list< signcolumn< number< foldcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+	b:undo_ftplugin ..= '| call undoftplgin#Folder()'
 else
-	b:undo_ftplugin = 'setlocal statusline< cursorline< wrap< winminwidth< list< signcolumn< number< foldcolumn< modifiable< buftype< bufhidden< equalalways< fileencoding< swapfile<'
+	b:undo_ftplugin = 'call undoftplgin#Folder()'
 endif
 

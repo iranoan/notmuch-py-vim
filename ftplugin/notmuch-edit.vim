@@ -15,9 +15,9 @@ endif
 b:did_ftplugin_plugin = 1
 
 if exists('b:undo_ftplugin')
-	b:undo_ftplugin ..= '| setlocal foldmethod< modeline< signcolumn<'
+	b:undo_ftplugin ..= '| call undoftplgin#Edit()'
 else
-	b:undo_ftplugin = ' setlocal foldmethod< modeline< signcolumn<'
+	b:undo_ftplugin = 'call undoftplgin#Edit()'
 endif
 
 execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/notmuch-edit.vim'
