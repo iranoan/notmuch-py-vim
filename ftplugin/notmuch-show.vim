@@ -34,16 +34,16 @@ if !exists('g:ft_notmuch_show')
 	def ViewURL(): void
 		var line_str: string = getline('.')
 		var url: string
-		var start: number
-		var end = 0
+		var m_start: number
+		var m_end = 0
 		var urls: list<string>
 		while 1
-			[url, start, end] = matchstrpos(line_str, ']([^)]\+)', end)
-			if start == -1
+			[url, m_start, m_end] = matchstrpos(line_str, ']([^)]\+)', m_end)
+			if m_start == -1
 				break
 			endif
-			[url, start, start] = matchstrpos(url, '\v<(((https?|ftp|gopher)://|(mailto|file|news):)[^'' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^'' \t<>"]+)[a-z0-9/]|(\~?/)?([-A-Za-z._0-9]+/)*[-A-Za-z._0-9]+(\.\a([A-Za-z0-9]{,3})|/)', 1)
-			if start == -1
+			[url, m_start, m_start] = matchstrpos(url, '\v<(((https?|ftp|gopher)://|(mailto|file|news):)[^'' \t<>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^'' \t<>"]+)[a-z0-9/]|(\~?/)?([-A-Za-z._0-9]+/)*[-A-Za-z._0-9]+(\.\a([A-Za-z0-9]{,3})|/)', 1)
+			if m_start == -1
 				continue
 			endif
 			if index(urls, url) == -1
