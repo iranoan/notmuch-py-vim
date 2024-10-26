@@ -19,6 +19,7 @@ export def Notmuch(): void # folders, thread, show 共通
 	nunmap <buffer>i
 	nunmap <buffer>r
 	setlocal expandtab< autoindent< smartindent< cindent< indentexpr< formatoptions< comments< foldtext<
+	unlet! b:did_ftplugin_plugin
 enddef
 
 export def EditDraft(): void
@@ -28,6 +29,7 @@ enddef
 
 export def Edit(): void
 	setlocal foldmethod< modeline< signcolumn<
+	unlet! b:did_ftplugin_plugin w:did_ftplugin_plugin
 enddef
 
 export def Draft(): void
@@ -43,6 +45,7 @@ export def Draft(): void
 	nunmap <buffer><leader>h
 	nunmap <buffer><F1>
 	setlocal autoindent< cindent< comments< expandtab< foldtext< formatoptions< indentexpr< smartindent< foldcolumn< signcolumn< foldmethod<
+	unlet! b:did_ftplugin_plugin
 enddef
 
 export def Thread(): void
