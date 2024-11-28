@@ -47,6 +47,7 @@ vim_confirm = vim.Function('confirm')
 vim_foldlevel = vim.Function('foldlevel')
 vim_popup_atcursor = vim.Function('popup_atcursor')
 win_id2tabwin = vim.Function('win_id2tabwin')
+vim_winwidth = vim.Function('winwidth')
 bufwinnr = vim.Function('bufwinnr')
 sign_unplace = vim.Function('sign_unplace')
 vim_strdisplaywidth = vim.Function('strdisplaywidth')
@@ -473,14 +474,27 @@ def set_global_var():  # MailData で使用する設定依存の値をグロー�
 
 
 def make_thread_core(search_term):
+    laststatus = vim.options['laststatus']
+    vim.options['laststatus'] = 2
+    if 'statusline' in vim.current.window.options:
+        statusline = vim.current.window.options['statusline']
+    else:
+        statusline = vim.options('statusline')
+    progress = [  # 進行状況をステータスバーに表示するために必要となる情報
+        0,  # 処理済み個数
+        DBASE.count_messages(search_term),  # 全体個数
+        '%#MatchParen#Searching ' + search_term + '...{0:>3}%%'
+            + (vim_winwidth(0) - len('Searching ' + search_term + '...') - 4) * ' ' + '%<',  # 行末に追加する空白も含めた表示書式
+        vim_winwidth(0)  # ウィンドウ幅
+    ]
+    vim.current.window.options['statusline'] = 'Searching ' + search_term + '... 0%%'
     threads = DBASE.threads(search_term)
     reprint_folder()  # 新規メールなどでメール数が変化していることが有るので、フォルダ・リストはいつも作り直す
-    print('Making cache data:' + search_term)
     set_global_var()
     # シングル・スレッド版
     ls = []
     for i in threads:
-        ls.extend(make_single_thread(i, search_term))
+        ls.extend(make_single_thread(i, search_term, progress))
     # マルチプロセス版 Mailbox で Subject 全体を取得にしたら落ちる
     # threads = [i.threadid for i in threads]  # 本当は thread 構造体のままマルチプロセスで渡したいが、それでは次のように落ちる
     # # ValueError: ctypes objects containing pointers cannot be pickled
@@ -490,7 +504,8 @@ def make_thread_core(search_term):
     #         ls += r.result()
     ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
     THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date']}
-    # vim.command('redraw')
+    vim.options['laststatus'] = laststatus
+    vim.current.window.options['statusline'] = statusline
     return True
 
 
@@ -520,7 +535,7 @@ def make_thread_core(search_term):
 #             ls.append(MailData(reply[1], thread, order, depth))
 #             order = order + 1
 #     return ls
-def make_single_thread(thread, search_term):
+def make_single_thread(thread, search_term, progress):
     def make_reply_ls(ls, message, depth):  # スレッド・ツリーの深さ情報取得
         ls.append((message, message, depth))
         for msg in message.replies():
@@ -543,6 +558,14 @@ def make_single_thread(thread, search_term):
                 depth = order
             ls.append(MailData(reply[1], thread, order, depth))
             order = order + 1
+            progress[0] += 1
+            p = progress[0] * 100 / progress[1]
+            bar = progress[2].format(int(p))
+            sep = int(progress[3] * p / 100) + 13
+            if bar[sep:sep + 2] == '%%':
+                sep += 1
+            vim.current.window.options['statusline'] = bar[:sep] + '%*' + bar[sep + 1:]
+            vim.command('redrawstatus')
     return ls
 
 
