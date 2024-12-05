@@ -5287,6 +5287,7 @@ def save_mail(msg_id, s, args):
 
     global DBASE
     type = buf_kind()
+    b = vim.current.buffer
     if type == 'show' or type == 'view':
         save_file = single_file()
         if save_file == '':
@@ -5307,7 +5308,6 @@ def save_mail(msg_id, s, args):
             save_file = multi_file()
             if save_file == '':
                 return [-1, -1]
-        b = vim.current.buffer
         if type == 'folders' or type == 'thread':
             buf_num = s_buf_num('show', '')
         elif type == 'search':
