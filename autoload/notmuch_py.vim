@@ -645,8 +645,9 @@ export def GetGUITabline(): string
 	endif
 enddef
 
+var titlestring: string = &titlestring
 def Set_title_etc(): void
-	if &title && &titlestring ==# ''
+	if &title
 		augroup NotmuchTitle
 			autocmd!
 			autocmd BufEnter,BufFilePost * &titlestring = Make_title()
@@ -674,8 +675,10 @@ def Make_title(): string
 		title = '%h'
 	elseif bufname('') ==# ''
 		title = '%t %m'
-	else
+	elseif titlestring == ''
 		title = '%t %m ' .. '(' .. expand('%:~:h') .. ')'
+	else
+		return titlestring
 	endif
 	return title .. a .. ' - ' .. v:servername
 enddef
@@ -734,6 +737,9 @@ def End_notmuch(): void # 全て終了 (notmuch-folders が bwipeout された�
 	buf_num = {}
 	s_select_thread = -1
 	filter(v:oldfiles, 'v:val !~ "^notmuch://"')
+	if &title
+		&titlestring = Make_title()
+	endif
 enddef
 
 def Swich_buffer(bufnr: number): void # できるだけ指定されたバッファに切り替える
@@ -790,7 +796,7 @@ function New_mail(...) abort
 		call s:Import()
 		py3 set_subcmd_newmail()
 		execute 'cd ' .. py3eval('get_save_dir()')
-		if &title && &titlestring ==# ''
+		if &title
 			let &titlestring=s:Make_title()
 		endif
 		if has('gui_running') && &showtabline != 0 && &guitablabel ==# ''
