@@ -65,6 +65,7 @@ NOTE: 以下、Notmuch を用いる検索条件は |search-term| と記載する
 タグの操作で複数指定をできるようにしたため、通常 Vim では | (バー) で区切ると
 複数個のコマンド指定ができるが、それができない
 
+
 ==============================================================================
                                                     *notmuch-python-vim-require*
 要件~
@@ -417,6 +418,7 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 よってコマンド・オプション付きで、それぞれの環境に応じて関連付ければ、メール・
 アドレスのダブル・クリックなどで送信メール・バッファが開かれる
 
+
 ==============================================================================
                                                      *notmuch-python-vim-custom*
 設定/オプション~
@@ -756,7 +758,6 @@ g:notmuch_send_param                                 *g:notmuch_send_param*
 			      * はデフォルト設定
 		- 値:   送信時に使用するプログラムとそのパラメータ
 
-
 g:notmuch_sent_tag                                   *g:notmuch_sent_tag*
 	Type: |String|
 	Default: `sent`
@@ -875,7 +876,7 @@ g:notmuch_visible_line                                 *g:notmuch_visible_line*
 	Type: |String| or |Number|
 	Default: `''`
 
-	* |{T-WIN}| の列区切り線の代わりの | を他の |highlight-groups| に変更する
+	* |{T-WIN}| の列の区切り線代わりの | を他の |highlight-groups| に変更する
 	* 実際にはタブ文字なので SpecialKey |hl-SpecialKey| を変更する
 	* Default の様に空文字なら変更しない
 	* `1`, `2` は特別で |'colorcolumn'| を使う
@@ -1071,7 +1072,6 @@ mark-command                                   *notmuch-python-vim-mark-command*
 	* 複数のサブコマンドを実行する時の区切り文字は |\r| (<C-V><Enter>:|c_CTRL-v|)
 		もしくは <NL> (<C-V><C-J>:|c_CTRL-v|)
 
-
 open
 	各種バッファや添付ファイルを開く (|notmuch-python-vim-open|)
 
@@ -1128,7 +1128,6 @@ search-down-refine                       *notmuch-python-vim-search-down-refine*
 
 search-up-refine                           *notmuch-python-vim-search-up-refine*
 	* search-refine (|notmuch-python-vim-search-refine|) で指定した検索の上候補
-
 
 search-thread                                 *notmuch-python-vim-search-thread*
 	* メールを含むスレッドを新たな |{T-Win}| 枠に表示する
@@ -1314,6 +1313,7 @@ view-unread-page                           *notmuch-python-vim-view-unread-page*
 		スクロール・ダウン
 	* すでにメールの最後まで表示していれば、既読 (unread タグを削除) にして次の
 		未読 (unread タグ付き) メールを開く
+
 
 ==============================================================================
                                                    *notmuch-python-vim-how-make*
