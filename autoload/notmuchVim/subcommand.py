@@ -235,7 +235,7 @@ def get_msg_header(msg, h):
         data = ''
         for d in h_cont:
             data += d
-        return RE_TAB2SPACE.sub(' ', decode_header(data, False))
+        return RE_TAB2SPACE.sub(' ', decode_header(data, False, msg.get_content_charset()))
 
 
 class MailData:  # メール毎の各種データ
@@ -253,21 +253,20 @@ class MailData:  # メール毎の各種データ
         if msg_f is None:
             return None
         self.__subject = get_msg_header(msg_f, 'Subject')
-        self._from = RE_TAB2SPACE.sub(' ', email2only_name(msg.header('From'))).lower()
-        # ↑同一 Message-ID メールが複数でも取り敢えず全て
         # 整形した日付
         self.__reformed_date = RE_TAB2SPACE.sub(
             ' ', datetime.datetime.fromtimestamp(self._date).strftime(DATE_FORMAT))
         # 整形した Subject
         self.reform_subject(self.__subject)
         # 整形した宛名
-        m_from = msg.header('From')
+        m_from = get_msg_header(msg_f, 'From')
         m_to = get_msg_header(msg_f, 'To')
         if m_to == '':
             m_to = m_from
         # ↓From, To が同一なら From←名前が入っている可能性がより高い
         m_to_adr = email2only_address(m_to)
         m_from_name = email2only_name(m_from)
+        self._from = m_from_name.lower()
         if m_to_adr == email2only_address(m_from):
             name = RE_TAB2SPACE.sub(' ', m_from_name)
         else:  # それ以外は送信メールなら To だけにしたいので、リスト利用
@@ -1408,7 +1407,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             data = ''
             for d in h_cont:
                 data += d
-            data = decode_header(data, False)
+            data = decode_header(data, False, msg.get_content_charset())
             if data != '':
                 data = data.replace('\t', ' ')
                 data = header + ': ' + data
@@ -1419,7 +1418,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         if attachments is None:
             return
         for f in attachments:
-            f = decode_header(f, True)
+            f = decode_header(f, True, msg_file.get_content_charset())
             if f == '':
                 continue
             f = os.path.expandvars(os.path.expanduser(f))
@@ -1578,11 +1577,11 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             out.main['attach'].append((header + name, [name, vim.List(part_ls), '']))
 
     def select_header(part, part_ls, pgp, out):
-        attachment = decode_header(part.get_filename(), True)
+        attachment = decode_header(part.get_filename(), True, part.get_content_charset())
         name = ''
         for t in part.get_params():
             if t[0] == 'name':
-                name = decode_header(t[1], False)
+                name = decode_header(t[1], False, part.get_content_charset())
                 break
         if len(attachment) < len(name):
             attachment = name
@@ -1619,7 +1618,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
         sub = ''
         for s in part.get_all('Subject', ''):
             sub += s
-        sub = decode_header(sub, False)
+        sub = decode_header(sub, False, part.get_content_charset())
         if sub != '':
             b_v['subject'] = sub
             reset_subject(sub)
@@ -1954,7 +1953,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             else:
                 print_error('No exist digital signature.')
             inline = is_inline(verify)
-            attachment = decode_header(sig.get_filename(), True)
+            attachment = decode_header(sig.get_filename(), True, sig.get_content_charset())
             cmd = cmd[0]
             if attachment == '':
                 if cmd == 'gpg':
@@ -2746,7 +2745,7 @@ def reindex_mail(msg_id, s, args):
     return [0, 0]  # ダミー・リストを返す
 
 
-def decode_header(s, is_file):
+def decode_header(s, is_file, chrset):
     if s is None:
         return ''
     name = ''
@@ -2754,6 +2753,8 @@ def decode_header(s, is_file):
         if charset is None:
             if type(string) is bytes:
                 name += string.decode('raw_unicode_escape')
+            elif string.find("\x1B") != -1 and chrset is not None:  # デコードされていない生 JIS のままなど
+                name += string.encode(chrset).decode(chrset)
             else:  # デコードされず bytes 型でないのでそのまま
                 name += string
         elif charset == 'unknown-8bit':
