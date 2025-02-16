@@ -359,8 +359,7 @@ def make_dump():
 
 def make_dir(dirname):
     if not os.path.isdir(dirname):
-        os.mkdir(dirname)
-        os.chmod(dirname, 0o700)
+        os.makedirs(dirname, 0o700)
 
 
 def notmuch_new(open_check):
@@ -3058,6 +3057,7 @@ def save_attachment(args):
         save_path = get_save_filename(get_save_dir() + filename)
         if save_path == '':
             return
+        make_dir(os.path.dirname(save_path))
         # 添付ファイルを開く時の一時的ディレクトリ full_path に同じファイルが有るか? 調べ、有ればそれを移動
         full_path += filename
         if os.path.isfile(full_path):
