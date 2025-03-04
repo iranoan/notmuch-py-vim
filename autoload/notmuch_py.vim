@@ -394,7 +394,7 @@ def Get_sort_snippet(cmdLine: string, cursorPos: number, direct_command: bool): 
 	if prefix !=?  ''
 		prefix = prefix .. ' '
 	endif
-	var ls: list<string> = ['list', 'tree', 'Date', 'date', 'From', 'from', 'Subject', 'subject']
+	var ls: list<string> = ['list', 'tree', 'Date', 'date', 'Last', 'last', 'From', 'from', 'Subject', 'subject']
 	filter = printf('v:val =~# "^%s"', filter)
 	var snippet_org: list<string>  = filter(ls, filter)
 	if direct_command  # input() 関数ではなく、command 直接の補完

@@ -241,7 +241,8 @@ def get_msg_header(msg, h):
 class MailData:  # メール毎の各種データ
     def __init__(self, msg, thread, order, depth):
         self._date = msg.date              # 日付 (time_t)
-        self._newest_date = thread.first   # 同一スレッド中で最も新しい日付 (time_t)
+        self._oldest = thread.first        # 同一スレッド中で最も古い日付 (time_t)
+        self._latest = thread.last         # 同一スレッド中で最も新しい日付 (time_t)
         self._thread_id = thread.threadid  # スレッド ID
         self._thread_order = order         # 同一スレッド中の表示順
         self.__thread_depth = depth        # 同一スレッド中での深さ
@@ -500,8 +501,8 @@ def make_thread_core(search_term):
     #     f = [executor.submit(make_single_thread, i, search_term) for i in threads]
     #     for r in f:
     #         ls += r.result()
-    ls.sort(key=attrgetter('_newest_date', '_thread_id', '_thread_order'))
-    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['date']}
+    ls.sort(key=attrgetter('_latest', '_thread_id', '_thread_order'))
+    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['last']}
     vim.options['laststatus'] = laststatus
     vim.current.window.options['statusline'] = statusline
     return True
@@ -987,7 +988,7 @@ def thread_change_sort(sort_way):
         ls = sorted(list(set(sort_way)))
         sort_way = []
         for i in ls:
-            if i in ['list', 'tree', 'Date', 'date', 'From', 'from', 'Subject', 'subject']:
+            if i in ['list', 'tree', 'Date', 'date', 'Last', 'last', 'From', 'from', 'Subject', 'subject']:
                 sort_way.append(i)
             else:
                 print_warring('No sorting way: ' + i)
@@ -1030,10 +1031,10 @@ def thread_change_sort(sort_way):
         elif 'subject' in sort_way:
             THREAD_LISTS[search_term]['list'].sort(
                 key=attrgetter('_reformed_subject'))
-        elif 'Date' in sort_way:
+        elif 'Date' in sort_way or 'Last' in sort_way:
             THREAD_LISTS[search_term]['list'].sort(
                 key=attrgetter('_date'), reverse=True)
-        elif 'date' in sort_way:
+        elif 'date' in sort_way or 'last' in sort_way:
             THREAD_LISTS[search_term]['list'].sort(
                 key=attrgetter('_date'))
         elif 'From' in sort_way:
@@ -1054,15 +1055,19 @@ def thread_change_sort(sort_way):
         elif 'subject' in sort_way:
             threadlist.sort(key=attrgetter('_thread_subject'))
         elif 'Date' in sort_way:
-            threadlist.sort(key=attrgetter('_newest_date'), reverse=True)
+            threadlist.sort(key=attrgetter('_oldest'), reverse=True)
         elif 'date' in sort_way:
-            threadlist.sort(key=attrgetter('_newest_date'))
+            threadlist.sort(key=attrgetter('_oldest'))
+        elif 'Last' in sort_way:
+            threadlist.sort(key=attrgetter('_latest'), reverse=True)
+        elif 'last' in sort_way:
+            threadlist.sort(key=attrgetter('_latest'))
         elif 'From' in sort_way:
             threadlist.sort(key=attrgetter('_authors'), reverse=True)
         elif 'from' in sort_way:
             threadlist.sort(key=attrgetter('_authors'))
         else:
-            threadlist.sort(key=attrgetter('_newest_date'))
+            threadlist.sort(key=attrgetter('_latest'))
         THREAD_LISTS[search_term]['list'] = threadlist
     THREAD_LISTS[search_term]['sort'] = sort_way
     b.options['modifiable'] = 1

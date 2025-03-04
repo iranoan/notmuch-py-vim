@@ -1260,16 +1260,16 @@ thread-next                                     *notmuch-python-vim-thread-next*
 	* |{T-WIN}| で次のメールを選択しスレッドを開く
 	* |j||zO| に違い折り畳みがなくてもエラーとせず、単に何もしない
 
-thread-sort [{list}/{tree} {sorting-way}]       *notmuch-python-vim-thread-sort*
+thread-sort [{list}/{tree} {sort-method}]       *notmuch-python-vim-thread-sort*
 	* |{T-WIN}| で
 		{list}/{tree}: 一覧/ツリー表示の指定
-									 {sorting-way} が無ければ、ソート方法は変更せず一覧/ツリー表
+									 {sort-method} が無ければ、ソート方法は変更せず一覧/ツリー表
 									 示の切り替えのみ行う
 									 重複メールを一覧表示する search-duplication
 									 (|notmuch-python-vim-search-duplication|) では {tree} は無視
-		{sorting-way}: ソート方法の変更
+		{sort-method}: ソート方法の変更
 									 {list}/{tree} が無ければ {tree} 扱い
-	* {list}/{tree}, {sorting-way} を指定していないと、コマンドラインモード
+	* {list}/{tree}, {sort-method} を指定していないと、コマンドラインモード
 	  (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 	* mark (|notmuch-python-vim-mark|) によるマークは削除される
@@ -1277,10 +1277,15 @@ thread-sort [{list}/{tree} {sorting-way}]       *notmuch-python-vim-thread-sort*
 		list						一覧表示
 		tree						ツリー表示
 
-		{sorting-way}			      意味~
+		{sort-method}			意味~
 		date							日付順
+											{tree} では同一スレッド中の最古メールの日時が基準
+		Date							date の逆順
+		last							日付順
 											{tree} では同一スレッド中の最新メールの日時が基準
-		Date							日時逆順
+											{list} では date と同じ
+		Last							last の逆順
+											{list} では Date と同じ
 		from							メール送信元順
 											{tree} では同一スレッドに含まれるメール送信元
 		From							メール送信元逆順
