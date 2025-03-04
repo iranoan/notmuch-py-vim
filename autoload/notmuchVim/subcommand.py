@@ -483,7 +483,8 @@ def make_thread_core(search_term):
         0,  # 処理済み個数
         DBASE.count_messages(search_term),  # 全体個数
         '%#MatchParen#Searching ' + search_term + '...{0:>3}%%'
-            + (vim_winwidth(0) - len('Searching ' + search_term + '...') - 4) * ' ' + '%<',  # 行末に追加する空白も含めた表示書式
+            + (vim_winwidth(0) - len('Searching ' + search_term + '...') - 4) * ' '  # 行末に追加する空白も含めた表示書式
+            + '%<',
         vim_winwidth(0)  # ウィンドウ幅
     ]
     vim.current.window.options['statusline'] = 'Searching ' + search_term + '... 0%%'
@@ -501,8 +502,10 @@ def make_thread_core(search_term):
     #     f = [executor.submit(make_single_thread, i, search_term) for i in threads]
     #     for r in f:
     #         ls += r.result()
-    ls.sort(key=attrgetter('_latest', '_thread_id', '_thread_order'))
-    THREAD_LISTS[search_term] = {'list': ls, 'sort': ['last']}
+    sort_method = vim.vars.get('notmuch_sort', b'last').decode().split()
+    if not check_sort_method(sort_method):
+        sort_method = ['last']
+    thread_change_sort_core(search_term, ls, sort_method)
     vim.options['laststatus'] = laststatus
     vim.current.window.options['statusline'] = statusline
     return True
@@ -968,7 +971,70 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     Bwipeout(b_name)
 
 
-def thread_change_sort(sort_way):
+def check_sort_method(sort):
+    ret = True
+    while True:
+        ls = list(set(sort))
+        for i in ls:
+            if sort.count(i) > 1:
+                for j in range(sort.count(i) - 1):
+                    sort.remove(i)
+            if i not in ['list', 'tree', 'Date', 'date',
+                         'Last', 'last', 'From', 'from', 'Subject', 'subject']:
+                sort.remove(i)
+                print_warring('No sort method: ' + i)
+                ret = False
+        else:
+            break
+    if (len(sort) > 2
+            or (not ('tree' in sort) and not ('list' in sort) and len(sort) > 1)
+            or (('tree' in sort) and ('list' in sort))):
+        print_warring('Too many arguments: ' + ' '.join(sort))
+        return False
+    elif sort == []:
+        return False
+    return ret
+
+
+def thread_change_sort_core(search_term, ls, sort):
+    if 'list' in sort:
+        if 'Subject' in sort:
+            ls.sort(key=attrgetter('_reformed_subject'), reverse=True)
+        elif 'subject' in sort:
+            ls.sort(key=attrgetter('_reformed_subject'))
+        elif 'Date' in sort or 'Last' in sort:
+            ls.sort(key=attrgetter('_date'), reverse=True)
+        # elif 'date' in sort or 'last' in sort:
+        #     ls.sort(key=attrgetter('_date'))
+        elif 'From' in sort:
+            ls.sort(key=attrgetter('_from'), reverse=True)
+        elif 'from' in sort:
+            ls.sort(key=attrgetter('_from'))
+        else:
+            ls.sort(key=attrgetter('_date'))
+    else:
+        if 'Subject' in sort:
+            ls.sort(key=attrgetter('_thread_subject', '_thread_id', '_thread_order'), reverse=True)
+        elif 'subject' in sort:
+            ls.sort(key=attrgetter('_thread_subject', '_thread_id', '_thread_order'))
+        elif 'Date' in sort:
+            ls.sort(key=attrgetter('_oldest', '_thread_id', '_thread_order'), reverse=True)
+        elif 'date' in sort:
+            ls.sort(key=attrgetter('_oldest', '_thread_id', '_thread_order'))
+        # elif 'last' in sort:
+        #     ls.sort(key=attrgetter('_latest', '_thread_id', '_thread_order'))
+        elif 'Last' in sort:
+            ls.sort(key=attrgetter('_latest', '_thread_id', '_thread_order'), reverse=True)
+        elif 'From' in sort:
+            ls.sort(key=attrgetter('_authors', '_thread_id', '_thread_order'), reverse=True)
+        elif 'from' in sort:
+            ls.sort(key=attrgetter('_authors', '_thread_id', '_thread_order'))
+        else:
+            ls.sort(key=attrgetter('_latest', '_thread_id', '_thread_order'))
+    THREAD_LISTS[search_term] = {'list': ls, 'sort': sort}
+
+
+def thread_change_sort(sort_method):
     msg_id = get_msg_id()
     if msg_id == '':
         return
@@ -983,95 +1049,30 @@ def thread_change_sort(sort_way):
             and not (search_term in s_buf_num('search', '')
                      and bufnr == s_buf_num('search', search_term)):
         return
-    sort_way = sort_way[2:]
-    while True:
-        ls = sorted(list(set(sort_way)))
-        sort_way = []
-        for i in ls:
-            if i in ['list', 'tree', 'Date', 'date', 'Last', 'last', 'From', 'from', 'Subject', 'subject']:
-                sort_way.append(i)
-            else:
-                print_warring('No sorting way: ' + i)
-        if (len(sort_way) > 2
-                or (not ('tree' in sort_way) and not ('list' in sort_way) and len(sort_way) > 1)
-                or (('tree' in sort_way) and ('list' in sort_way))):
-            sort_way = ' '.join(sort_way)
-            print_warring('Too many arguments: ' + sort_way)
-            sort_way = vim_input_ls('sorting_way: ', sort_way,
-                                    'customlist,notmuch_py#Comp_sort')
-            if sort_way == []:
-                return
-        elif sort_way == []:
-            sort_way = vim_input_ls('sorting_way: ', '',
-                                    'customlist,notmuch_py#Comp_sort')
-            if sort_way == []:
-                return
-        else:
-            break
-    if sort_way == ['list']:
+    sort_method = sort_method[2:]
+    if not check_sort_method(sort_method):
+        sort_method = vim_input_ls('sort method: ', ' '.join(sort_method), 'customlist,notmuch_py#Comp_sort')
+        if sort_method == []:
+            return
+    if sort_method == ['list']:
         if 'list' in THREAD_LISTS[search_term]['sort']:
             return  # 結局同じ表示方法
         else:
-            sort_way.extend(THREAD_LISTS[search_term]['sort'])
-    elif sort_way == ['tree']:
-        sort_way = copy.deepcopy(THREAD_LISTS[search_term]['sort'])
-        if 'list' in sort_way:
-            sort_way.remove('list')
+            sort_method.extend(THREAD_LISTS[search_term]['sort'])
+    elif sort_method == ['tree']:
+        sort_method = copy.deepcopy(THREAD_LISTS[search_term]['sort'])
+        if 'list' in sort_method:
+            sort_method.remove('list')
         else:
             return  # 結局同じ表示方法
-    elif 'tree' in sort_way:
-        sort_way.remove('tree')
-    if sort_way == THREAD_LISTS[search_term]['sort']:
+    elif 'tree' in sort_method:
+        sort_method.remove('tree')
+    if sort_method == THREAD_LISTS[search_term]['sort']:
         return
     vim_sign_unplace(bufnr)
-    if 'list' in sort_way:
-        if 'Subject' in sort_way:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_reformed_subject'), reverse=True)
-        elif 'subject' in sort_way:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_reformed_subject'))
-        elif 'Date' in sort_way or 'Last' in sort_way:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_date'), reverse=True)
-        elif 'date' in sort_way or 'last' in sort_way:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_date'))
-        elif 'From' in sort_way:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_from'), reverse=True)
-        elif 'from' in sort_way:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_from'))
-        else:
-            THREAD_LISTS[search_term]['list'].sort(
-                key=attrgetter('_date'))
-        threadlist = THREAD_LISTS[search_term]['list']
-    else:
-        threadlist = sorted(THREAD_LISTS[search_term]['list'],
-                            key=attrgetter('_thread_id', '_thread_order'))
-        if 'Subject' in sort_way:
-            threadlist.sort(key=attrgetter('_thread_subject'), reverse=True)
-        elif 'subject' in sort_way:
-            threadlist.sort(key=attrgetter('_thread_subject'))
-        elif 'Date' in sort_way:
-            threadlist.sort(key=attrgetter('_oldest'), reverse=True)
-        elif 'date' in sort_way:
-            threadlist.sort(key=attrgetter('_oldest'))
-        elif 'Last' in sort_way:
-            threadlist.sort(key=attrgetter('_latest'), reverse=True)
-        elif 'last' in sort_way:
-            threadlist.sort(key=attrgetter('_latest'))
-        elif 'From' in sort_way:
-            threadlist.sort(key=attrgetter('_authors'), reverse=True)
-        elif 'from' in sort_way:
-            threadlist.sort(key=attrgetter('_authors'))
-        else:
-            threadlist.sort(key=attrgetter('_latest'))
-        THREAD_LISTS[search_term]['list'] = threadlist
-    THREAD_LISTS[search_term]['sort'] = sort_way
+    thread_change_sort_core(search_term, THREAD_LISTS[search_term]['list'], sort_method)
     b.options['modifiable'] = 1
-    flag = not ('list' in sort_way)
+    flag = not ('list' in sort_method)
     # マルチスレッド 速くならない
     # with ThreadPoolExecutor() as executor:
     #     for i, msg in enumerate(threadlist):
@@ -1079,12 +1080,12 @@ def thread_change_sort(sort_way):
     # マルチスレッドしていないバージョン
     b[:] = None
     ls = []
-    for msg in threadlist:
+    for msg in THREAD_LISTS[search_term]['list']:
         ls.append(msg.get_list(flag))
     b.append(ls)
     b[0] = None
     b.options['modifiable'] = 0
-    index = [i for i, msg in enumerate(threadlist) if msg._msg_id == msg_id]
+    index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list']) if msg._msg_id == msg_id]
     vim.command('keepjump normal! Gzb')
     if index:  # 実行前のメールがリストに有れば選び直し
         reset_cursor_position(b, index[0] + 1)

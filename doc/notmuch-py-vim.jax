@@ -827,6 +827,15 @@ g:notmuch_subject_length                            *g:notmuch_subject_length*
 	* デフォルトではウィンドウ幅や他に表示される To/From/Date ヘッダの情報がウィ
 		ンドウ幅に収まるように計算される
 
+g:notmuch_sort                                      *g:notmuch_sort*
+	Type: |String|
+	Default: なし
+
+	* |{T-WIN}| のデフォルトソート方法
+	* thread-sort (|notmuch-python-vim-thread-sort|) の引数で指定
+	* 未指定は 'tree last' 相当
+	* 矛盾する指定が有る時は後からの指定を優先
+
 g:notmuch_tmpdir                                     *g:notmuch_tmpdir*
 	Type: |String|
 	Default: `''`
