@@ -1282,16 +1282,18 @@ thread-sort [{list}/{tree} {sort-method}]       *notmuch-python-vim-thread-sort*
 	  (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 	* mark (|notmuch-python-vim-mark|) によるマークは削除される
+
 		{list}/{tree}		  意味~
 		list						一覧表示
 		tree						ツリー表示
 
 		{sort-method}			意味~
 		date							日付順
-											{tree} では同一スレッド中の最古メールの日時が基準
+											{tree} では |search-term| に一致する |{T-WIN}| に表示されている
+											メールとは関係なく、同一スレッド中の最古メールの日時が基準
 		Date							date の逆順
 		last							日付順
-											{tree} では同一スレッド中の最新メールの日時が基準
+											{tree} での date と違いは、同一スレッド中の最新メールが基準
 											{list} では date と同じ
 		Last							last の逆順
 											{list} では Date と同じ
