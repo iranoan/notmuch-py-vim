@@ -1370,36 +1370,27 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
             try:
                 msg = DBASE.find(msg_id)
             except LookupError:
-                b_v['msg_id'] = ''
-                b_v['subject'] = ''
-                b_v['date'] = ''
-                b_v['tags'] = ''
                 return None, None
-        reindex = False
-        b_v['msg_id'] = msg_id
-        try:
-            b_v['subject'] = get_msg_header(open_email_file_from_msg(msg), 'Subject')
-        except notmuch2.NullPointerError:  # メール・ファイルが削除されているときに起きる
-            b_v['subject'] = ''
-        b_v['date'] = RE_TAB2SPACE.sub(
-            ' ', datetime.datetime.fromtimestamp(msg.date).strftime(DATE_FORMAT))
-        b_v['tags'] = get_msg_tags(msg)
-        if active_win != b_w.number \
-                and (is_same_tabpage('thread', '') or is_same_tabpage('search', search_term)):
-            thread_b_v['msg_id'] = msg_id
-            thread_b_v['subject'] = b_v['subject']
-            thread_b_v['date'] = b_v['date']
-            thread_b_v['tags'] = b_v['tags']
         for f in msg.filenames():
             if os.path.isfile(f):
-                if reindex:
-                    DBASE.close()
-                    reindex_mail(msg_id, '', '')
-                    DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
-                    msg = DBASE.find(msg_id)
-                return msg, f
-            reindex = True  # メール・ファイルが存在しなかったので、再インデックスが必要
-            # やらないとデータベース上に残る存在しないファイルからの情報取得でエラー発生
+                b_v['msg_id'] = msg_id
+                b_v['subject'] = get_msg_header(open_email_file(f), 'Subject')
+                b_v['date'] = RE_TAB2SPACE.sub(
+                    ' ', datetime.datetime.fromtimestamp(msg.date).strftime(DATE_FORMAT))
+                b_v['tags'] = get_msg_tags(msg)
+                if active_win != b_w.number \
+                        and (is_same_tabpage('thread', '') or is_same_tabpage('search', search_term)):
+                    thread_b_v['msg_id'] = msg_id
+                    thread_b_v['subject'] = b_v['subject']
+                    thread_b_v['date'] = b_v['date']
+                    thread_b_v['tags'] = b_v['tags']
+                    return msg, f
+            else:  # メール・ファイルが存在しなかったので、再インデックスが必要
+                # やらないとデータベース上に残る存在しないファイルからの情報取得でエラー発生
+                DBASE.close()
+                reindex_mail(msg_id, '', '')
+                DBASE = notmuch2.Database(mode=notmuch2.Database.MODE.READ_WRITE)
+                msg = DBASE.find(msg_id)
         return None, None
 
     def header(msg, output, notmuch_headers):  # vim からの呼び出し時に msg に有るヘッダ出力
@@ -2083,8 +2074,12 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     # 以下実際の描画
     msg, f = get_msg()
     if msg is None:
+        b_v['msg_id'] = ''
+        b_v['subject'] = ''
+        b_v['date'] = ''
+        b_v['tags'] = ''
         b.options['modifiable'] = 1
-        b.append('Already all mail file delete.')
+        b[:] = ['', 'Already all mail file delete.']
         b.options['modifiable'] = 0
     else:
         vim.options['guitabtooltip'] = 'tags[' + get_msg_tags(msg) + ']'
