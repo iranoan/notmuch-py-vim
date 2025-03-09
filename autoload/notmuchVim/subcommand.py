@@ -1384,7 +1384,7 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
                     thread_b_v['subject'] = b_v['subject']
                     thread_b_v['date'] = b_v['date']
                     thread_b_v['tags'] = b_v['tags']
-                    return msg, f
+                return msg, f
             else:  # メール・ファイルが存在しなかったので、再インデックスが必要
                 # やらないとデータベース上に残る存在しないファイルからの情報取得でエラー発生
                 DBASE.close()
