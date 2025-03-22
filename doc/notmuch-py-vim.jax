@@ -74,13 +74,13 @@ Vim~
 
 * NeoVim では動作しない
 * Ver. 9.0 以上
-* >
+* >sh
 	$ vim --version | grep +python3
 <  他には +folding 等も必要だが、調べきれていない
 
 Notmuch~
 
-Notmuch をセットアップし、 >
+Notmuch をセットアップし、 >sh
 	$ notmuch new
 でデータベースを作成しておく必要が有る
 
@@ -91,10 +91,10 @@ Python Ver.3.5 以上~
 
 加えて Python Ver.3 の notmuch2, html2text パッケージが必要
 
-Ubuntu 等の Debian 系なら >
+Ubuntu 等の Debian 系なら >sh
 	$ sudo apt install -y python3-notmuch2 python3-html2text
 <
-他では例えば >
+他では例えば >sh
 	$ python3 -m pip install notmuch2 html2text
 
 MTA~
@@ -116,20 +116,20 @@ python-magic (https://github.com/ahupp/python-magic)~
 
 ファイル添付時に拡張子から MIME Type が類推できない時に用いる
 
-Ubuntu 等の Debian 系なら >
+Ubuntu 等の Debian 系なら >sh
 	$ sudo apt install -y python3-magic
 <
-他では例えば >
+他では例えば >sh
 	$ python3 -m pip install python-magic
 
 chardet (https://github.com/chardet/chardet)~
 
 テキスト・ファイル添付時に文字コードの類推に用いる
 
-Ubuntu 等の Debian 系なら >
+Ubuntu 等の Debian 系なら >sh
 	$ sudo apt install -y python3-chardet
 <
-他では例えば >
+他では例えば >sh
 	$ python3 -m pip install chardet
 
 
@@ -156,9 +156,9 @@ dein.nvim (https://github.com/Shougo/dein.vim)~
 	call dein#add('iranoan/notmuch-py-vim')
 
 Vim packadd~
->
+>sh
 	$ git clone https://github.com/iranoan/notmuch-py-vim ~/.vim/pack/iranoan/start/notmuch-py-vim
-<	遅延読み込みをさせるなら >
+<	遅延読み込みをさせるなら >sh
 	$ git clone https://github.com/iranoan/notmuch-py-vim ~/.vim/pack/iranoan/opt/notmuch-py-vim
 <	~/.vim/vimrc などの設定ファイルに次のような記載を加える >vim
 		augroup loadNotmuchPy
@@ -171,7 +171,7 @@ Vim packadd~
                                                         *notmuch-python-vim-use*
 使用方法~
 
-次のように起動する >
+次のように起動する >sh
 	$ vim +'Notmuch start'
 <Vim 起動後なら >vim
 	:Notmuch start
@@ -408,9 +408,9 @@ S					メール保存 (Save mail)          |notmuch-python-vim-mail-save|
 関連付け~
 
 :Notmuch start をしていなくとも、送信メール・バッファ
-(|notmuch-python-vim-sending-buffer|) は >
+(|notmuch-python-vim-sending-buffer|) は >sh
 	$ vim +'Notmuch mail-new'
-<でも開く >
+<でも開く >sh
 	$ vim +'Notmuch mail-new vim@user.com'
 	$ vim +'Notmuch mail-new mailto:vim-jp@user.com'
 <とメールアドレス付きで起動すれば、To ヘッダに指定される
@@ -580,7 +580,7 @@ g:notmuch_folders                                    *g:notmuch_folders*
 	* |search-term| は、Notmuch の検索方法
 	* デフォルト・レイアウト (|notmuch-python-vim-layout|) では、|{F-WIN}| バッファに
 		見出しだけを見せ、|search-term| が隠れるようにウィンドウを分割する
-	NOTE: >
+	NOTE: >sh
 		$ man notmuch-search-terms
 <	* 見出し、|search-term| の両方が `''` だと空行に変換
 	* Default にある [ 'New Search','' ] の様に `|search-term| だけ `''` だと、|{F-WIN}| の
