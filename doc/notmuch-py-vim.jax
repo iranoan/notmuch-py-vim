@@ -885,18 +885,27 @@ g:notmuch_visible_line                                 *g:notmuch_visible_line*
 	Type: |String| or |Number|
 	Default: `''`
 
-	* |{T-WIN}| の列の区切り線代わりの | を他の |highlight-groups| に変更する
-	* 実際にはタブ文字なので SpecialKey |hl-SpecialKey| を変更する
-	* Default の様に空文字なら変更しない
-	* `1`, `2` は特別で |'colorcolumn'| を使う
+	* |{T-WIN}| の列の区切り線代わりタブ文字についての設定
+	* 無指定で patch-8.2.2518 (|patches-after-8.2|) が適用済みなら
+		- │ (罫線記号) が >vim
+		  set ambiwidth=sigle
+<		  など半角幅ならタブ文字の代わりに用いる
+		- そうでなければ | を用いる
+	* 文字列ならその色を他の |highlight-groups| に変更する
+		- 実際にはタブ文字なので SpecialKey (|hl-SpecialKey|) の色を変更する
+	* `1`, `2` は |'colorcolumn'| を使う
 		- `1` の時は ColorColumn (|hl-ColorColumn|) をそのまま使う
 		- `2` の時は ColorColumn を Normal (|hl-Normal|) の反転色にする
+	* `3` は │ (罫線記号) の文字幅に関係なく │ を使う
+		- |:syn-conceal| を用いて置き換えているので
+			* 色の変更は Conceal (|hl-Conceal|) を変える必要がある
+			* │ が全角の場合カーソル位置がずれる
 
 
 ==============================================================================
                                                     *notmuch-python-vim-command*
 コマンド~
-                                                                       *Notmuch*
+                                                                      *:Notmuch*
 :Notmuch {subcommand} [{args}]
 	サブコマンドがなければ、ヘルプ (ここ) を開く
 
@@ -904,7 +913,7 @@ g:notmuch_visible_line                                 *g:notmuch_visible_line*
                                                  *notmuch-python-vim-subcommand*
 サブコマンド~
 
-attach-delete                                 *notmuch-python-vim-attach-delete*
+attach-delete                                           *:Notmuch-attach-delete*
 	* |{T-WIN}| ではカーソル位置または選択しているメールに含まれる添付ファイルを削除
 		次のパートは削除しない
 		- HTML パート
@@ -913,31 +922,31 @@ attach-delete                                 *notmuch-python-vim-attach-delete*
 	* |{S-WIN}| ではカーソル位置、もしくは選択している添付ファイルを削除
 		- text/plain が有れば HTML パートの削除も可能
 
-attach-save                                     *notmuch-python-vim-attach-save*
+attach-save                                               *:Notmuch-attach-save*
 	* |{S-WIN}| でカーソル位置、もしくは選択している添付ファイルを保存
 	* |{T-WIN}| では「どういった動作が好ましいのか?」の判断が付きかね未対応
 		- 特にファイル名が被った時
 
-close                                                 *notmuch-python-vim-close*
+close                                                           *:Notmuch-close*
 	* ウィンドウを閉じる
 	* |:close| と違い最後のウィンドウでも他のバッファが無ければ Vim 自体を終了する
 
-close-tab                                          *notmuch-python-vim-close-tab*
+close-tab                                                   *:Notmuch-close-tab*
 	close (|notmuch-python-vim-close|) に加えて
 	* 同一タブページに |{F-WIN}| があれば、他の |{T-WIN}|/|{S-WIN}| や未編集の送信メー
 		ル・バッファ(|notmuch-python-vim-sending-buffer|) も閉じる
 	* そうでなければ、同一ウィンドウ内に有るペアとなる |{T-WIN}|/|{S-WIN}| を閉じる
 
-mail-attach-forward                            *notmuch-python-vim-mail-attach*
+mail-attach-forward                                       *:Notmuch-mail-attach*
 	* 添付ファイルとして転送するメールの編集バッファを開く
 	* ヘッダの意味などは |notmuch-python-vim-sendmail| 参照
 
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
-mail-delete                                     *notmuch-python-vim-mail-delete*
+mail-delete                                               *:Notmuch-mail-delete*
 	* |{T-WIN}| ではカーソル位置または選択メールの元となるメール・ファイルを削除
 	* |{S-WIN}| では表示しているメール元となるメール・ファイルを削除
-	* 複数のメール・ファイルがある場合は、          *notmuch-python-vim-select-file*
+	* 複数のメール・ファイルがある場合は、                  *:Notmuch-select-file*
 		- 更新日時
 		- HTMLパートの有無 (🌐) と添付ファイルについての情報
 			+ 添付ファイルについての情報は暗号化されていれば🔑そうでなければ📎とその数
@@ -948,22 +957,22 @@ mail-delete                                     *notmuch-python-vim-mail-delete*
 		- 削除を実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 
-mail-edit                                         *notmuch-python-vim-mail-edit*
+mail-edit                                                   *:Notmuch-mail-edit*
 	下書きメールやメール・ファイルを開く
 
-mail-export                                     *notmuch-python-vim-mail-export*
+mail-export                                               *:Notmuch-mail-export*
 	* メール・ファイルを別ファイルにエクスポート
 	* メール・ファイルをコピーするだけなので、ファイルの中身はデコード前の状態
 	* 複数のメール・ファイルがある時の動作は mail-delete と同じ
 	                                              |notmuch-python-vim-select-file|
 
-mail-forward                                   *notmuch-python-vim-mail-forward*
+mail-forward                                             *:Notmuch-mail-forward*
 	* 転送メールの編集バッファを開く
 	* ヘッダの意味などは |notmuch-python-vim-sendmail| 参照
 
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
-mail-import [{path}]                            *notmuch-python-vim-mail-import*
+mail-import [{path}]                                      *:Notmuch-mail-import*
 	* メール・ファイルをインポートする
 	* {path} が無ければファイル/ディレクトリ選択になる
 		- この指定でも空入力や <Esc> だとキャンセル
@@ -975,7 +984,7 @@ mail-import [{path}]                            *notmuch-python-vim-mail-import*
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 
-mail-info                                         *notmuch-python-vim-mail-info*
+mail-info                                                   *:Notmuch-mail-info*
 	|{F-WIN}|	|{T-WIN}| を開く時に用いる |search-term| を表示
 	|{T-WIN}|	|search-term| と次の |{S-WIN}| で表示する項目を表示
 	|{S-WIN}|	メールの次の情報を表示
@@ -994,7 +1003,7 @@ mail-info                                         *notmuch-python-vim-mail-info*
 			+	ポップアップ部のクリック
 	* ポップアップ未対応環境は、コマンドラインモード (|CmdLine|) で表示
 
-mail-move [{mailbox}]                             *notmuch-python-vim-mail-move*
+mail-move [{mailbox}]                                       *:Notmuch-mail-move*
 	* メール・ファイルを別のメール・フォルダ {mailbox} に移動
 	* {mailbox} が無ければコマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
@@ -1003,23 +1012,23 @@ mail-move [{mailbox}]                             *notmuch-python-vim-mail-move*
 	* 実行しても |{T-WIN}| のリストは更新されない
 		- 更新するには reload (|notmuch-python-vim-reload|) が必要
 
-mail-new                                           *notmuch-python-vim-mail-new*
+mail-new                                                     *:Notmuch-mail-new*
 	* 新規メールの編集バッファを開く
 	* start (|notmuch-python-vim-start|) 未使用でも呼び出し可能
 	* ヘッダの意味などは |notmuch-python-vim-sendmail| 参照
 
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
-mail-reindex                                   *notmuch-python-vim-mail-reindex*
+mail-reindex                                             *:Notmuch-mail-reindex*
 	メールを再インデックス
 
-mail-reply                                       *notmuch-python-vim-mail-reply*
+mail-reply                                                 *:Notmuch-mail-reply*
 	* 返信メールの編集バッファを開く
 	* ヘッダの意味などは |notmuch-python-vim-sendmail| 参照
 
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
-mail-resent-forward                             *notmuch-python-vim-mail-resent*
+mail-resent-forward                                       *:Notmuch-mail-resent*
 	* そのまま転送するメールの編集バッファを開く
 	* Resent-From, Resent-Sender, Resent-To, Resent-Cc, Resent-Bcc 以外のヘッダ
 	  及び本文は送信時には無視される
@@ -1034,7 +1043,7 @@ mail-resent-forward                             *notmuch-python-vim-mail-resent*
 
 	NOTE: deoplete.nvim 使用時の注意 (|notmuch-python-vim-deoplete|)
 
-mail-save [{path}]                                *notmuch-python-vim-mail-save*
+mail-save [{path}]                                          *:Notmuch-mail-save*
 	* |{S-WIN}| で表示される内容を別ファイルに保存
 	* バッファの内容をそのまま保存するので、元のメール・ファイルにどんなヘッダが
 		付いていたのかに関係なく、|{S-WIN}| で表示されている内容のみを保存
@@ -1044,7 +1053,7 @@ mail-save [{path}]                                *notmuch-python-vim-mail-save*
 		- ファイル名は name-1.txt, name-2.txt, ... の要領で連番付きになる
 		- 既存ファイルが有っても、そのまま上書き保存する
 
-mail-send                                         *notmuch-python-vim-mail-send*
+mail-send                                                   *:Notmuch-mail-send*
 	* メールを |g:notmuch_send_param| にしたがって送信
 	* |g:notmuch_send_param| で指定しているプログラムの設定が予め必要
 	* 実行しても |{T-WIN}| のリストは更新されない
@@ -1064,7 +1073,7 @@ mail-send                                         *notmuch-python-vim-mail-send*
 			で開いていたり未保存メールは送信対象にならない
 		- 上記の「tag:sent」は初期設定で、実際には |g:notmuch_sent_tag| に依存
 
-mark                                                   *notmuch-python-vim-mark*
+mark                                                             *:Notmuch-mark*
 	* Vim の |mark| (|:mark|, m{a-zA-Z}) とは関係がない
 	* |{T-WIN}| にてカーソル位置、もしくは選択メールを次のコマンドの操作対象にする
 		マークをトグル
@@ -1075,7 +1084,7 @@ mark                                                   *notmuch-python-vim-mark*
 	* 今の |{T-WIN}| の |search-term| とは別の search-term で |{T-WIN}| を開いても全て
 		クリアされる
 
-mark-command                                   *notmuch-python-vim-mark-command*
+mark-command                                             *:Notmuch-mark-command*
 	* mark (|notmuch-python-vim-mark|) されたメールに対して纏めてサブコマンドを実行
 	* 実行後マークはクリアされる
 	* 複数のサブコマンドを実行する時の区切り文字は |\r| (<C-V><Enter>:|c_CTRL-v|)
@@ -1084,7 +1093,7 @@ mark-command                                   *notmuch-python-vim-mark-command*
 open
 	各種バッファや添付ファイルを開く (|notmuch-python-vim-open|)
 
-reload                                               *notmuch-python-vim-reload*
+reload                                                         *:Notmuch-reload*
 	* |{T-WIN}| の情報を更新
 	* 一度 |{T-WIN}| を開くと同じ |search-term| では、各種操作で情報が変わっても
 		|{T-WIN}| の内容が更新されない
@@ -1092,7 +1101,7 @@ reload                                               *notmuch-python-vim-reload*
 	* 未読/既読等の操作で直ちに |{T-WIN}| バッファのリストから消えてしまうと、
 		取り消しづらいのでこのような仕様にしている
 
-run [{args}]                                            *notmuch-python-vim-run*
+run [{args}]                                                      *:Notmuch-run*
 	* シェル・プログラムを実行する
 	* | はそのままパイプとして使用できない
 	* {args} に <path:>, <id:>, <pipe:> が有ればそれぞれ次に置き換わる
@@ -1104,7 +1113,7 @@ run [{args}]                                            *notmuch-python-vim-run*
 	* {args} に <path:>, <id:> 両方無ければ、省略扱いとして {args} の最後
 	  にメール・ファイルのフル・パス追加して処理
 
-search [|search-term|]                                 *notmuch-python-vim-search*
+search [|search-term|]                                           *:Notmuch-search*
 	* Notmuch を用いて検索し、ヒットしたメール一覧を新たな |{T-WIN}| に表示する
 	* |search-term| を指定していないと、コマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
@@ -1114,7 +1123,7 @@ search [|search-term|]                                 *notmuch-python-vim-searc
 	* 検索にヒットするメールがなければ、メッセージを表示のみおこない、|{T-WIN}| を
 	  開かない
 
-search-address                                *notmuch-python-vim-search-address*
+search-address                                          *:Notmuch-search-address*
 	* 次のアドレスが From, To, Cc, Bcc の何れかに含まれているメールを |{T-Win}| 枠
 		に一覧表示する
 		- `sent` もしくは |g:notmuch_sent_tag| で指定したタグがついているメールなら
@@ -1122,26 +1131,26 @@ search-address                                *notmuch-python-vim-search-address
 		- そうでなければ To、To が空なら Cc、Cc も空なら Bcc ヘッダに書かれたメール・
 			アドレス
 
-search-duplication                        *notmuch-python-vim-search-duplication*
+search-duplication                                  *:Notmuch-search-duplication*
 	* 同一 Message-ID のファイルが複数あるメールを新たな |{T-Win}| 枠にリスト・アップ
 	* 常に全メールが対象
 	* |search-term| によって検索するわけではない
 		- データ管理上の値が必要なので |search-term| は * 扱いとしている
 
-search-refine                                 *notmuch-python-vim-search-refine*
+search-refine                                           *:Notmuch-search-refine*
 	* |{T-WIN}| 中のメールから |search-term| で絞り込んで検索
 	* vim 自身の |/| に近いが Notmuch による検索にマッチするメールを探す
 
-search-down-refine                       *notmuch-python-vim-search-down-refine*
+search-down-refine                                 *:Notmuch-search-down-refine*
 	* search-refine (|notmuch-python-vim-search-refine|) で指定した検索の下候補
 
-search-up-refine                           *notmuch-python-vim-search-up-refine*
+search-up-refine                                     *:Notmuch-search-up-refine*
 	* search-refine (|notmuch-python-vim-search-refine|) で指定した検索の上候補
 
-search-thread                                 *notmuch-python-vim-search-thread*
+search-thread                                           *:Notmuch-search-thread*
 	* メールを含むスレッドを新たな |{T-Win}| 枠に表示する
 
-set-attach [{attachment}]                        *notmuch-python-vim-set-attach*
+set-attach [{attachment}]                                  *:Notmuch-set-attach*
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で添付ファイルとし
 	  て {attachment} に変更/追加
 	* {attachment} が無ければファイル選択になる
@@ -1149,7 +1158,7 @@ set-attach [{attachment}]                        *notmuch-python-vim-set-attach*
 			+ コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
 	* カーソル位置が Attach: (|notmuch-python-vim-attach|) ヘッダなら変更
 
-set-encrypt [{encrypt/signature}]               *notmuch-python-vim-set-encrypt*
+set-encrypt [{encrypt/signature}]                         *:Notmuch-set-encrypt*
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) の暗号化/電子署名
 		方法を {encrypt/signature} で設定
 	* {encrypt/signature} に指定できるのは、Encrypt, Signature ヘッダの直接編集
@@ -1188,13 +1197,13 @@ set-encrypt [{encrypt/signature}]               *notmuch-python-vim-set-encrypt*
 		- <Esc>: キャンセル
 			o コマンドラインモード (|CmdLine|) では空の入力でもキャンセル
 
-set-fcc [{mailbox}]                                 *notmuch-python-vim-set-fcc*
+set-fcc [{mailbox}]                                           *:Notmuch-set-fcc*
 	* 送信メール・バッファ (|notmuch-python-vim-sending-buffer|) で {mailbox}
 	  を Fcc: (|notmuch-python-vim-fcc|) に設定
 	* {mailbox} が無ければコマンドラインモード (|CmdLine|) の指定になる
 		- この指定でも空だとキャンセルになる
 
-start                                                 *notmuch-python-vim-start*
+start                                                           *:Notmuch-start*
 	* |{F-WIN}| を開き、|g:notmuch_open_way| で |{T-WIN}| を分割して開く設定ならそ
 		れを開く
 	* |{T-WIN}| を開いた時 |{S-WIN}| を分割して開く設定ならそれも開く
@@ -1202,7 +1211,7 @@ start                                                 *notmuch-python-vim-start*
 		コマンドは呼び出せない
 	* 既に実行済みの時はレイアウトをやり直す
 
-tag-add [{tags}]                                    *notmuch-python-vim-tag-add*
+tag-add [{tags}]                                              *:Notmuch-tag-add*
 	* メールにタグを追加
 	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
 		- この指定でも空だとキャンセルになる
@@ -1213,7 +1222,7 @@ tag-add [{tags}]                                    *notmuch-python-vim-tag-add*
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
-tag-delete [{tags}]                              *notmuch-python-vim-tag-delete*
+tag-delete [{tags}]                                        *:Notmuch-tag-delete*
 	* メールのタグを削除
 	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
 		- この指定でも空だとキャンセルになる
@@ -1224,7 +1233,7 @@ tag-delete [{tags}]                              *notmuch-python-vim-tag-delete*
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
-tag-set [{tags}]                                 *notmuch-python-vim-tag-set*
+tag-set [{tags}]                                           *:Notmuch-tag-set*
 	* メールのタグを追加/削除/トグル
 		- タグ名の前に + を付けると追加
 		- タグ名の前に - を付けると削除
@@ -1241,7 +1250,7 @@ tag-set [{tags}]                                 *notmuch-python-vim-tag-set*
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
-tag-toggle [{tags}]                              *notmuch-python-vim-tag-toggle*
+tag-toggle [{tags}]                                        *:Notmuch-tag-toggle*
 	* メールのタグをトグル
 	* {tags} 無指定だとコマンドラインモード (|CmdLine|) 指定になる
 		- この指定でも空だとキャンセルになる
@@ -1252,24 +1261,24 @@ tag-toggle [{tags}]                              *notmuch-python-vim-tag-toggle*
 		- 受信メールでは mail-edit (|notmuch-python-vim-mail-edit|) で開いても無視
 			される
 
-thread-connect                               *notmuch-python-vim-thread-connect*
+thread-connect                                         *:Notmuch-thread-connect*
 	* mark (|notmuch-python-vim-mark|) されたメールをカーソル位置のメールにスレッ
 		ドを繋げる
 		- In-Reply-To, Reference ヘッダを編集している
 	* mail-reindex (|notmuch-python-vim-mail-reindex|) と reload
 		(|notmuch-python-vim-reload|) が行われる
 
-thread-cut                                       *notmuch-python-vim-thread-cut*
+thread-cut                                                 *:Notmuch-thread-cut*
 	* メールのスレッド切断
 		- In-Reply-To, Reference ヘッダを編集している
 	* mail-reindex (|notmuch-python-vim-mail-reindex|) と reload
 		(|notmuch-python-vim-reload|) が行われる
 
-thread-next                                     *notmuch-python-vim-thread-next*
+thread-next                                               *:Notmuch-thread-next*
 	* |{T-WIN}| で次のメールを選択しスレッドを開く
 	* |j||zO| に違い折り畳みがなくてもエラーとせず、単に何もしない
 
-thread-sort [{list}/{tree} {sort-method}]       *notmuch-python-vim-thread-sort*
+thread-sort [{list}/{tree} {sort-method}]                 *:Notmuch-thread-sort*
 	* |{T-WIN}| で
 		{list}/{tree}: 一覧/ツリー表示の指定
 									 {sort-method} が無ければ、ソート方法は変更せず一覧/ツリー表
@@ -1306,25 +1315,25 @@ thread-sort [{list}/{tree} {sort-method}]       *notmuch-python-vim-thread-sort*
 											{tree} ではスレッド・トップが基準
 		Subject						Subject 逆順
 
-thread-toggle                                 *notmuch-python-vim-thread-toggle*
+thread-toggle                                           *:Notmuch-thread-toggle*
 	* メールのスレッドを開閉する
 	* 閉じた時はスレッドの先頭選択
 	* 開いた時はできるだけ直前のメールを選択
 		- 適当なメールがない時は、同一スレッド内の最後のメールを選択
 
-view-previous                                 *notmuch-python-vim-view-previous*
+view-previous                                           *:Notmuch-view-previous*
 	スクリーンに |{S-WIN}| が有れば |{F-WIN}|/|{T-WIN}| がアクティブでも |{S-WIN}| を
 	スクロール・アップ
 
-view-previous-unread                   *notmuch-python-vim-view-previous-unread*
+view-previous-unread                             *:Notmuch-view-previous-unread*
 	* 前の未読メールに移動
 	* 現在表示しているメールの未読/既読は変更しない (unread タグの削除しない)
 
-view-unread-mail                           *notmuch-python-vim-view-unread-mail*
+view-unread-mail                                     *:Notmuch-view-unread-mail*
 	* 次の未読メールに移動
 	* 現在表示しているメールの未読/既読は変更しない (unread タグの削除しない)
 
-view-unread-page                           *notmuch-python-vim-view-unread-page*
+view-unread-page                                     *:Notmuch-view-unread-page*
 	* スクリーンに |{S-WIN}| が有れば |{F-WIN}|/|{T-WIN}| がアクティブでも |{S-WIN}| を
 		スクロール・ダウン
 	* すでにメールの最後まで表示していれば、既読 (unread タグを削除) にして次の

@@ -1,21 +1,24 @@
 scriptencoding utf-8
 
-syntax region	tagMailU		start='^📩' end='$'
-syntax region	tagMailF		start='^⭐' end='$'
-syntax region	tagMailT		start='^🗑' end='$'
-syntax region	tagMailD		start='^📝' end='$'
-syntax region	tagMailFT		start='^⭐🗑' end='$'
-syntax region	tagMailDT		start='^📝🗑' end='$'
-syntax region	tagMailDF		start='^📝⭐' end='$'
-syntax region	tagMailUF		start='^📩⭐' end='$'
-syntax region	tagMailUT		start='^📩🗑' end='$'
-syntax region	tagMailUD		start='^📩📝' end='$'
-syntax region	tagMailUDF	start='^📩📝⭐' end='$'
-syntax region	tagMailUDT	start='^📩📝🗑' end='$'
-syntax region	tagMailDFT	start='^📝⭐🗑' end='$'
-syntax region	tagMailUFT	start='^📩⭐🗑' end='$'
-syntax region	tagMailUDFT	start='^📩📝⭐🗑' end='$'
-" syntax match	Entity	" " conceal cchar=  " Subject が空の時の代価文字 (無くても非表示)
+syntax region tagMailU    start='^📩'       end='$' contains=Border
+syntax region tagMailF    start='^⭐'       end='$' contains=Border
+syntax region tagMailT    start='^🗑'       end='$' contains=Border
+syntax region tagMailD    start='^📝'       end='$' contains=Border
+syntax region tagMailFT   start='^⭐🗑'     end='$' contains=Border
+syntax region tagMailDT   start='^📝🗑'     end='$' contains=Border
+syntax region tagMailDF   start='^📝⭐'     end='$' contains=Border
+syntax region tagMailUF   start='^📩⭐'     end='$' contains=Border
+syntax region tagMailUT   start='^📩🗑'     end='$' contains=Border
+syntax region tagMailUD   start='^📩📝'     end='$' contains=Border
+syntax region tagMailUDF  start='^📩📝⭐'   end='$' contains=Border
+syntax region tagMailUDT  start='^📩📝🗑'   end='$' contains=Border
+syntax region tagMailDFT  start='^📝⭐🗑'   end='$' contains=Border
+syntax region tagMailUFT  start='^📩⭐🗑'   end='$' contains=Border
+syntax region tagMailUDFT start='^📩📝⭐🗑' end='$' contains=Border
+
+if get(g:, 'notmuch_visible_line', 0) == 3
+	syntax match Border "\t" conceal cchar=│
+endif
 
 highlight tagMailU    cterm=bold           gui=bold
 highlight tagMailF    cterm=underline      gui=underline

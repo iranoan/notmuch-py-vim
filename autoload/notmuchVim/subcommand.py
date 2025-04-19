@@ -132,6 +132,16 @@ def print_error(msg):
 
 def set_subject_length():
     """ calculate Subject width in thread list."""
+    def border_width():  # │ の幅を得る
+        if vim.vars.get('notmuch_visible_line', 0) != 3:
+            return 1
+        for i in vim.Function('getcellwidths')():
+            if i[0] >= 0x2502 and i[1] <= 0x2502:
+                return i[2]
+        if vim.options['ambiwidth'] == b'double':
+            return 2
+        return 1
+
     if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
         from_length = vim.vars['notmuch_from_length']
     else:
@@ -155,7 +165,7 @@ def set_subject_length():
         width = vim.options['columns'] / 2 - 1
     time_length = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))
     # date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
-    width -= time_length + 6 + 3 + 2
+    width -= time_length + 6 + 3 * border_width() + 2
     # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
     if subject_length < from_length * 2:
         subject_length = int(width * 2 / 3)
@@ -6513,11 +6523,12 @@ def get_folded_list(start, end):
     if emoji_length:
         emoji_length = '{:' + str(emoji_length) + 's}'
         emoji_tags += emoji_length.format('')
-    if ('notmuch_visible_line' in vim.vars
-            and (vim.vars['notmuch_visible_line'] == 1
-                 or vim.vars['notmuch_visible_line'] == 2)) \
-            or not vim_has('patch-8.2.2518'):
-        return emoji_tags + line
+    if ('notmuch_visible_line' in vim.vars):
+        if ((vim.vars['notmuch_visible_line'] == 1 or vim.vars['notmuch_visible_line'] == 2)) \
+                or not vim_has('patch-8.2.2518'):
+            return emoji_tags + line
+        elif vim.vars['notmuch_visible_line'] == 3:
+            return (emoji_tags + line).replace('\t', '│')
     elif vim_has('patch-8.2.2518'):
         return (emoji_tags + line).replace('\t', '|')
     else:

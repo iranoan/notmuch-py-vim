@@ -45,11 +45,42 @@ endfunction
 
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 sign define notmuch text=* texthl=notmuchMark
-setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nv conceallevel=3 nolist
-if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 0 && ( g:notmuch_visible_line == 1 || g:notmuch_visible_line == 2 )
+setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nvc conceallevel=3 nolist
+var bar_w: bool = false
+if &ambiwidth ==# 'double'
+	bar_w = true
+	setlocal concealcursor-=v
+	setlocal concealcursor-=c
+endif
+for i in getcellwidths()
+	if i[0] >= 0x2502 && i[1] <= 0x2502
+		if i[2] == 2
+			bar_w = true
+		else
+			bar_w = false
+		endif
+		break
+	endif
+endfor
+if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 0
+	if g:notmuch_visible_line == 1 || g:notmuch_visible_line == 2
 		SetColorcolmun()
+	elseif g:notmuch_visible_line == 3
+		setlocal conceallevel=1
+		if bar_w == true
+			setlocal concealcursor-=v
+			setlocal concealcursor-=c
+		else
+			setlocal concealcursor+=v
+			setlocal concealcursor+=c
+		endif
+	endif
 elseif has('patch-8.2.2518')
-	setlocal list listchars=tab:\|\   # 他は非表示
+	if bar_w
+		setlocal list listchars=tab:\|\   # 他は非表示
+	else
+		setlocal list listchars=tab:│\   # 他は非表示
+	endif
 endif
 if exists('g:notmuch_display_item')
 	execute 'setlocal foldexpr=notmuch_py#FoldThread(' .. index(g:notmuch_display_item, 'Subject', 0, v:true) .. ')'
