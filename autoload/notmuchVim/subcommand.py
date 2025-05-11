@@ -185,13 +185,14 @@ def email2only_name(mail_address):
 
 def email2only_address(mail_address):
     """ ヘッダの「名前+アドレス」をアドレスだけにする """
-    name, addr = email.utils.parseaddr(mail_address)
-    return addr
+    return email.utils.parseaddr(mail_address)[1]
 
 
 def str_just_length(string, length):
-    # 全角/半角どちらも桁数ではなくで幅に揃える (足りなければ空白を埋める)
-    # →http://nemupm.hatenablog.com/entry/2015/11/25/202936 参考
+    '''
+    全角/半角どちらも桁数ではなくで幅に揃える (足りなければ空白を埋める)
+    →http://nemupm.hatenablog.com/entry/2015/11/25/202936 参考
+    '''
     count_widht = vim_strdisplaywidth(string)
     if count_widht == length:
         return string
@@ -2449,17 +2450,27 @@ def get_msg_tags_diff(tmp):
 
 def get_search_snippet(word):
     """ word によって補完候補を切り替える """
-    snippet = []
+    def get_address(s):
+        return run(['notmuch', 'address', '--deduplicate=address', s],
+                   stdout=PIPE, stderr=PIPE).stdout.splitlines()
+
     if word[0:7] == 'folder:':
-        for v in get_mail_folders():
-            snippet.append('folder:' + v)
+        snippet = ['folder:' + v + ' '
+                   for v in get_mail_folders()]
     elif word[0:4] == 'tag:':
-        for v in get_msg_all_tags_list(''):
-            snippet.append('tag:' + v)
+        snippet = ['tag:' + v + ' '
+                   for v in get_msg_all_tags_list('')]
+    elif word[0:5] == 'from:':
+        snippet = ['from:' + email2only_address(v.decode()) + ' '
+                   for v in get_address('from:')]
+    elif word[0:3] == 'to:':
+        snippet = ['to:' + email2only_address(v.decode()) + ' '
+                   for v in get_address('to:')]
     else:
-        return ['body:', 'from:', 'to:', 'subject:', 'attachment:',
-                'mimetype:', 'tag:', 'id:', 'thread:', 'folder:', 'path:',
-                'date:', 'lastmod:', 'query:', 'property:']
+        return ['attachment:', 'body:', 'date:', 'folder:', 'from:', 'id:',
+                'lastmod:', 'mimetype:', 'path:', 'property:', 'query:',
+                'subject:', 'tag:', 'thread:', 'to:']
+    snippet.sort(key=str.lower)
     return snippet
 
 
@@ -6034,7 +6045,7 @@ def notmuch_address():
         return
     search_term = ''
     for i in set(adr):
-        search_term += ' or from:' + i + ' or to:' + i + ' or cc:' + i + ' or bcc:' + i
+        search_term += ' or from:' + i + ' or to:' + i
     search_term = search_term[4:]
     notmuch_search([0, 0, search_term])  # 先頭2つの0はダミーデータ
     fold_open_core()

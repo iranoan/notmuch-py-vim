@@ -1261,11 +1261,10 @@ def Is_one_snippet(snippet: list<string>): list<string>  # 補完候補が 1 つ
 	if len(snippet) != 1
 		return snippet
 	endif
-	var l_snippet = snippet[0]
-	if snippet[len(snippet) - 1] ==# ':'
-		return [l_snippet]
+	if snippet[0] =~# '[: ]$'
+		return snippet
 	else
-		return [ l_snippet .. ' ' ]
+		return [snippet[0] .. ' ']
 	endif
 enddef
 
