@@ -13,14 +13,14 @@ if !exists('g:ft_notmuch_show')
 	g:ft_notmuch_show = 1
 	augroup NotmuchShowType
 		autocmd!
-		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show' |
-					\ setlocal concealcursor=nvic conceallevel=3 nolist|
-					\ 	matchadd('Conceal', '\m[\x0C]') |
-					\ 	matchadd('Conceal', '\m[\u200B]') |
-					\ endif
-		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-show' |
-					\ 	setlocal foldlevel=2 |
-					\ endif
+		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show'
+					| setlocal concealcursor=nvic conceallevel=3 nolist
+					| 	matchadd('Conceal', '\m[\x0C]')
+					| 	matchadd('Conceal', '\m[\u200B]')
+					| endif
+		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-show'
+					| 	setlocal foldlevel=2
+					| endif
 
 	def SwitchConceal(): void
 		if &conceallevel != 0
@@ -74,7 +74,7 @@ if !exists('g:ft_notmuch_show')
 endif
 
 if &statusline ==? ''
-	setlocal statusline=%{%printf(printf("%%.%dS",&columns-53-strdisplaywidth(b:notmuch.date)),b:notmuch.subject)%}%=\ %{b:notmuch.date}\ %c:%v\ %3l/%-3L\ %3{line('w$')*100/line('$')}%%\ 0x%B
+	setlocal statusline=%{%printf(printf("%%.%dS",&columns-53-strdisplaywidth(b:notmuch.date)),substitute(b:notmuch.subject,'%','%%','g'))%}%=\ %{b:notmuch.date}\ %c:%v\ %3l/%-3L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
 setlocal nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=notmuch_py#FoldHeaderText() foldlevel=2 nolist
 if &foldcolumn == 0
