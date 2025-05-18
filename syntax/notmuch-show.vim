@@ -12,6 +12,9 @@ set cpoptions&vim
 
 syntax case ignore
 
+call matchadd('Conceal', '\m[\x0C]')
+call matchadd('Conceal', '\m[\u200B]')
+
 execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
 
 syntax match	mailNewPartHead	contained	contains=@NoSpell '^[\x0C].\+ part$'

@@ -11,16 +11,6 @@ b:did_ftplugin_plugin = 1
 
 if !exists('g:ft_notmuch_show')
 	g:ft_notmuch_show = 1
-	augroup NotmuchShowType
-		autocmd!
-		autocmd BufWinEnter,WinEnter,WinNew * if &filetype ==# 'notmuch-show'
-					| setlocal concealcursor=nvic conceallevel=3 nolist
-					| 	matchadd('Conceal', '\m[\x0C]')
-					| 	matchadd('Conceal', '\m[\u200B]')
-					| endif
-		autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-show'
-					| 	setlocal foldlevel=2
-					| endif
 
 	def SwitchConceal(): void
 		if &conceallevel != 0
@@ -69,14 +59,12 @@ if !exists('g:ft_notmuch_show')
 		endif
 		return
 	enddef
-
-	augroup END
 endif
 
 if &statusline ==? ''
 	setlocal statusline=%{%printf(printf("%%.%dS",&columns-53-strdisplaywidth(b:notmuch.date)),substitute(b:notmuch.subject,'%','%%','g'))%}%=\ %{b:notmuch.date}\ %c:%v\ %3l/%-3L\ %3{line('w$')*100/line('$')}%%\ 0x%B
 endif
-setlocal nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=notmuch_py#FoldHeaderText() foldlevel=2 nolist
+setlocal nomodifiable signcolumn=auto expandtab nonumber comments=n:> foldmethod=syntax foldtext=notmuch_py#FoldHeaderText() foldlevel=2 nolist concealcursor=nvic conceallevel=3
 if &foldcolumn == 0
 	setlocal foldcolumn=1
 endif

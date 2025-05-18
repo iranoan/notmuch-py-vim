@@ -4,15 +4,12 @@ vim9script
 
 scriptencoding utf-8
 
-if !exists('w:did_ftplugin_plugin') || !w:did_ftplugin_plugin
-	setlocal signcolumn=auto foldmethod=syntax foldlevel=1 nomodeline
-	w:did_ftplugin_plugin = 1
-endif
-
 if exists('b:did_ftplugin_plugin')
 	finish
 endif
 b:did_ftplugin_plugin = 1
+
+setlocal signcolumn=auto foldmethod=syntax foldlevel=1 nomodeline
 
 if exists('b:undo_ftplugin')
 	b:undo_ftplugin ..= '| call undoftplgin#Edit()'

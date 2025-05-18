@@ -887,7 +887,7 @@ g:notmuch_visible_line                                 *g:notmuch_visible_line*
 	Default: `''`
 
 	* |{T-WIN}| の列の区切り線代わりタブ文字についての設定
-	* 無指定で patch-8.2.2518 (|patches-after-8.2|) が適用済みなら
+	* 無指定では
 		- │ (罫線記号) が >vim
 		  set ambiwidth=sigle
 <		  など半角幅ならタブ文字の代わりに用いる

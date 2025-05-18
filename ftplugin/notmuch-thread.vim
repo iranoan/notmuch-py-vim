@@ -11,37 +11,28 @@ b:did_ftplugin_plugin = 1
 
 if !exists('g:ft_notmuch_thread')
 	g:ft_notmuch_thread = 1
-	augroup NotmuchThreadType
-		autocmd!
-		if has('patch-8.2.2518')
-			autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' | setlocal list foldlevel=0 | endif
-		else
-			autocmd BufWinEnter,WinNew * if &filetype ==# 'notmuch-thread' | setlocal nolist foldlevel=0 | endif
+	def SetColorcolmun(): void
+		var colorcolumn: string = '7'
+		var n_colorcolumn: number = 7
+		for i in g:notmuch_display_item[0 : 1]
+			if i ==? 'subject'
+				n_colorcolumn += g:notmuch_subject_length + 1
+				colorcolumn ..= ',' .. n_colorcolumn
+			elseif i ==? 'from'
+				n_colorcolumn += g:notmuch_from_length + 1
+				colorcolumn ..= ',' .. n_colorcolumn
+			elseif i ==? 'date'
+				n_colorcolumn += py3eval('len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))') + 1
+				# date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
+				colorcolumn ..= ',' .. n_colorcolumn
+			endif
+		endfor
+		execute 'setlocal colorcolumn=' .. colorcolumn
+		if g:notmuch_visible_line == 2
+			execute 'highlight ColorColumn ' .. substitute(notmuch_py#Get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
 		endif
-	augroup END
+	enddef
 endif
-
-function SetColorcolmun() abort
-	let l:colorcolumn = 7
-	let l:n_colorcolumn = 7
-	for l:i in g:notmuch_display_item[0 : 1]
-		if l:i ==? 'subject'
-			let l:n_colorcolumn += g:notmuch_subject_length + 1
-			let l:colorcolumn ..= ',' .. l:n_colorcolumn
-		elseif l:i ==? 'from'
-			let l:n_colorcolumn += g:notmuch_from_length + 1
-			let l:colorcolumn ..= ',' .. l:n_colorcolumn
-		elseif l:i ==? 'date'
-			let l:n_colorcolumn += py3eval(len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))) + 1
-			" date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
-			let l:colorcolumn ..= ',' .. l:n_colorcolumn
-		endif
-	endfor
-	execute 'setlocal colorcolumn=' .. l:colorcolumn
-	if g:notmuch_visible_line == 2
-		execute 'highlight ColorColumn ' .. substitute(notmuch_py#Get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
-	endif
-endfunction
 
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 sign define notmuch text=* texthl=notmuchMark
@@ -75,7 +66,7 @@ if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 0
 			setlocal concealcursor+=c
 		endif
 	endif
-elseif has('patch-8.2.2518')
+else
 	if bar_w
 		setlocal list listchars=tab:\|\   # 他は非表示
 	else
@@ -105,7 +96,6 @@ nnoremap <buffer><silent>S :Notmuch mail-save<CR>
 nnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:Notmuch thread-next<CR>
 vnoremap <buffer><silent>u :Notmuch tag-toggle unread<CR>:Notmuch thread-next<CR>
 nnoremap <buffer><silent>zn <Nop>
-
 
 if exists('b:undo_ftplugin')
 	b:undo_ftplugin ..= '| call undoftplgin#Thread()'

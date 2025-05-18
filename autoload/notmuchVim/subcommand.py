@@ -6535,15 +6535,11 @@ def get_folded_list(start, end):
         emoji_length = '{:' + str(emoji_length) + 's}'
         emoji_tags += emoji_length.format('')
     if ('notmuch_visible_line' in vim.vars):
-        if ((vim.vars['notmuch_visible_line'] == 1 or vim.vars['notmuch_visible_line'] == 2)) \
-                or not vim_has('patch-8.2.2518'):
+        if ((vim.vars['notmuch_visible_line'] == 1 or vim.vars['notmuch_visible_line'] == 2)):
             return emoji_tags + line
         elif vim.vars['notmuch_visible_line'] == 3:
             return (emoji_tags + line).replace('\t', '│')
-    elif vim_has('patch-8.2.2518'):
-        return (emoji_tags + line).replace('\t', '|')
-    else:
-        return emoji_tags + line
+    return (emoji_tags + line).replace('\t', '|')
 
 
 def buf_kind():
