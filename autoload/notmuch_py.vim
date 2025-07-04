@@ -42,22 +42,22 @@ def New_buffer(type: string, search_term: string): void
 	endif
 	# キーマップ
 	# draft/edit 以外共通
-	nnoremap <buffer><silent><F1> :topleft help notmuch-python-vim-keymap<CR>
-	nnoremap <buffer><silent><leader>h :topleft help notmuch-python-vim-keymap<CR>
-	nnoremap <buffer><silent><Leader>s :Notmuch mail-send<CR>
+	nnoremap <buffer><silent><F1> <Cmd>topleft help notmuch-python-vim-keymap<CR>
+	nnoremap <buffer><silent><leader>h <Cmd>topleft help notmuch-python-vim-keymap<CR>
+	nnoremap <buffer><silent><Leader>s <Cmd>Notmuch mail-send<CR>
 	nnoremap <buffer><silent><Tab> <C-w>w
 	nnoremap <buffer><silent><S-Tab> <C-w>W
-	nnoremap <buffer><silent><space> :Notmuch view-unread-page<CR>
-	nnoremap <buffer><silent><BS> :Notmuch view-previous<CR>
-	nnoremap <buffer><silent>J :Notmuch view-unread-mail<CR>
-	nnoremap <buffer><silent>P :Notmuch view-previous-unread<CR>
-	nnoremap <buffer><silent><C-R> :Notmuch reload<CR>
-	nnoremap <buffer><silent>p :Notmuch mail-info<CR>
-	nnoremap <buffer><silent>I :Notmuch mail-export<CR>
-	nnoremap <buffer><silent>R :Notmuch mail-forward<CR>
-	nnoremap <buffer><silent>c :Notmuch mail-new<CR>
-	nnoremap <buffer><silent>i :Notmuch mail-import<CR>
-	nnoremap <buffer><silent>r :Notmuch mail-reply<CR>
+	nnoremap <buffer><silent><space> <Cmd>Notmuch view-unread-page<CR>
+	nnoremap <buffer><silent><BS> <Cmd>Notmuch view-previous<CR>
+	nnoremap <buffer><silent>J <Cmd>Notmuch view-unread-mail<CR>
+	nnoremap <buffer><silent>P <Cmd>Notmuch view-previous-unread<CR>
+	nnoremap <buffer><silent><C-R> <Cmd>Notmuch reload<CR>
+	nnoremap <buffer><silent>p <Cmd>Notmuch mail-info<CR>
+	nnoremap <buffer><silent>I <Cmd>Notmuch mail-export<CR>
+	nnoremap <buffer><silent>R <Cmd>Notmuch mail-forward<CR>
+	nnoremap <buffer><silent>c <Cmd>Notmuch mail-new<CR>
+	nnoremap <buffer><silent>i <Cmd>Notmuch mail-import<CR>
+	nnoremap <buffer><silent>r <Cmd>Notmuch mail-reply<CR>
 	if type ==# 'folders'
 		setlocal filetype=notmuch-folders
 	elseif type ==# 'thread' || type ==# 'search'
