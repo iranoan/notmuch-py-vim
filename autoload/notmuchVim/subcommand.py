@@ -4998,6 +4998,7 @@ def check_org_mail():
     if msg_id == '':
         vim_goto_bufwinid(active_win)
         return 0, '', ''
+    b_v = vim.current.buffer.vars['notmuch']
     subject = b_v['subject'].decode()
     return active_win, msg_id, subject
 
