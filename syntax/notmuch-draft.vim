@@ -12,7 +12,7 @@ set cpoptions&vim
 
 syntax case ignore
 
-execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/syntax-common.vim'
+execute 'source ' .. expand('<script>:p:h:h') .. '/macros/syntax-common.vim'
 
 " Syntax clusters
 syntax cluster	mailHeaderComp	contains=mailHeaderAddress,mailHeaderAttach,mailHeaderEncrypt,mailHeaderFcc,mailHeaderSignature

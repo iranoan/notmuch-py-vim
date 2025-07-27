@@ -17,4 +17,4 @@ else
 	b:undo_ftplugin = 'call undoftplgin#Edit()'
 endif
 
-execute 'source ' .. expand('<sfile>:p:h:h') .. '/macros/notmuch-edit.vim'
+execute 'source ' .. expand('<script>:p:h:h') .. '/macros/notmuch-edit.vim'
