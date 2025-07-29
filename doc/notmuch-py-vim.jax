@@ -1308,6 +1308,9 @@ thread-sort [{list}/{tree} {sort-method}]                 *:Notmuch-thread-sort*
 		Last							last の逆順
 											{list} では Date と同じ
 		from							メール送信元順
+											大文字小文字の区別なし
+											|g:notmuch_sent_tag| で指定されたタグがついていると、{T-WIN}
+											には送信先が表示されるが、それとは関係なく送信元順でのソート
 											{tree} では同一スレッドに含まれるメール送信元
 		From							メール送信元逆順
 		subject						Subject 順
