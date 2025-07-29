@@ -169,32 +169,6 @@ def Set_thread(n: number): void
 		autocmd!
 		execute 'autocmd CursorMoved <buffer=' .. n .. '> Cursor_move_thread(b:notmuch.search_term)'
 	augroup END
-	if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 0 && g:notmuch_visible_line == 3
-		var border_w: number = 1
-		if &ambiwidth == 'double'
-			border_w = 2
-		endif
-		for i in getcellwidths()
-			if i[0] >= 0x2502 && i[1] <= 0x2502
-				border_w = i[2]
-				break
-			endif
-		endfor
-		if border_w == 2
-			var vartabstop: string = '8,'
-			for i in get(g:, 'notmuch_display_item', ['subject', 'from', 'date'])[: 1]
-				if i ==? 'subject'
-					vartabstop ..= g:notmuch_subject_length + 2 .. ','
-				elseif i ==? 'date'
-					py3 import datetime
-					vartabstop ..= py3eval("len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(vim.vars['notmuch_date_format'].decode()))") + 2 .. ','
-				elseif i ==? 'from'
-					vartabstop ..= g:notmuch_from_length + 2 .. ','
-				endif
-			endfor
-			execute 'setlocal vartabstop=' .. vartabstop .. '1'
-		endif
-	endif
 enddef
 
 function Open_something(args) abort

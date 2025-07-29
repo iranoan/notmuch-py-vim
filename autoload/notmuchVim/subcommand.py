@@ -130,51 +130,6 @@ def print_error(msg):
     vim.command('echohl ErrorMsg | echomsg "' + msg.replace('"', '\\"') + '" | echohl None')
 
 
-def set_subject_length():
-    """ calculate Subject width in thread list."""
-    def border_width():  # │ の幅を得る
-        if vim.vars.get('notmuch_visible_line', 0) != 3:
-            return 1
-        for i in vim.Function('getcellwidths')():
-            if i[0] >= 0x2502 and i[1] <= 0x2502:
-                return i[2]
-        if vim.options['ambiwidth'] == b'double':
-            return 2
-        return 1
-
-    if 'notmuch_from_length' in vim.vars:  # スレッドの各行に表示する From の長さ
-        from_length = vim.vars['notmuch_from_length']
-    else:
-        vim.vars['notmuch_from_length'] = 21
-        from_length = 21
-    if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
-        date_format = vim.vars['notmuch_date_format'].decode()
-    else:
-        date_format = '%Y-%m-%d %H:%M'
-        vim.vars['notmuch_date_format'] = '%Y-%m-%d %H:%M'
-    if 'notmuch_subject_length' in vim.vars:
-        return
-    subject_length = 80 - from_length - 16 - 4
-    width = vim.vars['notmuch_open_way']['thread'].decode()
-    m = re.search(r'([0-9]+)vnew', width)
-    if m is not None:
-        width = int(m.group(1)) - 1
-    elif re.search('vnew', width) is None:
-        width = vim.options['columns']
-    else:
-        width = vim.options['columns'] / 2 - 1
-    time_length = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))
-    # date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
-    width -= time_length + 6 + 3 * border_width() + 2
-    # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
-    if subject_length < from_length * 2:
-        subject_length = int(width * 2 / 3)
-        vim.vars['notmuch_subject_length'] = subject_length
-        vim.vars['notmuch_from_length'] = width - subject_length
-    else:
-        vim.vars['notmuch_subject_length'] = width - from_length
-
-
 def email2only_name(mail_address):
     """ ヘッダの「名前+アドレス」を名前だけにする """
     name, addr = email.utils.parseaddr(mail_address)
@@ -475,11 +430,57 @@ def set_global_var():  # MailData で使用する設定依存の値をグロー�
                 DISPLAY_FORMAT += '\t{3}'
                 DISPLAY_FORMAT2 += '\t{2}'
 
+    def set_subject_length(from_length, date_format):
+        """ calculate Subject width in thread list."""
+        def border_width():  # │ の幅を得る
+            if vim.vars.get('notmuch_visible_line', 0) != 3:
+                return 1
+            for i in vim.Function('getcellwidths')():
+                if i[0] >= 0x2502 and i[1] <= 0x2502:
+                    return i[2]
+            if vim.options['ambiwidth'] == b'double':
+                return 2
+            return 1
+
+        def get_width():
+            b = s_buf_num('thread', '')
+            for t in vim.tabpages:
+                for w in t.windows:
+                    if w.buffer.number == b:
+                        return w.width - 1
+            return vim.options['column'] - 1
+
+        if 'notmuch_subject_length' in vim.vars:
+            return
+        subject_length = 80 - from_length - 16 - 4
+        width = get_width()
+        time_length = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))
+        # date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
+        width -= time_length + 6 + 3 * border_width() + 2
+        # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
+        if subject_length < from_length * 2:
+            subject_length = int(width * 2 / 3)
+            return subject_length, width - subject_length
+        else:
+            return width - from_length, from_length
+
     global SENT_TAG, SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
-    SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
-    FROM_LENGTH = vim.vars['notmuch_from_length']
-    DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
-    SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
+    if 'notmuch_sent_tag' in vim.vars:  # 送信済みを表すタグ
+        SENT_TAG = vim.vars['notmuch_sent_tag'].decode()
+    else:
+        SENT_TAG = 'sent'
+    if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
+        DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
+    else:
+        DATE_FORMAT = '%Y-%m-%d %H:%M'
+    if 'notmuch_from_length' in vim.vars:  # スレッドに表示する Date の書式
+        FROM_LENGTH = vim.vars['notmuch_from_length']
+    else:
+        FROM_LENGTH = 21
+    if 'notmuch_subject_length' in vim.vars:  # スレッドに表示する Date の書式
+        SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
+    else:
+        SUBJECT_LENGTH, FROM_LENGTH = set_subject_length(FROM_LENGTH, DATE_FORMAT)
     get_display_format()
 
 
@@ -923,6 +924,30 @@ def fold_open():
 
 
 def print_thread_core(b_num, search_term, select_unread, remake):
+    def set_vartabstop():
+        if vim.vars.get('notmuch_visible_line', 0) != 3:
+            return
+        border_w = 1
+        if vim.options['ambiwidth'] == b'double':
+            border_w = 2
+        for i in vim.Function('getcellwidths')():
+            if i[0] >= 0x2502 and i[1] <= 0x2502:
+                border_w = i[2]
+                break
+        if border_w != 2:
+            return
+        ts = '8,'
+        for i in vim.vars.get('notmuch_display_item', ['subject', 'from', 'date']):
+            if i == b'subject':
+                ts = ts + str(SUBJECT_LENGTH + 2) + ','
+            elif i == b'date':
+                ts = ts + str(len(
+                    datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(DATE_FORMAT)) + 2) \
+                    + ','
+            elif i == b'from':
+                ts = ts + str(FROM_LENGTH + 2) + ','
+        vim.current.buffer.options['vartabstop'] = ts + '1'
+
     global DBASE
     if search_term == '':
         return
@@ -964,6 +989,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     else:
         kind = 'search'
     reopen(kind, search_term)
+    set_vartabstop()
     if select_unread:
         index = get_unread_in_THREAD_LISTS(search_term)
         unread = DBASE.count_messages('(' + search_term + ') and tag:unread')
@@ -6056,8 +6082,7 @@ def notmuch_address():
 
 
 def notmuch_duplication(remake):
-    if not THREAD_LISTS:
-        set_global_var()
+    set_global_var()
     if remake or not ('*' in THREAD_LISTS):
         db = notmuch2.Database()
         # THREAD_LISTS の作成はマルチプロセスも試したが、大抵は数が少ないために反って遅くなる
@@ -6857,7 +6882,6 @@ else:
         + r'|(R[Ee][: ]*\d*)?\w+\.\d+:\d+\|( R[Ee][: ]\d+)? ?' \
         + r'|R[Ee][: ]+)*[　 ]*'
 set_folder_format()
-set_subject_length()
 RE_TOP_SPACE = re.compile(r'^\s+')  # 先頭空白削除
 RE_END_SPACE = re.compile(r'\s*$')  # 行末空白削除
 RE_TAB2SPACE = re.compile('[　\t]+')  # タブと全角空白→スペース←スレッド・リストではできるだけ短く、タブはデリミタに使用予定
