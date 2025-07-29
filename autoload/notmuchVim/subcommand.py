@@ -4910,7 +4910,7 @@ def after_make_draft(b, msg, add_head):
     msg_id = email.utils.make_msgid()
     b_v = vim.current.buffer.vars
     b_v = b_v['notmuch']
-    b_v['date'] = now.strftime(DATE_FORMAT)
+    b_v['date'] = now.strftime(vim.vars.get('notmuch_date_format', b'%Y-%m-%d %H:%M').decode())
     b_v['msg_id'] = msg_id[1:-1]
     b_v['tags'] = 'draft'
     b.append('Date: ' + email.utils.format_datetime(now))
