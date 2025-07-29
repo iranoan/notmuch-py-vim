@@ -451,7 +451,7 @@ def set_global_var():  # MailData で使用する設定依存の値をグロー�
             return vim.options['column'] - 1
 
         if 'notmuch_subject_length' in vim.vars:
-            return
+            return vim.vars['notmuch_subject_length'], from_length
         subject_length = 80 - from_length - 16 - 4
         width = get_width()
         time_length = len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))
@@ -473,14 +473,12 @@ def set_global_var():  # MailData で使用する設定依存の値をグロー�
         DATE_FORMAT = vim.vars['notmuch_date_format'].decode()
     else:
         DATE_FORMAT = '%Y-%m-%d %H:%M'
-    if 'notmuch_from_length' in vim.vars:  # スレッドに表示する Date の書式
+    if 'notmuch_from_length' in vim.vars:  # スレッドに表示する From の長さ
         FROM_LENGTH = vim.vars['notmuch_from_length']
     else:
         FROM_LENGTH = 21
-    if 'notmuch_subject_length' in vim.vars:  # スレッドに表示する Date の書式
-        SUBJECT_LENGTH = vim.vars['notmuch_subject_length']
-    else:
-        SUBJECT_LENGTH, FROM_LENGTH = set_subject_length(FROM_LENGTH, DATE_FORMAT)
+    # スレッドに表示する Subject の長さ
+    SUBJECT_LENGTH, FROM_LENGTH = set_subject_length(FROM_LENGTH, DATE_FORMAT)
     get_display_format()
 
 
