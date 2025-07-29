@@ -148,7 +148,7 @@ def set_subject_length():
         vim.vars['notmuch_from_length'] = 21
         from_length = 21
     if 'notmuch_date_format' in vim.vars:  # スレッドに表示する Date の書式
-        date_format = vim.vars['notmuch_date_format']
+        date_format = vim.vars['notmuch_date_format'].decode()
     else:
         date_format = '%Y-%m-%d %H:%M'
         vim.vars['notmuch_date_format'] = '%Y-%m-%d %H:%M'
