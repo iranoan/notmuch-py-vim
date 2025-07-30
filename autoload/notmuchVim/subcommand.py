@@ -206,6 +206,12 @@ def get_msg_header(msg, h):
 
 class MailData:  # メール毎の各種データ
     def __init__(self, msg, thread, order, depth):
+        def only_address(s):
+            adr = []
+            for a in email.utils.getaddresses([s]):
+                adr.append(a[1])
+            return adr
+
         self._date = msg.date              # 日付 (time_t)
         self._oldest = thread.first        # 同一スレッド中で最も古い日付 (time_t)
         self._latest = thread.last         # 同一スレッド中で最も新しい日付 (time_t)
@@ -228,21 +234,34 @@ class MailData:  # メール毎の各種データ
         # 整形した宛名
         m_from = get_msg_header(msg_f, 'From')
         m_to = get_msg_header(msg_f, 'To')
-        if m_to == '':
-            m_to = m_from
+        m_to_adr = only_address(m_to)
+        if m_to_adr == ['']:
+            m_to = get_msg_header(msg_f, 'Cc')
+            m_to_adr = only_address(m_to)
+            if m_to_adr == ['']:
+                m_to = get_msg_header(msg_f, 'Bcc')
+                m_to_adr = only_address(m_to)
+                if m_to_adr == ['']:
+                    m_to = m_from
+                    m_to_adr = only_address(m_to)
         # ↓From, To が同一なら From←名前が入っている可能性がより高い
-        m_to_adr = email2only_address(m_to)
         m_from_name = email2only_name(m_from)
         self._from = m_from_name.lower()
-        if m_to_adr == email2only_address(m_from):
+        if m_to_adr == [email2only_address(m_from)]:
             name = RE_TAB2SPACE.sub(' ', m_from_name)
         else:  # それ以外は送信メールなら To だけにしたいので、リスト利用
             self._tags = list(msg.tags)
             # 実際の判定 (To と Reply-To が同じなら ML だろうから除外)
             if (SENT_TAG in self._tags or 'draft' in self._tags) \
-                    and m_to_adr != email2only_address(get_msg_header(msg_f, 'Reply-To')) \
-                    and m_to != '':
-                name = 'To:' + email2only_name(m_to)
+                    and (m_to_adr != [email2only_address(get_msg_header(msg_f, 'Reply-To'))]
+                         or get_msg_header(msg_f, 'Reply-To') == ''):
+                name = []
+                for a in email.utils.getaddresses([m_to]):
+                    if a[0] != '':
+                        name.append(a[0])
+                    else:
+                        name.append(a[1])
+                name = 'To:' + ','.join(name)
             else:
                 name = RE_TAB2SPACE.sub(' ', m_from_name)
         self.__reformed_name = name
