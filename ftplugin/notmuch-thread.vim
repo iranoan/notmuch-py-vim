@@ -9,31 +9,6 @@ if exists('b:did_ftplugin_plugin')
 endif
 b:did_ftplugin_plugin = 1
 
-if !exists('g:ft_notmuch_thread')
-	g:ft_notmuch_thread = 1
-	def SetColorcolmun(): void
-		var colorcolumn: string = '7'
-		var n_colorcolumn: number = 7
-		for i in g:notmuch_display_item[0 : 1]
-			if i ==? 'subject'
-				n_colorcolumn += g:notmuch_subject_length + 1
-				colorcolumn ..= ',' .. n_colorcolumn
-			elseif i ==? 'from'
-				n_colorcolumn += g:notmuch_from_length + 1
-				colorcolumn ..= ',' .. n_colorcolumn
-			elseif i ==? 'date'
-				n_colorcolumn += py3eval('len(datetime.datetime(2022, 10, 26, 23, 10, 10, 555555).strftime(date_format))') + 1
-				# date_format によっては日付時刻が最も長くなりそうな 2022/10/26 23:10:10.555555 September, Wednesday
-				colorcolumn ..= ',' .. n_colorcolumn
-			endif
-		endfor
-		execute 'setlocal colorcolumn=' .. colorcolumn
-		if g:notmuch_visible_line == 2
-			execute 'highlight ColorColumn ' .. substitute(notmuch_py#Get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
-		endif
-	enddef
-endif
-
 setlocal statusline=%<%{(line('$')==1&&getline('$')==#'')?'\ \ \ -/-\ \ \ ':printf('%4d/%-4d',line('.'),line('$'))}\ tag:\ %{b:notmuch.tags}%=%4{line('w$')*100/line('$')}%%
 sign define notmuch text=* texthl=notmuchMark
 setlocal nomodifiable tabstop=1 cursorline nowrap nonumber signcolumn=yes foldmethod=expr foldminlines=1 foldcolumn=0 foldtext=notmuch_py#FoldThreadText() foldlevel=0 concealcursor=nvc conceallevel=3 nolist
@@ -54,9 +29,7 @@ for i in getcellwidths()
 	endif
 endfor
 if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 0
-	if g:notmuch_visible_line == 1 || g:notmuch_visible_line == 2
-		SetColorcolmun()
-	elseif g:notmuch_visible_line == 3
+	if g:notmuch_visible_line == 3
 		setlocal conceallevel=1
 		if bar_w == true
 			setlocal concealcursor-=v

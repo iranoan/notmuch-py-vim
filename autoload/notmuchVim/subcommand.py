@@ -420,6 +420,7 @@ def shellcmd_popen(param):
 
 
 def set_global_var():  # MailData で使用する設定依存の値をグローバル変数として保存
+    # +{T-WIN} の colorcolumn 設定をする
     def get_display_format():
         global DISPLAY_FORMAT, DISPLAY_FORMAT2
         """ set display format and order in thread list."""
@@ -479,9 +480,26 @@ def set_global_var():  # MailData で使用する設定依存の値をグロー�
         # 最後の数字は、絵文字で表示するタグ、区切りのタブ*3, sing+ウィンドウ境界
         if subject_length < from_length * 2:
             subject_length = int(width * 2 / 3)
-            return subject_length, width - subject_length
+            from_length = width - subject_length
         else:
-            return width - from_length, from_length
+            subject_length = width - from_length
+        visible_line = vim.vars.get('notmuch_visible_line', b'')
+        if visible_line == 1 or visible_line == 2:
+            colorcolumn = '7'
+            n_colorcolumn = 7
+            for i in vim.vars['notmuch_display_item'][0:2]:
+                if i == b'subject':
+                    n_colorcolumn += subject_length + 1
+                elif i == b'from':
+                    n_colorcolumn += from_length + 1
+                elif i == b'date':
+                    n_colorcolumn += time_length + 1
+                colorcolumn += ',' + str(n_colorcolumn)
+            vim.current.window.options['colorcolumn'] = colorcolumn
+            if visible_line == 2:  # ColorColumn の色を Normal の反転色にする
+                # Python では文字列の入れ替えができないので、Vim script関数を使う
+                vim.Function('notmuch_py#ChangeColorColumn')()
+        return subject_length, from_length
 
     global SENT_TAG, SUBJECT_LENGTH, FROM_LENGTH, DATE_FORMAT
     if 'notmuch_sent_tag' in vim.vars:  # 送信済みを表すタグ

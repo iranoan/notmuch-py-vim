@@ -1319,6 +1319,11 @@ export def Get_highlight(hi: string): string
 				'\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
 enddef
 
+export def ChangeColorColumn(): void
+	execute 'highlight ColorColumn ' .. substitute(notmuch_py#Get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
+	return
+enddef
+
 var fold_highlight: string = notmuch_py#Get_highlight('Folded')
 var specialkey_highlight: string = notmuch_py#Get_highlight('SpecialKey')
 var normal_highlight: string
