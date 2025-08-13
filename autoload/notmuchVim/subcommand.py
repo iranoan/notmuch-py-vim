@@ -2685,9 +2685,11 @@ def search_and_open_unread(active_win, index, search_term, v, top):
 
 def open_mail_by_buf_kind_index(w, k, s, index, v):
     """ 同一スレッド内の未読メール """
-    vim_goto_bufwinid(s_buf_num(k, s if k == 'search' else ''))
+    goto_winid = vim_goto_bufwinid(s_buf_num(k, s if k == 'search' else ''))
     reset_cursor_position(vim.current.buffer, index + 1)
-    fold_open()
+    if goto_winid:
+        change_buffer_vars_core()
+        fold_open()
     if is_same_tabpage('show', '') or is_same_tabpage('view', s):
         open_mail_by_msgid(s, THREAD_LISTS[s]['list'][index]._msg_id, w, False)
     DBASE.close()
