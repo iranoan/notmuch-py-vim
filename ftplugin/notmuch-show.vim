@@ -18,7 +18,6 @@ if !exists('g:ft_notmuch_show')
 		else
 			setlocal conceallevel=3
 		endif
-		setlocal conceallevel?
 	enddef
 
 	def ViewURL(): void
