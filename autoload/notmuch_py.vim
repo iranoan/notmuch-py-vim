@@ -1312,21 +1312,23 @@ def Notmuch_up_refine(dummy: list<any>): void
 	py3 notmuch_up_refine()
 enddef
 
-export def Get_highlight(hi: string): string
-	return substitute(substitute(substitute(execute('highlight ' .. hi),
-				'[\n\r]\+', '', 'g'),
-				' *' .. hi .. '\s\+xxx *', '', ''),
-				'\%(font=\%(\w\+ \)\+\ze\w\+=\|font=\%(\w\+ \?\)\+$\)', '', '')
+export def Get_highlight(hi: string): list<dict<any>>
+	var hl: dict<any> = hlget(hi)[0]
+	remove(hl, 'id')
+	remove(hl, 'name')
+	if has_key(hl, 'font')
+		remove(hl, 'font')
+	endif
+	return ([hl])
 enddef
 
 export def ChangeColorColumn(): void
-	execute 'highlight ColorColumn ' .. substitute(notmuch_py#Get_highlight('Normal'), '\m\C\%(bg\|fg\)\ze\=', '\={"bg": "fg", "fg": "bg"}[submatch(0)]', 'g')
-	return
+	notmuch_py#Get_highlight('Normal')->map((_, v) => v->extend({name: 'ColorColumn', term: {reverse: true}, cterm: {reverse: true}, gui: {reverse: true}}))->hlset()
 enddef
 
-var fold_highlight: string = notmuch_py#Get_highlight('Folded')
-var specialkey_highlight: string = notmuch_py#Get_highlight('SpecialKey')
-var normal_highlight: string
+var fold_highlight: list<dict<any>> = notmuch_py#Get_highlight('Folded')
+var specialkey_highlight: list<dict<any>> = notmuch_py#Get_highlight('SpecialKey')
+var normal_highlight: list<dict<any>>
 if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 1 && g:notmuch_visible_line !=# ''
 	try
 		normal_highlight = notmuch_py#Get_highlight(g:notmuch_visible_line)
@@ -1335,23 +1337,23 @@ if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 1 && g:no
 			autocmd!
 			autocmd BufEnter * echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None | autocmd! notmuch_visible_line
 		augroup END
-		normal_highlight = ''
+		normal_highlight = []
 	endtry
 else
-	normal_highlight = ''
+	normal_highlight = []
 endif
 
 def Change_fold_highlight(): void # Folded の色変更↑highlight の保存
 	if Is_sametab_thread()
 		highlight Folded NONE
-		if normal_highlight !=# ''
+		if normal_highlight !=# []
 			highlight SpecialKey NONE
-			execute 'silent! highlight SpecialKey ' .. normal_highlight
+			map(normal_highlight, (_, v) => v->extend({name: 'SpecialKey'}))->hlset()
 		endif
 	else
-		execute 'silent! highlight Folded ' .. fold_highlight
-		if normal_highlight !=# ''
-			execute 'silent! highlight SpecialKey ' .. specialkey_highlight
+		map(fold_highlight, (_, v) => v->extend({name: 'Folded'}))->hlset()
+		if normal_highlight !=# []
+			map(specialkey_highlight, (_, v) => v->extend({name: 'FoldSpecialKeyd'}))->hlset()
 		endif
 	endif
 enddef

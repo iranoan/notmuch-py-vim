@@ -1,19 +1,18 @@
-" Vim syntax file
-" Language: notmuch-show window
-scriptversion 4
+vim9script
+# Vim syntax file
+# Language: notmuch-show window
 
-" Quit when a syntax file was already loaded
+# Quit when a syntax file was already loaded
 if exists('b:current_syntax')
 	finish
 endif
 
-let s:cpo_save = &cpoptions
 set cpoptions&vim
 
 syntax case ignore
 
-call matchadd('Conceal', '\m[\x0C]')
-call matchadd('Conceal', '\m[\u200B]')
+matchadd('Conceal', '\m[\x0C]')
+matchadd('Conceal', '\m[\u200B]')
 
 execute 'source ' .. expand('<script>:p:h:h') .. '/macros/syntax-common.vim'
 
@@ -25,15 +24,15 @@ syntax region	mailNewPart	contains=mailHeader,@HTMLmailBoldlock,@mailHeaderField
 syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML part$' end='^[\x0C]'me=e-1 end='\%$' fold
 syntax region	HTMLmail	contains=mailNewPartHead,@HTMLmailBoldlock,@NoSpell start='^[\x0C]HTML mail$' end='^[\x0C]'me=e-1 end='\%$'
 
- " marddown
-" syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold,HTMLmailBoldItalic
+# marddown
+# syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold,HTMLmailBoldItalic
 syntax cluster	HTMLmailInline	contains=HTMLmailLinkText,HTMLmailItalic,HTMLmailBold
 syntax cluster	HTMLmailBoldlock	contains=HTMLmailH1,HTMLmailH2,HTMLmailH3,HTMLmailH4,HTMLmailH5,HTMLmailH6,@HTMLmailInline,HTMLmailLink,HTMLmailId
 
 syntax region	HTMLmailItalic	contained	matchgroup=HTMLmailItalicTag start="_" end="_" skip="\\_"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailBold	contained	matchgroup=HTMLmailBoldTag start="\*\*" end="\*\*" skip="\\\*"	contains=HTMLmailLinkBoldItalic,@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
-" syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\*\*" end="\*\*_\w\@!" skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
-" syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start='\*\*_' end='_\*\*\s' skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+# syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_\*\*" end="\*\*_\w\@!" skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
+# syntax region	HTMLmailBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start='\*\*_' end='_\*\*\s' skip="\\_\|\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="_" end="_" skip="\\_"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 syntax region	HTMLmailLinkBoldItalic	contained	matchgroup=HTMLmailBoldItalicTag start="\*\*" end="\*\*" skip="\\\*"	contains=@Spell,HTMLmailLink,HTMLmailLinkText concealends keepend
 
@@ -64,7 +63,7 @@ highlight default link HTMLmailLinkText	Underlined
 highlight default link HTMLmailId	Type
 highlight default link HTMLmailBold	htmlBold
 highlight default link HTMLmailBoldTag	htmlBold
-" highlight default link HTMLmailBoldItalic	htmlBoldItalic
+# highlight default link HTMLmailBoldItalic	htmlBoldItalic
 highlight default link HTMLmailLinkBoldItalic	htmlBoldItalic
 highlight default link HTMLmailBoldItalicTag htmlBoldItalic
 highlight default link HTMLmailItalic	htmlItalic
@@ -74,67 +73,19 @@ highlight default link HTMLmailLinkBold htmlLinkBold
 highlight default link HTMLmailLinkItalicTag htmlLinkItalic
 highlight default link HTMLmailLinkBoldTag htmlLinkBold
 
-let highlight_string = notmuch_py#Get_highlight('Normal')
-if highlight_string =~# '\<term='
-	let highlight_it = substitute(highlight_string, '\<term=', 'term=italic,', 'g')
-	let highlight_b = substitute(highlight_string, '\<term=', 'term=bold,', 'g')
-	let highlight_bi = substitute(highlight_string, '\<term=', 'term=bold,italic,italic,', 'g')
-else
-	let highlight_it = highlight_string ..' term=italic'
-	let highlight_b = highlight_string ..' term=bold'
-	let highlight_bi = highlight_string ..' term=bold,italic'
-endif
-if highlight_string =~# '\<cterm='
-	let highlight_it = substitute(highlight_it, '\<cterm=', 'cterm=italic,', 'g')
-	let highlight_b = substitute(highlight_b, '\<cterm=', 'cterm=bold,', 'g')
-	let highlight_bi = substitute(highlight_b, '\<cterm=', 'cterm=bold,italic,', 'g')
-else
-	let highlight_it = highlight_it ..' cterm=italic'
-	let highlight_b = highlight_b ..' cterm=bold'
-	let highlight_bi = highlight_b ..' cterm=bold,italic'
-endif
-if highlight_string =~# '\<gui='
-	let highlight_it = substitute(highlight_it, '\<gui=', 'gui=italic,', 'g')
-	let highlight_b = substitute(highlight_b, '\<gui=', 'gui=bold,', 'g')
-	let highlight_bi = substitute(highlight_b, '\<gui=', 'gui=bold,italic,', 'g')
-else
-	let highlight_it = highlight_it ..' gui=italic'
-	let highlight_b = highlight_b ..' gui=bold'
-	let highlight_bi = highlight_b ..' gui=bold,italic'
-endif
-execute 'highlight htmlBold ' .. highlight_b
-execute 'highlight htmlItalic ' .. highlight_it
-execute 'highlight htmlBoldItalic ' .. highlight_bi
-let highlight_string = notmuch_py#Get_highlight('Underlined')
-if highlight_string =~# '\<term='
-	let highlight_it = substitute(highlight_string, '\<term=', 'term=italic,', 'g')
-	let highlight_b = substitute(highlight_string, '\<term=', 'term=bold,', 'g')
-else
-	let highlight_it = highlight_string ..' term=italic'
-	let highlight_b = highlight_string ..' term=bold'
-endif
-if highlight_string =~# '\<cterm='
-	let highlight_it = substitute(highlight_it, '\<cterm=', 'cterm=italic,', 'g')
-	let highlight_b = substitute(highlight_b, '\<cterm=', 'cterm=bold,', 'g')
-else
-	let highlight_it = highlight_it ..' cterm=italic'
-	let highlight_b = highlight_b ..' cterm=bold'
-endif
-if highlight_string =~# '\<gui='
-	let highlight_it = substitute(highlight_it, '\<gui=', 'gui=italic,', 'g')
-	let highlight_b = substitute(highlight_b, '\<gui=', 'gui=bold,', 'g')
-else
-	let highlight_it = highlight_it ..' gui=italic'
-	let highlight_b = highlight_b ..' gui=bold'
-endif
-execute 'highlight htmlLinkItalic ' .. highlight_it
-execute 'highlight htmlLinkBold ' .. highlight_b
-unlet highlight_string
-unlet highlight_it
-unlet highlight_b
-unlet highlight_bi
+var hi_s: dict<any> = notmuch_py#Get_highlight('Normal')[0]
+var htmlBold: dict<any> = extendnew(hi_s, {name: 'htmlBold', term: {bold: true}, cterm: {bold: true}, gui: {bold: true}})
+var htmlItalic: dict<any> = extendnew(hi_s, {name: 'htmlItalic', term: {italic: true}, cterm: {italic: true}, gui: {italic: true}})
+var htmlBoldItalic: dict<any> = extendnew(hi_s, {name: 'htmlBoldItalic', term: {italic: true, bold: true}, cterm: {italic: true, bold: true}, gui: {italic: true, bold: true}})
+hi_s = notmuch_py#Get_highlight('Underlined')[0]
+var htmlLinkItalic: dict<any> = extendnew(hi_s, {name: 'htmlLinkItalic', term: {bold: true, underline: true}, cterm: {bold: true, underline: true}, gui: {bold: true, underline: true}})
+var htmlLinkBold: dict<any> = extendnew(hi_s, {name: 'htmlLinkBold', term: {italic: true, underline: true}, cterm: {italic: true, underline: true}, gui: {italic: true, underline: true}})
+hlset([
+	htmlBold,
+	htmlItalic,
+	htmlBoldItalic,
+	htmlLinkItalic,
+	htmlLinkBold,
+])
 
-let b:current_syntax = 'notmuch-show'
-
-let &cpoptions = s:cpo_save
-unlet s:cpo_save
+b:current_syntax = 'notmuch-show'
