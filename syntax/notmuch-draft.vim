@@ -1,23 +1,21 @@
-" Vim syntax file
-" Language: notmuch-draft window
-scriptversion 4
+vim9script
+# Vim syntax file
+# Language: notmuch-draft window
 
-" Quit when a syntax file was already loaded
+# Quit when a syntax file was already loaded
 if exists('b:current_syntax')
 	finish
 endif
-
-let s:cpo_save = &cpoptions
-set cpoptions&vim
+b:current_syntax = 'notmuch-draft'
 
 syntax case ignore
 
 execute 'source ' .. expand('<script>:p:h:h') .. '/macros/syntax-common.vim'
 
-" Syntax clusters
+# Syntax clusters
 syntax cluster	mailHeaderComp	contains=mailHeaderAddress,mailHeaderAttach,mailHeaderEncrypt,mailHeaderFcc,mailHeaderSignature
 
-" Multipart
+# Multipart
 syntax match	mailMultiHead	contained	contains=@NoSpell '^--\%(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$'
 syntax region	mailMultiHeader	contained	contains=mailHeaderKey,mailMultiHead,@mailHeaderField,@NoSpell start='^--\%(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$' skip='^\s' end='^$' fold
 syntax region	mailMultiPart     keepend	contains=mailMultiHeader,@mailLinks,@NoSpell start='^--\z\(\%([a-z0-9-\.=_]\+[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9\._]\+[a-z0-9-\.=_]\+\|[a-z0-9-\.=_]\+[a-z0-9\._]\+\)[^-][^-]\)$' end='^--\z1--$' end='^--\z1$'me=s-1 fold
@@ -36,8 +34,3 @@ highlight def link mailHeaderSignature mailHeader
 highlight def link mailMultiHeader	mailHeader
 highlight def link mailHeader2	mailHeader
 highlight def link mailMultiHead	mailNewPartHead
-
-let b:current_syntax = 'notmuch-draft'
-
-let &cpoptions = s:cpo_save
-unlet s:cpo_save

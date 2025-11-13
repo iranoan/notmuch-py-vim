@@ -1646,6 +1646,18 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
 
     def select_header(part, part_ls, pgp, out):
         attachment = decode_header(part.get_filename(), True, part.get_content_charset())
+        # ↑filename が filename*より先に有ると RFC2231 に準拠せず、filename が使われる
+        if attachment != '':  # → 空文字でなければ、filename* の検索を試みる
+            match = re.search(r"filename\*=(?P<charset>[^']*)'(?P<lang>[^']*)'(?P<encoded_text>[^;]*)",
+                              part.get("Content-Disposition"))
+            if match:
+                try:
+                    attachment = unquote(match.group('encoded_text'), encoding=match.group('charset'))
+                except Exception:  # フォールバック
+                    pass
+            #         attachment = decode_header(part.get_filename(), True, part.get_content_charset())
+            # else:
+            #     attachment = decode_header(part.get_filename(), True, part.get_content_charset())
         name = ''
         for t in part.get_params():
             if t[0] == 'name':

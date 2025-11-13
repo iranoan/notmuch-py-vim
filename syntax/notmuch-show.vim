@@ -7,8 +7,6 @@ if exists('b:current_syntax')
 	finish
 endif
 
-set cpoptions&vim
-
 syntax case ignore
 
 matchadd('Conceal', '\m[\x0C]')
