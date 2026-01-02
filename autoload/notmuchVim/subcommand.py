@@ -4646,7 +4646,11 @@ def new_mail(s):
         header = header.decode()
         header_l = header.lower()
         if header_l in headers:
-            b.append(header + ': ' + headers.pop(header_l))
+            h_item = re.split(r'[\n\r]', headers.pop(header_l))
+            b.append(header + ': ' + h_item[0])
+            if len(h_item) > 1:
+                for i in h_item[1:]:
+                    b.append('\t' + i)
         elif header_l == 'attach':  # これだけは必ず最後
             add_head = 0x03
         else:
