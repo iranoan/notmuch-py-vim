@@ -308,7 +308,7 @@ def Previous_page(args: list<any>): void
 		Make_show()
 	endif
 	SelectMailView(l_buf_num)
-	execute "normal! \<PageUp>"
+	execute 'normal! ' .. (line('w0') - 1) .. 'z-H'
 	win_gotoid(bufwinid(l_buf_num))
 enddef
 
