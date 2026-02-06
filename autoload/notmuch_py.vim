@@ -92,6 +92,21 @@ def Change_exist_tabpage_core(bufnum: number): void
 	endif
 enddef
 
+var fold_highlight: list<dict<any>> = [extend(hlget('Folded')[0], {font: ''})]
+var specialkey_highlight: list<dict<any>> = [extend(hlget('SpecialKey')[0], {font: ''})]
+var normal_highlight: list<dict<any>>
+
+augroup NotmuchPython
+	autocmd!
+	autocmd ColorScheme * fold_highlight = [extend(hlget('Folded')[0], {font: ''})]
+		| specialkey_highlight = [extend(hlget('SpecialKey')[0], {font: ''})]
+	autocmd OptionSet background fold_highlight = [extend(hlget('Folded')[0], {font: ''})]
+		| specialkey_highlight = [extend(hlget('SpecialKey')[0], {font: ''})]
+	autocmd BufEnter,WinEnter * Change_fold_highlight()
+	autocmd FileType notmuch-edit setlocal syntax=notmuch-draft
+	# ↑syntax の反映が setlocal filetype=xxx に引きずられる
+augroup END
+
 def Make_folders_list(): void
 	if has_key(buf_num, 'folders') # && bufname(buf_num.folders) !=? ''
 		Change_exist_tabpage_core(buf_num.folders)
@@ -114,10 +129,7 @@ def Make_folders_list(): void
 		execute('silent file! notmuch://folder?' .. cwd)
 		filter(v:oldfiles, 'v:val !~ ''^notmuch://folder?' .. cwd .. '''')
 		py3 print_folder()
-		augroup NotmuchMakeFolder
-			autocmd!
-			autocmd BufWipeout <buffer> End_notmuch()
-		augroup END
+		autocmd NotmuchPython BufWipeout <buffer> ++once End_notmuch()
 	endif
 enddef
 
@@ -130,10 +142,7 @@ def Make_thread_list(): void # スレッド・バッファを用意するだけ
 	Set_thread(buf_num.thread)
 	silent file! notmuch://thread
 	filter(v:oldfiles, 'v:val !~ "^notmuch://thread"')
-	augroup NotmuchMakeThread
-		autocmd!
-		autocmd BufWipeout <buffer> unlet buf_num.thread
-	augroup END
+	autocmd NotmuchPython BufWipeout <buffer> ++once unlet buf_num.thread
 	if g:notmuch_open_way.show !=? 'enew' && g:notmuch_open_way.show !=? 'tabedit' && g:notmuch_open_way.show !=? 'tabnew'
 		Make_show()
 	endif
@@ -147,14 +156,7 @@ def Make_search_list(search_term: string): void
 	New_buffer('search', search_term)
 	var l_bufnr = bufnr()
 	Set_thread(l_bufnr)
-	execute 'augroup NotmuchMakeSearch' .. l_bufnr
-		autocmd!
-		execute 'autocmd BufWipeout <buffer=' .. l_bufnr .. '> unlet buf_num.search[b:notmuch.search_term]' ..
-					'| autocmd! NotmuchMakeSearch' .. l_bufnr ..
-					'| augroup! NotmuchMakeSearch' .. l_bufnr ..
-					'| autocmd! NotmuchSetThread' .. l_bufnr ..
-					'| augroup! NotmuchSetThread' .. l_bufnr
-	augroup END
+	autocmd NotmuchPython BufWipeout <buffer> ++once unlet buf_num.search[b:notmuch.search_term]
 	if g:notmuch_open_way.view !=? 'enew' && g:notmuch_open_way.view !=? 'tabedit' && g:notmuch_open_way.show !=? 'tabnew'
 		Make_view(search_term)
 	endif
@@ -165,10 +167,7 @@ def Set_thread(n: number): void
 	b:notmuch.search_term = ''
 	b:notmuch.msg_id = ''
 	b:notmuch.running_open_mail = false
-	execute 'augroup NotmuchSetThread' .. n
-		autocmd!
-		execute 'autocmd CursorMoved <buffer=' .. n .. '> Cursor_move_thread(b:notmuch.search_term)'
-	augroup END
+	autocmd NotmuchPython CursorMoved <buffer> Cursor_move_thread(b:notmuch.search_term)
 enddef
 
 function Open_something(args) abort
@@ -192,10 +191,7 @@ def Make_show(): void # メール・バッファを用意するだけ
 	Set_show()
 	silent file! notmuch://show
 	filter(v:oldfiles, 'v:val !~ "^notmuch://show"')
-	augroup NotmuchMakeShow
-		autocmd!
-		autocmd BufWipeout <buffer> unlet buf_num.show
-	augroup END
+	autocmd NotmuchPython BufWipeout <buffer> ++once unlet buf_num.show
 enddef
 
 def Make_view(search_term: string): void # メール・バッファを用意するだけ
@@ -206,12 +202,7 @@ def Make_view(search_term: string): void # メール・バッファを用意す�
 	New_buffer('view', search_term)
 	var l_bufnr = bufnr()
 	Set_show()
-	execute 'augroup NotmuchMakeView' .. l_bufnr
-		autocmd!
-		execute 'autocmd BufWipeout <buffer=' .. l_bufnr .. '> unlet buf_num.view[b:notmuch.search_term]' ..
-					'| autocmd! NotmuchMakeView' .. l_bufnr ..
-					'| augroup! NotmuchMakeView' .. l_bufnr
-	augroup END
+	autocmd NotmuchPython BufWipeout <buffer> ++once unlet buf_num.view[b:notmuch.search_term]
 enddef
 
 def Set_show(): void
@@ -648,10 +639,7 @@ enddef
 var titlestring: string = &titlestring
 def Set_title_etc(): void
 	if &title
-		augroup NotmuchTitle
-			autocmd!
-			autocmd BufEnter,BufFilePost * &titlestring = Make_title()
-		augroup END
+		autocmd NotmuchPython BufEnter,BufFilePost * &titlestring = Make_title()
 	endif
 	if has('gui_running') && &showtabline != 0 && &guitablabel ==# ''
 		set guitablabel=%{%&filetype!~#'^notmuch-'?'%t':notmuch_py#GetGUITabline()%}
@@ -947,61 +935,35 @@ enddef
 
 def Au_edit(win: number, search_term: string, reload: bool): void # 閉じた時の処理 (呼び出し元に戻り reload == true で notmuch-show, notmuch-view が同じタブページに有れば再読込)
 	var l_bufnr = bufnr()
-	execute 'augroup NotmuchEdit' .. l_bufnr
-		autocmd!
-		execute 'autocmd BufWinLeave <buffer> Change_exist_tabpage_core(' .. win .. ') |' ..
-					(reload ?
-						(search_term ==# '' ?  'if py3eval(''is_same_tabpage("show", "")'') |'
-						: 'if py3eval(''is_same_tabpage(''''view'''', ''''' .. escape(search_term, '''\') .. ''''')'') |') ..
-								'win_gotoid(bufwinid(buf_num["show"])) | ' ..
-								'Reload([]) |' ..
-							'endif | '
-					: '') ..
-							'win_gotoid(bufwinid(' .. win .. ')) |' ..
-							'autocmd! NotmuchEdit' .. l_bufnr .. ' |' ..
-							'augroup! NotmuchEdit' .. l_bufnr
-	augroup END
+	execute 'autocmd NotmuchPython BufWinLeave <buffer> ++once Change_exist_tabpage_core(' .. win .. ') |' ..
+		(reload ?
+			(search_term ==# '' ? 'if py3eval(''is_same_tabpage("show", "")'') |'
+			: 'if py3eval(''is_same_tabpage(''''view'''', ''''' .. escape(search_term, '''\') .. ''''')'') |') ..
+					'win_gotoid(bufwinid(buf_num["show"])) | ' ..
+					'Reload([]) |' ..
+				'endif | '
+		: '') ..
+		'win_gotoid(bufwinid(' .. win .. '))'
 enddef
 
 def Au_new_mail(): void # 新規/添付転送メールでファイル末尾移動時に From 設定や署名の挿入
-	var l_bufnr = bufnr()
-	execute 'augroup NotmuchNewAfter' .. l_bufnr
-		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_new_after(' .. l_bufnr .. ')")'
-	augroup END
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_new_after()')
 enddef
 
 def Au_reply_mail(): void # 返信メールでファイル末尾移動時に From 設定や署名・返信元引用文の挿入
-	var l_bufnr = bufnr()
-	execute 'augroup NotmuchReplyAfter' .. l_bufnr
-		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_reply_after(' .. l_bufnr .. ')")'
-	augroup END
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_reply_after()')
 enddef
 
 def Au_forward_mail(): void # 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
-	var l_bufnr = bufnr()
-	execute 'augroup NotmuchForwardAfter' .. l_bufnr
-		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_forward_after(' .. l_bufnr .. ')")'
-	augroup END
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_forward_after()')
 enddef
 
 def Au_resent_mail(): void # 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
-	var l_bufnr = bufnr()
-	execute 'augroup NotmuchResentAfter' .. l_bufnr
-		autocmd!
-		execute 'autocmd CursorMoved,CursorMovedI <buffer=' .. l_bufnr .. '> py3eval("set_resent_after(' .. l_bufnr .. ')")'
-	augroup END
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_resent_after()')
 enddef
 
 def Au_write_draft(): void # draft mail の保存
-	var l_bufnr = bufnr()
-	execute 'augroup NotmuchSaveDraft' .. l_bufnr
-		autocmd!
-		autocmd BufWrite <buffer> py3 save_draft()
-		execute 'autocmd BufWipeout <buffer=' .. l_bufnr .. '> autocmd! NotmuchSaveDraft' .. l_bufnr
-	augroup END
+	autocmd NotmuchPython BufWrite <buffer> py3 save_draft()
 enddef
 
 function Mark_in_thread(args) range abort
@@ -1333,10 +1295,7 @@ if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 1 && g:no
 	try
 		normal_highlight = notmuch_py#Get_highlight(g:notmuch_visible_line)
 	catch /^Vim\%((\a\+)\)\=:E411:/
-		augroup notmuch_visible_line
-			autocmd!
-			autocmd BufEnter * echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None | autocmd! notmuch_visible_line
-		augroup END
+		autocmd NotmuchPython BufEnter * ++once echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None
 		normal_highlight = []
 	endtry
 else
@@ -1357,17 +1316,6 @@ def Change_fold_highlight(): void # Folded の色変更↑highlight の保存
 		endif
 	endif
 enddef
-
-augroup ChangeFoldHighlight
-	autocmd!
-	autocmd BufEnter,WinEnter * Change_fold_highlight()
-augroup END
-
-augroup NotmuchFileType
-	autocmd!
-	autocmd FileType notmuch-edit setlocal syntax=notmuch-draft
-	# ↑syntax の反映が setlocal filetype=xxx に引きずられる
-augroup END
 
 export def FoldThreadText(): string
 	return py3eval('get_folded_list(' .. v:foldstart .. ',' .. v:foldend .. ')')

@@ -5050,11 +5050,10 @@ def Bwipeout(b_n):  # notmuch-thread, notmuch-show でバッファ名変更前�
             vim.command('bwipeout! ' + str(b.number))
 
 
-def set_new_after(n):
+def set_new_after():
     """ 新規メールの From ヘッダの設定や署名の挿入 """
     if vim.current.window.cursor[0] < len(vim.current.buffer):
         return
-    vim.command('autocmd! NotmuchNewAfter' + str(n))
     to, h_from = set_from()
     insert_signature(to, h_from)
 
@@ -5118,11 +5117,10 @@ def set_reference(b, msg, flag):
     b.append('Fcc: ' + fcc)
 
 
-def set_reply_after(n):
+def set_reply_after():
     """ 返信メールの From ヘッダの設定や引用本文・署名の挿入 """
     if vim.current.window.cursor[0] < len(vim.current.buffer):
         return
-    vim.command('autocmd! NotmuchReplyAfter' + str(n))
     to, h_from = set_from()
     b = vim.current.buffer
     b_v = b.vars['notmuch']
@@ -5141,11 +5139,10 @@ def set_reply_after(n):
     del b_v['org_mail_from']
 
 
-def set_forward_after(n):
+def set_forward_after():
     """ 返信メールの From ヘッダの設定や引用本文・署名の挿入 """
     if vim.current.window.cursor[0] < len(vim.current.buffer):
         return
-    vim.command('autocmd! NotmuchForwardAfter' + str(n))
     to, h_from = set_from()
     b = vim.current.buffer
     b_v = b.vars['notmuch']
@@ -5161,11 +5158,10 @@ def set_forward_after(n):
     del b_v['org_mail_body']
 
 
-def set_resent_after(n):
+def set_resent_after():
     """ そのまま転送メールの From ヘッダの設定や署名の挿入 """
     if vim.current.window.cursor[0] < len(vim.current.buffer) - 1:
         return
-    vim.command('autocmd! NotmuchResentAfter' + str(n))
     to, h_from = set_from()
     if to:
         if is_gtk():
