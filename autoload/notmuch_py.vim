@@ -479,57 +479,79 @@ if 'notmuchVim' not in sys.modules:
         sys.path.append(vim.eval('script_root') + '/autoload/')
     import notmuchVim
     # vim から呼び出す関数は関数名だけで呼び出せるようにする
-    from notmuchVim.subcommand import add_tags
-    from notmuchVim.subcommand import buf_kind
-    from notmuchVim.subcommand import delete_mail
-    from notmuchVim.subcommand import delete_tags
-    from notmuchVim.subcommand import do_mail
-    from notmuchVim.subcommand import export_mail
-    from notmuchVim.subcommand import fold_open
-    from notmuchVim.subcommand import get_cmd_name
-    from notmuchVim.subcommand import get_cmd_name_ftype
-    from notmuchVim.subcommand import get_command
-    from notmuchVim.subcommand import get_folded_list
-    from notmuchVim.subcommand import get_hide_header
-    from notmuchVim.subcommand import get_last_cmd
-    from notmuchVim.subcommand import get_mail_folders
-    from notmuchVim.subcommand import get_mark_cmd_name
-    from notmuchVim.subcommand import get_msg_all_tags_list
-    from notmuchVim.subcommand import get_msg_id
-    from notmuchVim.subcommand import get_msg_tags_any_kind
-    from notmuchVim.subcommand import get_msg_tags_diff
-    from notmuchVim.subcommand import get_msg_tags_list
-    from notmuchVim.subcommand import get_save_dir
-    from notmuchVim.subcommand import get_save_filename
-    from notmuchVim.subcommand import get_search_snippet
-    from notmuchVim.subcommand import get_sys_command
-    from notmuchVim.subcommand import is_same_tabpage
-    from notmuchVim.subcommand import move_mail
-    from notmuchVim.subcommand import next_unread
-    from notmuchVim.subcommand import notmuch_down_refine
-    from notmuchVim.subcommand import notmuch_refine
-    from notmuchVim.subcommand import notmuch_up_refine
-    from notmuchVim.subcommand import open_original
-    from notmuchVim.subcommand import open_something
-    from notmuchVim.subcommand import previous_unread
-    from notmuchVim.subcommand import print_folder
-    from notmuchVim.subcommand import reindex_mail
-    from notmuchVim.subcommand import reopen
-    from notmuchVim.subcommand import reset_cursor_position
-    from notmuchVim.subcommand import run_shell_program
-    from notmuchVim.subcommand import save_attachment
-    from notmuchVim.subcommand import save_mail
-    from notmuchVim.subcommand import set_attach
-    from notmuchVim.subcommand import set_encrypt
-    from notmuchVim.subcommand import set_fcc
-    from notmuchVim.subcommand import set_forward_after
-    from notmuchVim.subcommand import set_new_after
-    from notmuchVim.subcommand import set_reply_after
-    from notmuchVim.subcommand import set_resent_after
-    from notmuchVim.subcommand import set_tags
-    from notmuchVim.subcommand import thread_change_sort
-    from notmuchVim.subcommand import toggle_tags
-    from notmuchVim.subcommand import view_mail_info
+    from notmuchVim.subcommand import \
+            add_tags, \
+            buf_kind, \
+            command_marked, \
+            connect_thread_tree, \
+            cursor_move_thread, \
+            cut_thread, \
+            delete_attachment, \
+            delete_mail, \
+            delete_tags, \
+            do_mail, \
+            export_mail, \
+            fold_open, \
+            forward_mail, \
+            forward_mail_attach, \
+            forward_mail_resent, \
+            get_cmd_name, \
+            get_cmd_name_ftype, \
+            get_command, \
+            get_folded_list, \
+            get_hide_header, \
+            get_last_cmd, \
+            get_mail_folders, \
+            get_mark_cmd_name, \
+            get_msg_all_tags_list, \
+            get_msg_id, \
+            get_msg_tags_any_kind, \
+            get_msg_tags_diff, \
+            get_msg_tags_list, \
+            get_save_dir, \
+            get_save_filename, \
+            get_search_snippet, \
+            get_sys_command, \
+            import_mail, \
+            is_same_tabpage, \
+            make_dump, \
+            move_mail, \
+            new_mail, \
+            next_unread, \
+            notmuch_address, \
+            notmuch_down_refine, \
+            notmuch_duplication, \
+            notmuch_refine, \
+            notmuch_search, \
+            notmuch_thread, \
+            notmuch_up_refine, \
+            open_original, \
+            open_something, \
+            previous_unread, \
+            print_folder, \
+            reindex_mail, \
+            reload, \
+            reopen, \
+            reply_mail, \
+            reset_cursor_position, \
+            run_shell_program, \
+            save_attachment, \
+            save_draft, \
+            save_mail, \
+            send_vim, \
+            set_attach, \
+            set_encrypt, \
+            set_fcc, \
+            set_forward_after, \
+            set_new_after, \
+            set_reply_after, \
+            set_resent_after, \
+            set_subcmd_newmail, \
+            set_subcmd_start, \
+            set_tags, \
+            thread_change_sort, \
+            toggle_tags, \
+            view_mail_info
 _EOF_
 enddef
 
@@ -544,7 +566,7 @@ def StartNotmuch(): void
 		buf_num.view = {}
 	endif
 	Import()
-	py3 notmuchVim.subcommand.set_subcmd_start()
+	py3 set_subcmd_start()
 	execute 'cd ' .. py3eval('get_save_dir()')
 	MakeFoldersList()
 	SetTitleEtc()
@@ -686,7 +708,7 @@ def EndNotmuch(): void # 全て終了 (notmuch-folders が bwipeout されたら
 			return
 		endif
 	endfor
-	py3 notmuchVim.subcommand.make_dump()
+	py3 make_dump()
 	bufnr = SearchNotNotmuch()
 	if bufnr == 0
 		cquit # →全終了
@@ -748,20 +770,20 @@ function OpenOriginal(args) abort
 endfunction
 
 def Reload(args: list<any>): void
-	py3 notmuchVim.subcommand.reload()
+	py3 reload()
 enddef
 
 def CursorMoveThread(search_term: string): void
 	if line('.') != line('v') || b:notmuch.running_open_mail
 		return
 	endif
-	py3eval('notmuchVim.subcommand.cursor_move_thread(''' .. escape(search_term, '''\') .. ''')')
+	py3eval('cursor_move_thread(''' .. escape(search_term, '''\') .. ''')')
 enddef
 
 function NewMail(...) abort
 	if !py3eval('"DBASE" in globals()')  " フォルダ一覧も非表示状態で呼ばれた場合
 		call s:Import()
-		py3 notmuchVim.subcommand.set_subcmd_newmail()
+		py3 set_subcmd_newmail()
 		execute 'cd ' .. py3eval('get_save_dir()')
 		if &title
 			let &titlestring=s:MakeTitle()
@@ -770,27 +792,27 @@ function NewMail(...) abort
 			set guitablabel=%{%&filetype!~#'^notmuch-'?'%t':notmuch_py#GetGUITabline()%}
 		endif
 	endif
-	py3 notmuchVim.subcommand.new_mail(vim.eval('a:000'))
+	py3 new_mail(vim.eval('a:000'))
 endfunction
 
 def ForwardMail(args: list<any>): void
-	py3 notmuchVim.subcommand.forward_mail()
+	py3 forward_mail()
 enddef
 
 def ForwardMailAttach(args: list<any>): void
-	py3 notmuchVim.subcommand.forward_mail_attach()
+	py3 forward_mail_attach()
 enddef
 
 def ForwardMailResent(args: list<any>): void
-	py3 notmuchVim.subcommand.forward_mail_resent()
+	py3 forward_mail_resent()
 enddef
 
 def ReplyMail(args: list<any>): void
-	py3 notmuchVim.subcommand.reply_mail()
+	py3 reply_mail()
 enddef
 
 def SendVim(args: list<any>): void
-	py3 notmuchVim.subcommand.send_vim()
+	py3 send_vim()
 enddef
 
 function SaveMail(args) abort
@@ -819,7 +841,7 @@ function ReindexMail(args) abort
 endfunction
 
 function ImportMail(args) abort
-	py3 notmuchVim.subcommand.import_mail(vim.eval('a:args'))
+	py3 import_mail(vim.eval('a:args'))
 endfunction
 
 function DeleteMail(args) abort
@@ -831,7 +853,7 @@ function ExportMail(args) abort
 endfunction
 
 function DeleteAttachment(args) abort
-	py3 notmuchVim.subcommand.delete_attachment(vim.eval('a:args'))
+	py3 delete_attachment(vim.eval('a:args'))
 endfunction
 
 def CloseCore(): void # notmuch-* を閉じる (閉じるメイン部分)
@@ -926,23 +948,23 @@ def AuEdit(win: number, search_term: string, reload: bool): void # 閉じた時�
 enddef
 
 def AuNewMail(): void # 新規/添付転送メールでファイル末尾移動時に From 設定や署名の挿入
-	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_new_after()')
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> py3eval('set_new_after()')
 enddef
 
 def AuReplyMail(): void # 返信メールでファイル末尾移動時に From 設定や署名・返信元引用文の挿入
-	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_reply_after()')
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> py3eval('set_reply_after()')
 enddef
 
 def AuForwardMail(): void # 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
-	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_forward_after()')
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> py3eval('set_forward_after()')
 enddef
 
 def AuResentMail(): void # 転送メールでファイル末尾移動時に From 設定や署名・転送元の挿入
-	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> ++once py3eval('set_resent_after()')
+	autocmd NotmuchPython CursorMoved,CursorMovedI <buffer> py3eval('set_resent_after()')
 enddef
 
 def AuWriteDraft(): void # draft mail の保存
-	autocmd NotmuchPython BufWrite <buffer> py3 notmuchVim.subcommand.save_draft()
+	autocmd NotmuchPython BufWrite <buffer> py3 save_draft()
 enddef
 
 function MarkInThread(args) range abort
@@ -976,16 +998,16 @@ function MarkInThread(args) range abort
 endfunction
 
 def CutThread(args: list<any>): void
-	py3 notmuchVim.subcommand.cut_thread(get_msg_id(), [])
+	py3 cut_thread(get_msg_id(), [])
 enddef
 
 def ConnectThread(args: list<any>): void
-	py3 notmuchVim.subcommand.connect_thread_tree()
+	py3 connect_thread_tree()
 enddef
 
 function CommandMarked(args) abort " マークしたメールに纏めてコマンド実行
 	call remove(a:args, 0, 1)
-	py3 notmuchVim.subcommand.command_marked(vim.eval('a:args'))
+	py3 command_marked(vim.eval('a:args'))
 endfunction
 
 export def CompAllArgs(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
@@ -1124,19 +1146,19 @@ def CompleteCommand(CmdLine: string, CursorPos: number, direct_command: bool): l
 enddef
 
 function NotmuchSearch(args) abort " notmuch search
-	py3 notmuchVim.subcommand.notmuch_search(vim.eval('a:args'))
+	py3 notmuch_search(vim.eval('a:args'))
 endfunction
 
 def NotmuchThread(args: list<any>): void
-	py3 notmuchVim.subcommand.notmuch_thread()
+	py3 notmuch_thread()
 enddef
 
 def NotmuchAddress(args: list<any>): void
-	py3 notmuchVim.subcommand.notmuch_address()
+	py3 notmuch_address()
 enddef
 
 def NotmuchDuplication(args: list<any>): void
-	py3 notmuchVim.subcommand.notmuch_duplication(0)
+	py3 notmuch_duplication(0)
 enddef
 
 export def CompSearch(ArgLead: string, CmdLine: string, CursorPos: number): list<any>

@@ -622,68 +622,72 @@ def set_subcmd_start():
     """ start して初めて許可するコマンドの追加 """
     cmd = vim.vars['notmuch_command']
     if 'open' not in cmd:  # start はいきなり呼び出し可能なので、open で判定
-        cmd['attach-delete'] = ['DeleteAttachment', 0x06]
-        cmd['attach-save'] = ['SaveAttachment', 0x06]
-        cmd['close'] = ['Close', 0x04]
-        cmd['close-tab'] = ['CloseTab', 0x04]
-        cmd['mail-attach-forward'] = ['ForwardMailAttach', 0x04]
-        cmd['mail-delete'] = ['DeleteMail', 0x06]
-        cmd['mail-edit'] = ['OpenOriginal', 0x06]
-        cmd['mail-export'] = ['ExportMail', 0x06]
-        cmd['mail-forward'] = ['ForwardMail', 0x04]
-        cmd['mail-import'] = ['ImportMail', 0x05]
-        cmd['mail-info'] = ['ViewMailInfo', 0x0c]
-        cmd['mail-move'] = ['MoveMail', 0x07]
-        cmd['mail-new'] = ['NewMail', 0x07]
-        cmd['mail-reply'] = ['ReplyMail', 0x04]
-        cmd['mail-reindex'] = ['ReindexMail', 0x06]
-        cmd['mail-resent-forward'] = ['ForwardMailResent', 0x04]
-        cmd['mail-save'] = ['SaveMail', 0x05]
-        cmd['mail-send'] = ['SendVim', 0x0c]
-        cmd['mark'] = ['MarkInThread', 0x04]
-        cmd['mark-command'] = ['CommandMarked', 0x05]
-        cmd['open'] = ['OpenSomething', 0x04]
-        cmd['view-previous'] = ['PreviousPage', 0x04]
-        cmd['view-unread-page'] = ['NextUnreadPage', 0x04]
-        cmd['view-unread-mail'] = ['NextUnread', 0x04]
-        cmd['view-previous-unread'] = ['PreviousUnread', 0x04]
-        cmd['reload'] = ['Reload', 0x04]
-        cmd['run'] = ['RunShellProgram', 0x07]
-        cmd['search'] = ['NotmuchSearch', 0x05]
-        cmd['search-thread'] = ['NotmuchThread', 0x04]
-        cmd['search-address'] = ['NotmuchAddress', 0x04]
-        cmd['search-duplication'] = ['NotmuchDuplication', 0x04]
-        cmd['search-refine'] = ['NotmuchRefine', 0x05]
-        cmd['search-up-refine'] = ['NotmuchUpRefine', 0x04]
-        cmd['search-down-refine'] = ['NotmuchDownRefine', 0x04]
-        cmd['tag-add'] = ['AddTags', 0x1f]
-        cmd['tag-delete'] = ['DeleteTags', 0x1f]
-        cmd['tag-toggle'] = ['ToggleTags', 0x1f]
-        cmd['tag-set'] = ['SetTags', 0x1f]
-        cmd['thread-connect'] = ['ConnectThread', 0x06]
-        cmd['thread-cut'] = ['CutThread', 0x06]
-        cmd['thread-next'] = ['NextThread', 0x04]
-        cmd['thread-toggle'] = ['ToggleThread', 0x04]
-        cmd['thread-sort'] = ['ThreadChangeSort', 0x05]
-        cmd['set-fcc'] = ['SetFcc', 0x09]
-        cmd['set-attach'] = ['SetAttach', 0x09]
-        cmd['set-encrypt'] = ['SetEncrypt', 0x09]
+        cmd.update({
+            'attach-delete': ['DeleteAttachment', 0x06],
+            'attach-save': ['SaveAttachment', 0x06],
+            'close': ['Close', 0x04],
+            'close-tab': ['CloseTab', 0x04],
+            'mail-attach-forward': ['ForwardMailAttach', 0x04],
+            'mail-delete': ['DeleteMail', 0x06],
+            'mail-edit': ['OpenOriginal', 0x06],
+            'mail-export': ['ExportMail', 0x06],
+            'mail-forward': ['ForwardMail', 0x04],
+            'mail-import': ['ImportMail', 0x05],
+            'mail-info': ['ViewMailInfo', 0x0c],
+            'mail-move': ['MoveMail', 0x07],
+            'mail-new': ['NewMail', 0x07],
+            'mail-reply': ['ReplyMail', 0x04],
+            'mail-reindex': ['ReindexMail', 0x06],
+            'mail-resent-forward': ['ForwardMailResent', 0x04],
+            'mail-save': ['SaveMail', 0x05],
+            'mail-send': ['SendVim', 0x0c],
+            'mark': ['MarkInThread', 0x04],
+            'mark-command': ['CommandMarked', 0x05],
+            'open': ['OpenSomething', 0x04],
+            'view-previous': ['PreviousPage', 0x04],
+            'view-unread-page': ['NextUnreadPage', 0x04],
+            'view-unread-mail': ['NextUnread', 0x04],
+            'view-previous-unread': ['PreviousUnread', 0x04],
+            'reload': ['Reload', 0x04],
+            'run': ['RunShellProgram', 0x07],
+            'search': ['NotmuchSearch', 0x05],
+            'search-thread': ['NotmuchThread', 0x04],
+            'search-address': ['NotmuchAddress', 0x04],
+            'search-duplication': ['NotmuchDuplication', 0x04],
+            'search-refine': ['NotmuchRefine', 0x05],
+            'search-up-refine': ['NotmuchUpRefine', 0x04],
+            'search-down-refine': ['NotmuchDownRefine', 0x04],
+            'tag-add': ['AddTags', 0x1f],
+            'tag-delete': ['DeleteTags', 0x1f],
+            'tag-toggle': ['ToggleTags', 0x1f],
+            'tag-set': ['SetTags', 0x1f],
+            'thread-connect': ['ConnectThread', 0x06],
+            'thread-cut': ['CutThread', 0x06],
+            'thread-next': ['NextThread', 0x04],
+            'thread-toggle': ['ToggleThread', 0x04],
+            'thread-sort': ['ThreadChangeSort', 0x05],
+            'set-fcc': ['SetFcc', 0x09],
+            'set-attach': ['SetAttach', 0x09],
+            'set-encrypt': ['SetEncrypt', 0x09],
+        })
 
 
 def set_subcmd_newmail():
     """ mail-new して初めて許可するコマンドの追加 """
     cmd = vim.vars['notmuch_command']
     if 'mail-send' not in cmd:  # mail-new はいきなり呼び出し可能なので、mail-send で判定
-        cmd['start'] = ['StartNotmuch', 0x0c]
-        cmd['mail-send'] = ['SendVim', 0x0c]
-        cmd['mail-info'] = ['ViewMailInfo', 0x0c]
-        cmd['tag-add'] = ['AddTags', 0x1f]
-        cmd['tag-delete'] = ['DeleteTags', 0x1f]
-        cmd['tag-toggle'] = ['ToggleTags', 0x1f]
-        cmd['tag-set'] = ['SetTags', 0x1f]
-        cmd['set-fcc'] = ['SetFcc', 0x09]
-        cmd['set-attach'] = ['SetAttach', 0x09]
-        cmd['set-encrypt'] = ['SetEncrypt', 0x09]
+        cmd.update({
+            'start': ['StartNotmuch', 0x0c],
+            'mail-send': ['SendVim', 0x0c],
+            'mail-info': ['ViewMailInfo', 0x0c],
+            'tag-add': ['AddTags', 0x1f],
+            'tag-delete': ['DeleteTags', 0x1f],
+            'tag-toggle': ['ToggleTags', 0x1f],
+            'tag-set': ['SetTags', 0x1f],
+            'set-fcc': ['SetFcc', 0x09],
+            'set-attach': ['SetAttach', 0x09],
+            'set-encrypt': ['SetEncrypt', 0x09],
+        })
 
 
 def set_folder_format():
@@ -5050,12 +5054,18 @@ def Bwipeout(b_n):  # notmuch-thread, notmuch-show でバッファ名変更前�
             vim.command('bwipeout! ' + str(b.number))
 
 
+def delete_autocmd_cursor_mv():  # Vim バッファローカルの CursorMoved/CursorMovedI の autocmd を削除
+    vim.command('autocmd! NotmuchPython CursorMoved,CursorMovedI <buffer='
+                + str(vim.current.buffer.number) + '>')
+
+
 def set_new_after():
     """ 新規メールの From ヘッダの設定や署名の挿入 """
     if vim.current.window.cursor[0] < len(vim.current.buffer):
         return
     to, h_from = set_from()
     insert_signature(to, h_from)
+    delete_autocmd_cursor_mv()
 
 
 def check_org_mail():
@@ -5137,6 +5147,7 @@ def set_reply_after():
     del b_v['org_mail_date']
     del b_v['org_mail_body']
     del b_v['org_mail_from']
+    delete_autocmd_cursor_mv()
 
 
 def set_forward_after():
@@ -5156,6 +5167,7 @@ def set_forward_after():
         b.append(lines)
         insert_signature(to, h_from)
     del b_v['org_mail_body']
+    delete_autocmd_cursor_mv()
 
 
 def set_resent_after():
@@ -5174,6 +5186,7 @@ def set_resent_after():
             vim.command('redraw! | silent exit')
             reprint_folder2()
             # vim.command('echo "\n" | redraw!')
+    delete_autocmd_cursor_mv()
 
 
 def set_from():
