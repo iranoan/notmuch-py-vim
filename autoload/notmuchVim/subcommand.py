@@ -622,68 +622,68 @@ def set_subcmd_start():
     """ start して初めて許可するコマンドの追加 """
     cmd = vim.vars['notmuch_command']
     if 'open' not in cmd:  # start はいきなり呼び出し可能なので、open で判定
-        cmd['attach-delete'] = ['Delete_attachment', 0x06]
-        cmd['attach-save'] = ['Save_attachment', 0x06]
+        cmd['attach-delete'] = ['DeleteAttachment', 0x06]
+        cmd['attach-save'] = ['SaveAttachment', 0x06]
         cmd['close'] = ['Close', 0x04]
         cmd['close-tab'] = ['CloseTab', 0x04]
-        cmd['mail-attach-forward'] = ['Forward_mail_attach', 0x04]
-        cmd['mail-delete'] = ['Delete_mail', 0x06]
-        cmd['mail-edit'] = ['Open_original', 0x06]
-        cmd['mail-export'] = ['Export_mail', 0x06]
-        cmd['mail-forward'] = ['Forward_mail', 0x04]
-        cmd['mail-import'] = ['Import_mail', 0x05]
-        cmd['mail-info'] = ['View_mail_info', 0x0c]
-        cmd['mail-move'] = ['Move_mail', 0x07]
-        cmd['mail-new'] = ['New_mail', 0x07]
-        cmd['mail-reply'] = ['Reply_mail', 0x04]
-        cmd['mail-reindex'] = ['Reindex_mail', 0x06]
-        cmd['mail-resent-forward'] = ['Forward_mail_resent', 0x04]
-        cmd['mail-save'] = ['Save_mail', 0x05]
-        cmd['mail-send'] = ['Send_vim', 0x0c]
-        cmd['mark'] = ['Mark_in_thread', 0x04]
-        cmd['mark-command'] = ['Command_marked', 0x05]
-        cmd['open'] = ['Open_something', 0x04]
-        cmd['view-previous'] = ['Previous_page', 0x04]
-        cmd['view-unread-page'] = ['Next_unread_page', 0x04]
-        cmd['view-unread-mail'] = ['Next_unread', 0x04]
-        cmd['view-previous-unread'] = ['Previous_unread', 0x04]
+        cmd['mail-attach-forward'] = ['ForwardMailAttach', 0x04]
+        cmd['mail-delete'] = ['DeleteMail', 0x06]
+        cmd['mail-edit'] = ['OpenOriginal', 0x06]
+        cmd['mail-export'] = ['ExportMail', 0x06]
+        cmd['mail-forward'] = ['ForwardMail', 0x04]
+        cmd['mail-import'] = ['ImportMail', 0x05]
+        cmd['mail-info'] = ['ViewMailInfo', 0x0c]
+        cmd['mail-move'] = ['MoveMail', 0x07]
+        cmd['mail-new'] = ['NewMail', 0x07]
+        cmd['mail-reply'] = ['ReplyMail', 0x04]
+        cmd['mail-reindex'] = ['ReindexMail', 0x06]
+        cmd['mail-resent-forward'] = ['ForwardMailResent', 0x04]
+        cmd['mail-save'] = ['SaveMail', 0x05]
+        cmd['mail-send'] = ['SendVim', 0x0c]
+        cmd['mark'] = ['MarkInThread', 0x04]
+        cmd['mark-command'] = ['CommandMarked', 0x05]
+        cmd['open'] = ['OpenSomething', 0x04]
+        cmd['view-previous'] = ['PreviousPage', 0x04]
+        cmd['view-unread-page'] = ['NextUnreadPage', 0x04]
+        cmd['view-unread-mail'] = ['NextUnread', 0x04]
+        cmd['view-previous-unread'] = ['PreviousUnread', 0x04]
         cmd['reload'] = ['Reload', 0x04]
-        cmd['run'] = ['Run_shell_program', 0x07]
-        cmd['search'] = ['Notmuch_search', 0x05]
-        cmd['search-thread'] = ['Notmuch_thread', 0x04]
-        cmd['search-address'] = ['Notmuch_address', 0x04]
-        cmd['search-duplication'] = ['Notmuch_duplication', 0x04]
-        cmd['search-refine'] = ['Notmuch_refine', 0x05]
-        cmd['search-up-refine'] = ['Notmuch_up_refine', 0x04]
-        cmd['search-down-refine'] = ['Notmuch_down_refine', 0x04]
-        cmd['tag-add'] = ['Add_tags', 0x1f]
-        cmd['tag-delete'] = ['Delete_tags', 0x1f]
-        cmd['tag-toggle'] = ['Toggle_tags', 0x1f]
-        cmd['tag-set'] = ['Set_tags', 0x1f]
-        cmd['thread-connect'] = ['Connect_thread', 0x06]
-        cmd['thread-cut'] = ['Cut_thread', 0x06]
-        cmd['thread-next'] = ['Next_thread', 0x04]
-        cmd['thread-toggle'] = ['Toggle_thread', 0x04]
-        cmd['thread-sort'] = ['Thread_change_sort', 0x05]
-        cmd['set-fcc'] = ['Set_fcc', 0x09]
-        cmd['set-attach'] = ['Set_attach', 0x09]
-        cmd['set-encrypt'] = ['Set_encrypt', 0x09]
+        cmd['run'] = ['RunShellProgram', 0x07]
+        cmd['search'] = ['NotmuchSearch', 0x05]
+        cmd['search-thread'] = ['NotmuchThread', 0x04]
+        cmd['search-address'] = ['NotmuchAddress', 0x04]
+        cmd['search-duplication'] = ['NotmuchDuplication', 0x04]
+        cmd['search-refine'] = ['NotmuchRefine', 0x05]
+        cmd['search-up-refine'] = ['NotmuchUpRefine', 0x04]
+        cmd['search-down-refine'] = ['NotmuchDownRefine', 0x04]
+        cmd['tag-add'] = ['AddTags', 0x1f]
+        cmd['tag-delete'] = ['DeleteTags', 0x1f]
+        cmd['tag-toggle'] = ['ToggleTags', 0x1f]
+        cmd['tag-set'] = ['SetTags', 0x1f]
+        cmd['thread-connect'] = ['ConnectThread', 0x06]
+        cmd['thread-cut'] = ['CutThread', 0x06]
+        cmd['thread-next'] = ['NextThread', 0x04]
+        cmd['thread-toggle'] = ['ToggleThread', 0x04]
+        cmd['thread-sort'] = ['ThreadChangeSort', 0x05]
+        cmd['set-fcc'] = ['SetFcc', 0x09]
+        cmd['set-attach'] = ['SetAttach', 0x09]
+        cmd['set-encrypt'] = ['SetEncrypt', 0x09]
 
 
 def set_subcmd_newmail():
     """ mail-new して初めて許可するコマンドの追加 """
     cmd = vim.vars['notmuch_command']
     if 'mail-send' not in cmd:  # mail-new はいきなり呼び出し可能なので、mail-send で判定
-        cmd['start'] = ['Start_notmuch', 0x0c]
-        cmd['mail-send'] = ['Send_vim', 0x0c]
-        cmd['mail-info'] = ['View_mail_info', 0x0c]
-        cmd['tag-add'] = ['Add_tags', 0x1f]
-        cmd['tag-delete'] = ['Delete_tags', 0x1f]
-        cmd['tag-toggle'] = ['Toggle_tags', 0x1f]
-        cmd['tag-set'] = ['Set_tags', 0x1f]
-        cmd['set-fcc'] = ['Set_fcc', 0x09]
-        cmd['set-attach'] = ['Set_attach', 0x09]
-        cmd['set-encrypt'] = ['Set_encrypt', 0x09]
+        cmd['start'] = ['StartNotmuch', 0x0c]
+        cmd['mail-send'] = ['SendVim', 0x0c]
+        cmd['mail-info'] = ['ViewMailInfo', 0x0c]
+        cmd['tag-add'] = ['AddTags', 0x1f]
+        cmd['tag-delete'] = ['DeleteTags', 0x1f]
+        cmd['tag-toggle'] = ['ToggleTags', 0x1f]
+        cmd['tag-set'] = ['SetTags', 0x1f]
+        cmd['set-fcc'] = ['SetFcc', 0x09]
+        cmd['set-attach'] = ['SetAttach', 0x09]
+        cmd['set-encrypt'] = ['SetEncrypt', 0x09]
 
 
 def set_folder_format():
@@ -792,7 +792,7 @@ def print_folder():
 
 def reprint_folder():
     # フォルダ・リストの再描画 (print_folder() の処理と似ているが、b[:] = None して書き直すとカーソル位置が変わる)
-    # s:Start_notmuch() が呼ぼれずに mail-new がされていると buf_num が未定義なので直ちに処理を返す
+    # s:StartNotmuch() が呼ぼれずに mail-new がされていると buf_num が未定義なので直ちに処理を返す
     if not ('folders' in s_buf_num_dic()):
         return
     b = vim.buffers[s_buf_num('folders', '')]
@@ -900,7 +900,7 @@ def get_unread_in_THREAD_LISTS(search_term):
 
 def open_thread_from_vim(select_unread, remake):  # 実際にスレッドを印字←フォルダ・リストがアクティブ前提
     line = vim.current.window.cursor[0]
-    vim.command('call s:Make_thread_list()')
+    vim.command('call s:MakeThreadList()')
     open_thread(line, select_unread, remake)
     if is_same_tabpage('show', ''):
         open_mail()
@@ -1123,7 +1123,7 @@ def thread_change_sort(sort_method):
         return
     sort_method = sort_method[2:]
     if not check_sort_method(sort_method):
-        sort_method = vim_input_ls('sort method: ', ' '.join(sort_method), 'customlist,notmuch_py#Comp_sort')
+        sort_method = vim_input_ls('sort method: ', ' '.join(sort_method), 'customlist,notmuch_py#CompSort')
         if sort_method == []:
             return
     if sort_method == ['list']:
@@ -1313,7 +1313,7 @@ def reopen(kind, search_term):
     if type(search_term) is bytes:
         search_term = search_term.decode()
     # まずタブの移動
-    vim.command('call s:Change_exist_tabpage("' + kind + '", \'' + vim_escape(search_term) + '\')')
+    vim.command('call s:ChangeExistTabpage("' + kind + '", \'' + vim_escape(search_term) + '\')')
     if kind == 'search' or kind == 'view':
         buf_num = s_buf_num(kind, search_term)
     else:
@@ -1336,11 +1336,11 @@ def reopen(kind, search_term):
         if kind == 'thread':
             open_way = vim.vars['notmuch_open_way']['show'].decode()
             if open_way != 'enew' and open_way != 'tabedit' and open_way != 'tabnew':
-                vim.command('call s:Make_show()')
+                vim.command('call s:MakeShow()')
         elif kind == 'search':
             open_way = vim.vars['notmuch_open_way']['view'].decode()
             if open_way != 'enew' and open_way != 'tabedit' and open_way != 'tabnew':
-                vim.command('call s:Make_view(\'' + vim_escape(search_term) + '\')')
+                vim.command('call s:MakeView(\'' + vim_escape(search_term) + '\')')
         vim_goto_bufwinid(buf_num)
 
 
@@ -2145,9 +2145,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     # date = thread_b_v['date']
     # tags = thread_b_v['tags']
     if not_search:
-        vim.command('call s:Make_show()')
+        vim.command('call s:MakeShow()')
     else:
-        vim.command('call s:Make_view(\'' + vim_escape(search_term) + '\')')
+        vim.command('call s:MakeView(\'' + vim_escape(search_term) + '\')')
     b = vim.current.buffer
     b_v = b.vars['notmuch']
     b_w = vim.current.window
@@ -2216,7 +2216,7 @@ def get_msg_id():
     if not ('folders' in s_bufnum):
         # notmuch-folders に対して :bwipeout が実行され、更新された notmuch-edit/draft が有り
         # buf_num['folders'] がない状態になり、notmuch-thread がアクティブだとこの関数が呼ばれることがある
-        vim.command('new | only | call s:Make_folders_list()')
+        vim.command('new | only | call s:MakeFoldersList()')
         reopen('thread', '')
         return ''
     if bufnr == s_bufnum['folders'] or b[0] == '':
@@ -2319,7 +2319,7 @@ def set_tags(msg_id, s, args):
         return
     tags = args[2:]
     if not tags:
-        tags.extend(vim_input_ls('Set tag: ', '', 'customlist,notmuch_py#Comp_set_tag'))
+        tags.extend(vim_input_ls('Set tag: ', '', 'customlist,notmuch_py#CompSetTag'))
     if not tags:
         return
     add_tags = []
@@ -2373,7 +2373,7 @@ def add_tags(msg_id, s, args):
         return
     tags = args[2:]
     if not tags:
-        tags.extend(vim_input_ls('Add tag: ', '', 'customlist,notmuch_py#Comp_add_tag'))
+        tags.extend(vim_input_ls('Add tag: ', '', 'customlist,notmuch_py#CompAddTag'))
     if not tags:
         return
     if is_draft():
@@ -2401,7 +2401,7 @@ def delete_tags(msg_id, s, args):
         return
     tags = args[2:]
     if not tags:
-        tags.extend(vim_input_ls('Delete tag: ', '', 'customlist,notmuch_py#Comp_del_tag'))
+        tags.extend(vim_input_ls('Delete tag: ', '', 'customlist,notmuch_py#CompDelTag'))
     if not tags:
         return
     if is_draft():
@@ -2429,7 +2429,7 @@ def toggle_tags(msg_id, s, args):
         return
     tags = args[2:]
     if not tags:
-        tags.extend(vim_input_ls('Toggle tag: ', '', 'customlist,notmuch_py#Comp_tag'))
+        tags.extend(vim_input_ls('Toggle tag: ', '', 'customlist,notmuch_py#CompTag'))
     if not tags:
         return
     if is_draft():
@@ -2629,7 +2629,7 @@ def unread_before(active_win):
         if active_win == s_buf_num('folders', ''):
             msg_id = ''
             if not ('thread' in s_buf_num_dic()):
-                vim.command('call s:Make_thread_list()')
+                vim.command('call s:MakeThreadList()')
             active_win = s_buf_num('thread', '')
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0] - 1][1]
         else:
@@ -3583,7 +3583,7 @@ def view_mail_info():
                             'drag': 1,
                             'close': 'click',
                             'moved': 'any',
-                            'filter': "notmuch_py#Close_popup",
+                            'filter': "notmuch_py#ClosePopup",
                             'col': 'cursor',
                             'wrap': 0,
                             'mapping': 0})
@@ -3666,15 +3666,15 @@ def open_original(msg_id, search_term, args):
         b_v['tags'] = tags
         f_type = buf_kind()
         if f_type == 'search' or f_type == 'view':
-            vim.command('call s:Au_edit(' + str(active_win) + ', "' + search_term + '", 1)')
+            vim.command('call s:AuEdit(' + str(active_win) + ', "' + search_term + '", 1)')
         else:
-            vim.command('call s:Au_edit(' + str(active_win) + ', "", 1)')
+            vim.command('call s:AuEdit(' + str(active_win) + ', "", 1)')
         if get_mailbox_type() == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
             draft_dir = PATH + os.sep + 'draft'
         if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
-            vim.command('setlocal filetype=notmuch-draft | call s:Au_write_draft() | cd '
+            vim.command('setlocal filetype=notmuch-draft | call s:AuWriteDraft() | cd '
                         + os.path.dirname(
                             vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
         else:
@@ -4658,7 +4658,7 @@ def new_mail(s):
     for header in headers:
         b.append(header + ': ' + headers[header])
     after_make_draft(b, None, add_head)
-    vim.command('call s:Au_new_mail()')
+    vim.command('call s:AuNewMail()')
 
 
 def address2ls(adr):
@@ -4802,7 +4802,7 @@ def reply_mail():
     # date = email.utils.parsedate_to_datetime(msg.header('Date')).strftime(DATE_FORMAT)
     # ↑同じローカル時間同士でやり取りするとは限らない
     after_make_draft(b, msg, add_head | 0x0E)
-    vim.command('call s:Au_reply_mail()')
+    vim.command('call s:AuReplyMail()')
 
 
 def forward_mail():
@@ -4856,7 +4856,7 @@ def forward_mail():
     # 本文との境界線作成終了
     b_v['org_mail_body'] = msg_data
     after_make_draft(b, msg, add_head | 0x04)
-    vim.command('call s:Au_forward_mail()')
+    vim.command('call s:AuForwardMail()')
 
 
 def forward_mail_attach():
@@ -4888,7 +4888,7 @@ def forward_mail_attach():
         else:
             b.append(h + ': ')
     after_make_draft(b, msg, add_head | 0x1C)
-    vim.command('call s:Au_new_mail()')
+    vim.command('call s:AuNewMail()')
 
 
 def forward_mail_resent():
@@ -4920,7 +4920,7 @@ def forward_mail_resent():
     b.append('Other Resent-xxx headers and body contents are ignored.')
     b.append('If delete Resent-From, became a normal mail.')
     b.options['modified'] = 0
-    vim.command('call s:Au_resent_mail()')
+    vim.command('call s:AuResentMail()')
 
 
 def before_make_draft(active_win):
@@ -4956,7 +4956,7 @@ def before_make_draft(active_win):
         f = draft_dir + os.sep + f
     vim.current.buffer.name = f
     vim.command('setlocal filetype=notmuch-draft')
-    vim.command('call s:Au_edit(' + str(active_win) + ', \'' + vim_escape(search_term) + '\', 0)')
+    vim.command('call s:AuEdit(' + str(active_win) + ', \'' + vim_escape(search_term) + '\', 0)')
 
 
 def after_make_draft(b, msg, add_head):
@@ -4993,7 +4993,7 @@ def after_make_draft(b, msg, add_head):
     if 'folders' in s_buf_num_dic():
         vim.command('silent cd ' + os.path.dirname(
             vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
-    vim.command('call s:Au_write_draft()')
+    vim.command('call s:AuWriteDraft()')
 
 
 def save_draft():
@@ -5433,7 +5433,7 @@ def move_mail(msg_id, s, args):
     if not mbox:
         mbox.extend(vim_input_ls('Move Mail folder: ',
                                  '.' if get_mailbox_type() == 'Maildir' else '',
-                                 'customlist,notmuch_py#Comp_dir'))
+                                 'customlist,notmuch_py#CompDir'))
     if not mbox:
         return
     mbox = mbox[0]
@@ -5836,7 +5836,7 @@ def run_shell_program(msg_id, s, args):
 
     prg_param = args[2:]
     if not prg_param:
-        prg_param = vim_input('Program and args: ', '', 'customlist,notmuch_py#Comp_run')
+        prg_param = vim_input('Program and args: ', '', 'customlist,notmuch_py#CompRun')
         if prg_param == '':
             return
         else:
@@ -5943,7 +5943,7 @@ def command_marked(cmdline):
         print_warring('Mark the email that you want to command. (:Notmuch mark)')
         return
     if not cmdline:
-        cmdline.extend(vim_input_ls('Command: ', '', 'customlist,notmuch_py#Comp_cmd'))
+        cmdline.extend(vim_input_ls('Command: ', '', 'customlist,notmuch_py#CompCmd'))
     if not cmdline:
         return
     # コマンドの区切りである改行の前後に空白がない場合に対処
@@ -6016,7 +6016,7 @@ def notmuch_search(search_term):
             i_search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0] - 1][1].decode()
         else:
             i_search_term = vim.current.buffer.vars['notmuch']['search_term'].decode()
-        search_term = vim_input('search term: ', i_search_term, 'customlist,notmuch_py#Comp_search')
+        search_term = vim_input('search term: ', i_search_term, 'customlist,notmuch_py#CompSearch')
         if search_term == '':
             return
     elif type(search_term) is list:
@@ -6048,7 +6048,7 @@ def notmuch_search(search_term):
         print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
     db.close()
-    vim.command('call s:Make_search_list(\'' + vim_escape(search_term) + '\')')
+    vim.command('call s:MakeSearchList(\'' + vim_escape(search_term) + '\')')
     b_num = s_buf_num('search', search_term)
     print_thread(b_num, search_term, False, False)
     if is_same_tabpage('view', search_term):
@@ -6146,7 +6146,7 @@ def notmuch_duplication(remake):
             return
         ls.sort(key=attrgetter('_date', '_from'))
         THREAD_LISTS['*'] = {'list': ls, 'sort': ['date', 'list']}
-    vim.command('call s:Make_search_list(\'*\')')
+    vim.command('call s:MakeSearchList(\'*\')')
     b_num = s_buf_num('search', '*')
     print_thread(b_num, '*', False, False)
     if is_same_tabpage('view', '*'):
@@ -6205,7 +6205,7 @@ def set_fcc(args):
         i += 1
     mbox = args[2:]
     if not mbox:
-        mbox.extend(vim_input_ls('Save Mail folder: ', fcc, 'customlist,notmuch_py#Comp_dir'))
+        mbox.extend(vim_input_ls('Save Mail folder: ', fcc, 'customlist,notmuch_py#CompDir'))
     if not mbox:
         delete_header(b, 'fcc')
     else:
@@ -6452,7 +6452,7 @@ def notmuch_refine(args):
     if search_term == '':
         return
     if args == '':  # コマンド空
-        args = vim_input('search term: ', '', 'customlist,notmuch_py#Comp_search')
+        args = vim_input('search term: ', '', 'customlist,notmuch_py#CompSearch')
         if args == '':
             return
     if not check_search_term(args):

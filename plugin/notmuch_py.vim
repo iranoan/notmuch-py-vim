@@ -24,7 +24,7 @@ endif
 let g:notmuch_command = { 'start': ['s:start_notmuch', 0x0c], 'mail-new': ['s:new_mail', 0x11] }
 
 if !exists(':Notmuch')
-	command -range -nargs=* -complete=customlist,notmuch_py#Comp_all_args Notmuch call notmuch_py#Notmuch_main(<line1>, <line2>, <q-args>)
+	command -range -nargs=* -complete=customlist,notmuch_py#CompAllArgs Notmuch call notmuch_py#Main(<line1>, <line2>, <q-args>)
 else
 	echohl ErrorMsg | echomsg 'Already define Notmuch command.' | echohl None
 endif

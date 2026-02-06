@@ -49,7 +49,7 @@ if !exists('g:ft_notmuch_show')
 						close: 'click',
 						moved: 'any',
 						col: 'cursor',
-						filter: "notmuch_py#Close_popup",
+						filter: "notmuch_py#ClosePopup",
 						wrap: 1,
 						mapping: 0})
 			else
