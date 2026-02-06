@@ -1274,26 +1274,13 @@ def Notmuch_up_refine(dummy: list<any>): void
 	py3 notmuch_up_refine()
 enddef
 
-export def Get_highlight(hi: string): list<dict<any>>
-	var hl: dict<any> = hlget(hi)[0]
-	remove(hl, 'id')
-	remove(hl, 'name')
-	if has_key(hl, 'font')
-		remove(hl, 'font')
-	endif
-	return ([hl])
-enddef
-
 export def ChangeColorColumn(): void
-	notmuch_py#Get_highlight('Normal')->map((_, v) => v->extend({name: 'ColorColumn', term: {reverse: true}, cterm: {reverse: true}, gui: {reverse: true}}))->hlset()
+	hlset([hlget('Normal')[0]->extend({name: 'ColorColumn', font: '', term: {reverse: true}, cterm: {reverse: true}, gui: {reverse: true}})])
 enddef
 
-var fold_highlight: list<dict<any>> = notmuch_py#Get_highlight('Folded')
-var specialkey_highlight: list<dict<any>> = notmuch_py#Get_highlight('SpecialKey')
-var normal_highlight: list<dict<any>>
 if exists('g:notmuch_visible_line') && type(g:notmuch_visible_line) == 1 && g:notmuch_visible_line !=# ''
 	try
-		normal_highlight = notmuch_py#Get_highlight(g:notmuch_visible_line)
+		normal_highlight = [extend(hlget(g:notmuch_visible_line)[0], {font: ''})]
 	catch /^Vim\%((\a\+)\)\=:E411:/
 		autocmd NotmuchPython BufEnter * ++once echohl WarningMsg | echomsg 'E411: highlight group not found: ' .. g:notmuch_visible_line | echomsg 'Error setting: g:notmuch_visible_line' | echohl None
 		normal_highlight = []
@@ -1307,12 +1294,12 @@ def Change_fold_highlight(): void # Folded の色変更↑highlight の保存
 		highlight Folded NONE
 		if normal_highlight !=# []
 			highlight SpecialKey NONE
-			map(normal_highlight, (_, v) => v->extend({name: 'SpecialKey'}))->hlset()
+			hlset(normal_highlight)
 		endif
 	else
-		map(fold_highlight, (_, v) => v->extend({name: 'Folded'}))->hlset()
+		hlset(fold_highlight)
 		if normal_highlight !=# []
-			map(specialkey_highlight, (_, v) => v->extend({name: 'FoldSpecialKeyd'}))->hlset()
+			hlset(specialkey_highlight)
 		endif
 	endif
 enddef

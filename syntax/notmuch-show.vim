@@ -71,19 +71,12 @@ highlight default link HTMLmailLinkBold htmlLinkBold
 highlight default link HTMLmailLinkItalicTag htmlLinkItalic
 highlight default link HTMLmailLinkBoldTag htmlLinkBold
 
-var hi_s: dict<any> = notmuch_py#Get_highlight('Normal')[0]
-var htmlBold: dict<any> = extendnew(hi_s, {name: 'htmlBold', term: {bold: true}, cterm: {bold: true}, gui: {bold: true}})
-var htmlItalic: dict<any> = extendnew(hi_s, {name: 'htmlItalic', term: {italic: true}, cterm: {italic: true}, gui: {italic: true}})
-var htmlBoldItalic: dict<any> = extendnew(hi_s, {name: 'htmlBoldItalic', term: {italic: true, bold: true}, cterm: {italic: true, bold: true}, gui: {italic: true, bold: true}})
-hi_s = notmuch_py#Get_highlight('Underlined')[0]
-var htmlLinkItalic: dict<any> = extendnew(hi_s, {name: 'htmlLinkItalic', term: {bold: true, underline: true}, cterm: {bold: true, underline: true}, gui: {bold: true, underline: true}})
-var htmlLinkBold: dict<any> = extendnew(hi_s, {name: 'htmlLinkBold', term: {italic: true, underline: true}, cterm: {italic: true, underline: true}, gui: {italic: true, underline: true}})
 hlset([
-	htmlBold,
-	htmlItalic,
-	htmlBoldItalic,
-	htmlLinkItalic,
-	htmlLinkBold,
+	extend(hlget('Normal')[0], {font: '', name: 'htmlBold', term: {bold: true}, cterm: {bold: true}, gui: {bold: true}}),
+	extend(hlget('Normal')[0], {font: '', name: 'htmlItalic', term: {italic: true}, cterm: {italic: true}, gui: {italic: true}}),
+	extend(hlget('Normal')[0], {font: '', name: 'htmlBoldItalic', term: {italic: true, bold: true}, cterm: {italic: true, bold: true}, gui: {italic: true, bold: true}}),
+	extend(hlget('Underlined')[0], {font: '', name: 'htmlLinkItalic', term: {bold: true, underline: true}, cterm: {bold: true, underline: true}, gui: {bold: true, underline: true}}),
+	extend(hlget('Underlined')[0], {font: '', name: 'htmlLinkBold', term: {italic: true, underline: true}, cterm: {italic: true, underline: true}, gui: {italic: true, underline: true}})
 ])
 
 b:current_syntax = 'notmuch-show'
