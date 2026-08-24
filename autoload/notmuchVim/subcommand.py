@@ -4587,6 +4587,7 @@ def new_mail(s):
             return
         s = s[0]
         if s[:7] == 'mailto:':
+            s = unquote(s)
             s = s[7:]
         re_match = re.search(r'\?[A-Za-z-]+=', s)
         if re_match is None:
