@@ -4946,6 +4946,9 @@ def before_make_draft(active_win):
     if mailbox_type == 'Maildir':
         mbox_type = mailbox.Maildir
         draft_dir = PATH + os.sep + '.draft'
+        for sub in (["tmp", "cur", "new"]):
+            if not os.path.isdir(draft_dir + os.sep + sub):
+                os.makedirs(draft_dir + os.sep + sub, 0o700)
     else:
         mbox_type = mailbox.MH
         draft_dir = PATH + os.sep + 'draft'
