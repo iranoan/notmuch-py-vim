@@ -963,7 +963,7 @@ def fold_open():
 
 
 def print_thread_core(b_num, search_term, select_unread, remake):
-    def set_vartabstop():
+    def set_vartabstop(b):
         if vim.vars.get('notmuch_visible_line', 0) != 3:
             return
         border_w = 1
@@ -985,7 +985,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
                     + ','
             elif i == b'from':
                 ts = ts + str(FROM_LENGTH + 2) + ','
-        vim.current.buffer.options['vartabstop'] = ts + '1'
+        b.options['vartabstop'] = ts + '1'
 
     global DBASE
     if search_term == '':
@@ -1028,7 +1028,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
     else:
         kind = 'search'
     reopen(kind, search_term)
-    set_vartabstop()
+    set_vartabstop(b)
     if select_unread:
         index = get_unread_in_THREAD_LISTS(search_term)
         unread = DBASE.count_messages('(' + search_term + ') and tag:unread')

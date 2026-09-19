@@ -234,6 +234,23 @@ def SelectMailView(n: number): void
 	endif
 enddef
 
+def MailViewId(n: number): number
+	# {F-WIN}/{T-WIN} なら {S-WIN} の Windows-IDを返す
+	# 検索による {T-WIN} ならそれに対応する {S-WIN} Windows-IDを返す
+	# それぞれ別のタブページにある場合は -1 を返す
+	var id: number
+	if has_key(buf_num, 'search') && has_key(b:notmuch, 'search_term') && has_key(buf_num.search, b:notmuch.search_term)
+		if n == buf_num.search[b:notmuch.search_term]
+			return bufwinid(buf_num.view[b:notmuch.search_term])
+		endif
+	elseif has_key(buf_num, 'view') && has_key(b:notmuch, 'search_term') && has_key(buf_num.view, b:notmuch.search_term)
+		if n == buf_num.view[b:notmuch.search_term]
+			return bufwinid(buf_num.view[b:notmuch.search_term])
+		endif
+	endif
+	return bufwinid(buf_num.show)
+enddef
+
 def NextUnreadPage(args: list<any>): void # メール最後の行が表示されていればスクロールしない+既読にする
 	var l_buf_num = bufnr('')
 	if !has_key(buf_num, 'thread')
@@ -242,16 +259,21 @@ def NextUnreadPage(args: list<any>): void # メール最後の行が表示され
 	if !has_key(buf_num, 'show')
 		MakeShow()
 	endif
-	SelectMailView(l_buf_num)
-	if !exists('b:notmuch.msg_id') || b:notmuch.msg_id ==# ''
+	var id: number = MailViewId(l_buf_num)
+	if id == -1
+		SelectMailView(l_buf_num)
+		id = win_getid()
+	endif
+	if !has_key(getbufvar(l_buf_num, 'notmuch', {}), 'msg_id') || b:notmuch.msg_id ==# ''
 		py3eval('next_unread(' .. l_buf_num .. ')')
 		return
 	endif
-	if line('w$') == line('$') # 最終行表示
-		var column = col('.')
-		if line('w0') == line('w$') # 最終行表示でも 表示先頭行=表示最終行 なら折り返し部分が非表示の可能性→カーソル移動
-			execute 'normal!' 2 * winheight(0) - winline() - 1 .. 'gj'
-			if column == col('.')
+	var winline: number = win_execute(id, "echo winline()")->substitute('\n', '', '')->str2nr()
+	if line('w$', id) == line('$', id) # 最終行表示
+		var column = col('.', id)
+		if line('w0', id) == line('w$', id) # 最終行表示でも 表示先頭行=表示最終行 なら折り返し部分が非表示の可能性→カーソル移動
+			win_execute(id, $'normal! {2 * winheight(id) - winline - 1}gj')
+			if column == col('.', id)
 				py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 				py3eval('next_unread(' .. l_buf_num .. ')')
 			endif
@@ -259,23 +281,23 @@ def NextUnreadPage(args: list<any>): void # メール最後の行が表示され
 			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 			py3eval('next_unread(' .. l_buf_num .. ')')
 		endif
-	elseif line('w0') != line('w$') # 一行で 1 ページ全体ではない
-		execute 'normal!' winheight(0) - winline() + 1 .. 'gjzt' # 表示している最終行が折り返し行だと <PageDown> ではうまくいかない
-		if line('w$') == line('$') # 表示最終行 = 最終行 なら最後まで表示
+	elseif line('w0', id) != line('w$', id) # 一行で 1 ページ全体ではない
+		win_execute(id, $'normal! {winheight(id) - winline + 1}gjzt') # 表示している最終行が折り返し行だと <PageDown> ではうまくいかない
+		if line('w$', id) == line('$', id) # 表示最終行 = 最終行 なら最後まで表示
 			py3 delete_tags(vim.current.buffer.vars['notmuch']['msg_id'].decode(), '', [0, 0, 'unread'])
 		endif
 	else # 一行で 1 ページ全体
-		var pos = line('.')
-		execute 'normal!' winheight(0) - winline() + 1 .. 'gj'
-		if line('.') != pos # 移動前に表示していた次の行までカーソル移動して、行番号が異なれば行の最後まで表示されていた
-			cursor(pos, 0) # 一旦前の位置に移動し次で次行を画面最上部に表示
-			normal! jzt
+		var pos = line('.', id)
+		win_execute(id, $'normal! {winheight(id) - winline + 1}gj')
+		if line('.', id) != pos # 移動前に表示していた次の行までカーソル移動して、行番号が異なれば行の最後まで表示されていた
+			win_execute(id, $'cursor({pos}, 0)') # 一旦前の位置に移動し次で次行を画面最上部に表示
+			win_execute(id, 'normal! jzt')
 		else # 行の途中まで表示していた
-			execute 'normal!' winheight(0) - 2 .. 'gj'
+			win_execute(id, $'normal! {winheight(id) - 2}j')
 			# ↑追加で 1 ページ分カーソル移動←本当はページ先頭に戻したいがやり方がわからない
-			if line('.') != pos # カーソル移動して行番号異なれば、以降の行まで移動した
-				cursor(pos, 0) # 一旦前の位置に移動し次で行末の表示先頭桁に移動
-				normal! $g^
+			if line('.', id) != pos # カーソル移動して行番号異なれば、以降の行まで移動した
+				win_execute(id, $'cursor({pos}, 0)') # 一旦前の位置に移動し次で行末の表示先頭桁に移動
+				win_execute(id, 'normal! $g^')
 			endif
 		endif
 	endif
@@ -298,8 +320,12 @@ def PreviousPage(args: list<any>): void
 	if !has_key(buf_num, 'show')
 		MakeShow()
 	endif
-	SelectMailView(l_buf_num)
-	execute 'normal! ' .. (line('w0') - 1) .. 'z-H'
+	var id: number = MailViewId(l_buf_num)
+	if id == -1
+		SelectMailView(l_buf_num)
+		id = win_getid()
+	endif
+	win_execute(id, $'normal! {line('w0', id) - 1}z-H')
 	win_gotoid(bufwinid(l_buf_num))
 enddef
 
