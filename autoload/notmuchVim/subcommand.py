@@ -36,7 +36,7 @@ import notmuch2                   # API で出来ないことは notmuch コマ�
 import vim
 
 
-# vim funtion
+# vim function
 vim_has = vim.Function('has')
 vim_browse = vim.Function('browse')
 vim_getbufinfo = vim.Function('getbufinfo')
