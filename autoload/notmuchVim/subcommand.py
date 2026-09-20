@@ -5983,6 +5983,9 @@ def command_marked(cmdline):
     cmd = ''
     args = []
     for arg in arg_ls:
+        if arg not in cmds:
+            print_warring('Error: ' + arg + ' do not exist in sub-command.')
+            continue
         if cmd == '' and (cmds[arg] & 0x02):  # 引数必要
             cmd = arg
         elif cmd == '' and (cmds[arg] & 0x02):  # 引数を必要としないコマンド
