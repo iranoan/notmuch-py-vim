@@ -150,7 +150,7 @@ enddef
 
 def MakeSearchList(search_term: string): void
 	if has_key(buf_num.search, search_term)
-		py3eval('reopen(''search'', ''' .. escape(search_term, '''\') .. ''')')
+		py3eval($'reopen(''search'', ''{escape(search_term, '''\')}'')')
 		return
 	endif
 	NewBuffer('search', search_term)
@@ -170,9 +170,9 @@ def SetThread(n: number): void
 	autocmd NotmuchPython CursorMoved <buffer> CursorMoveThread(b:notmuch.search_term)
 enddef
 
-function OpenSomething(args) abort
-	py3 open_something(vim.eval('a:args'))
-endfunction
+def OpenSomething(args: list<number>): void
+	py3eval($'open_something({args})')
+enddef
 
 def NextThread(args: list<any>): void
 	var type = py3eval('buf_kind()')
@@ -196,7 +196,7 @@ enddef
 
 def MakeView(search_term: string): void # メール・バッファを用意するだけ
 	if has_key(buf_num.view, search_term)
-		py3eval('reopen(''view'', ''' .. escape(search_term, '''\') .. ''')')
+		py3eval($'reopen(''view'', ''{escape(search_term, '''\')}'')')
 		return
 	endif
 	NewBuffer('view', search_term)
@@ -229,7 +229,7 @@ def SelectMailView(n: number): void
 		return
 	elseif n == buf_num.search[b:notmuch.search_term]
 		if win_gotoid(bufwinid(buf_num.view[b:notmuch.search_term])) == 0
-			py3eval('reopen(''view'', ''' .. escape(b:notmuch.search_term, '''\') .. ''')')
+			py3eval($'reopen("view", ''{escape(b:notmuch.search_term, '''\')}'')')
 		endif
 	endif
 enddef
@@ -329,9 +329,9 @@ def PreviousPage(args: list<any>): void
 	win_gotoid(bufwinid(l_buf_num))
 enddef
 
-function SaveAttachment(args) abort
-	py3 save_attachment(vim.eval('a:args'))
-endfunction
+def SaveAttachment(args: list<number>): void
+	py3eval($'save_attachment({args})')
+enddef
 
 def ViewMailInfo(args: list<any>): void
 	py3 view_mail_info()
@@ -346,9 +346,9 @@ export def ClosePopup(id: number, key: string): bool
 	endif
 enddef
 
-function DeleteTags(args) abort
-	py3 do_mail(delete_tags, vim.eval('a:args'))
-endfunction
+def DeleteTags(args: list<any>): void
+	py3eval($'do_mail(delete_tags, {args})')
+enddef
 
 def CompleteTagCommon(func: string, cmdLine: string, cursorPos: number, direct_command: bool): list<string>
 	var tags: list<string> = GetSnippet(func, cmdLine, cursorPos, direct_command)
@@ -434,25 +434,25 @@ export def CompDelTag(ArgLead: string, CmdLine: string, CursorPos: number): list
 	return CompleteTagCommon('get_msg_tags_list', CmdLine, CursorPos, false)
 enddef
 
-function AddTags(args) abort
-	py3 do_mail(add_tags, vim.eval('a:args'))
-endfunction
+def AddTags(args: list<any>): void
+	py3eval($'do_mail(add_tags, {args})')
+enddef
 
 export def CompAddTag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
 	return CompleteTagCommon('get_msg_tags_diff', CmdLine, CursorPos, false)
 enddef
 
-function SetTags(args) abort
-	py3 do_mail(set_tags, vim.eval('a:args'))
-endfunction
+def SetTags(args: list<any>): void
+	py3eval($'do_mail(set_tags, {args})')
+enddef
 
 export def CompSetTag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
 	return CompleteTagCommon('get_msg_tags_any_kind', CmdLine, CursorPos, false)
 enddef
 
-function ToggleTags(args) abort
-	py3 do_mail(toggle_tags, vim.eval('a:args'))
-endfunction
+def ToggleTags(args: list<any>): void
+	py3eval($'do_mail(toggle_tags, {args})')
+enddef
 
 export def CompTag(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
 	return CompleteTagCommon('get_msg_all_tags_list', CmdLine, CursorPos, false)
@@ -791,9 +791,9 @@ def SwichBuffer(bufnr: number): void # できるだけ指定されたバッフ�
 	endif
 enddef
 
-function OpenOriginal(args) abort
-	py3 do_mail(open_original, vim.eval('a:args'))
-endfunction
+def OpenOriginal(args: list<number>): void
+	py3eval($'do_mail(open_original, {args})')
+enddef
 
 def Reload(args: list<any>): void
 	py3 reload()
@@ -806,20 +806,20 @@ def CursorMoveThread(search_term: string): void
 	py3eval('cursor_move_thread(''' .. escape(search_term, '''\') .. ''')')
 enddef
 
-function NewMail(...) abort
-	if !py3eval('"DBASE" in globals()')  " フォルダ一覧も非表示状態で呼ばれた場合
-		call s:Import()
+def NewMail(...args: list<string>): void
+	if !py3eval('"DBASE" in globals()')  # フォルダ一覧も非表示状態で呼ばれた場合
+		Import()
 		py3 set_subcmd_newmail()
 		execute 'cd ' .. py3eval('get_save_dir()')
 		if &title
-			let &titlestring=s:MakeTitle()
+			&titlestring = MakeTitle()
 		endif
 		if has('gui_running') && &showtabline != 0 && &guitablabel ==# ''
 			set guitablabel=%{%&filetype!~#'^notmuch-'?'%t':notmuch_py#GetGUITabline()%}
 		endif
 	endif
-	py3 new_mail(vim.eval('a:000'))
-endfunction
+	py3eval($'new_mail({args})')
+enddef
 
 def ForwardMail(args: list<any>): void
 	py3 forward_mail()
@@ -841,46 +841,46 @@ def SendVim(args: list<any>): void
 	py3 send_vim()
 enddef
 
-function SaveMail(args) abort
-	if len(a:args) > 3
-		py3 do_mail(save_mail, vim.eval('a:args[:2]'))
+def SaveMail(args: list<any>): void
+	if len(args) > 3
+		py3eval($'do_mail(save_mail, {args[ : 2]})')
 	else
-		py3 do_mail(save_mail, vim.eval('a:args'))
+		py3eval($'do_mail(save_mail, {args})')
 	endif
-endfunction
+enddef
 
-function MoveMail(args) abort
-	py3 do_mail(move_mail, vim.eval('a:args'))
-endfunction
+def MoveMail(args: list<any>): void
+	py3eval($'do_mail(move_mail, {args})')
+enddef
 
 export def CompDir(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
 	var folders: list<any> = py3eval('get_mail_folders()')
 	return filter(folders, printf('v:val =~? "^%s"', ArgLead))
 enddef
 
-function RunShellProgram(args) abort
-	py3 do_mail(run_shell_program, vim.eval('a:args'))
-endfunction
+def RunShellProgram(args: list<any>): void
+	py3eval($'do_mail(run_shell_program, {args})')
+enddef
 
-function ReindexMail(args) abort
-	py3 do_mail(reindex_mail, vim.eval('a:args'))
-endfunction
+def ReindexMail(args: list<any>): void
+	py3eval($'do_mail(reindex_mail, {args})')
+enddef
 
-function ImportMail(args) abort
-	py3 import_mail(vim.eval('a:args'))
-endfunction
+def ImportMail(args: list<any>): void
+	py3eval($'import_mail({args})')
+enddef
 
-function DeleteMail(args) abort
-	py3 do_mail(delete_mail, vim.eval('a:args'))
-endfunction
+def DeleteMail(args: list<any>): void
+	py3eval($'do_mail(delete_mail, {args})')
+enddef
 
-function ExportMail(args) abort
-	py3 do_mail(export_mail, vim.eval('a:args'))
-endfunction
+def ExportMail(args: list<any>): void
+	py3eval($'do_mail(export_mail, {args})')
+enddef
 
-function DeleteAttachment(args) abort
-	py3 delete_attachment(vim.eval('a:args'))
-endfunction
+def DeleteAttachment(args: list<any>): void
+	py3eval($'delete_attachment({args})')
+enddef
 
 def CloseCore(): void # notmuch-* を閉じる (閉じるメイン部分)
 	if winnr('$') == 1 && tabpagenr('$') == 1
@@ -993,35 +993,33 @@ def AuWriteDraft(): void # draft mail の保存
 	autocmd NotmuchPython BufWrite <buffer> py3 save_draft()
 enddef
 
-function MarkInThread(args) range abort
-	let l:beg = a:args[0]
-	let l:end = a:args[1]
-	let l:bufnr = bufnr('')
-	if !( l:bufnr == s:buf_num.thread
-				\ || ( py3eval('buf_kind()') ==# 'search' && l:bufnr != s:buf_num.search[b:notmuch.search_term] )
+def MarkInThread(args: list<any>): void
+	var bufnr: number = bufnr('')
+	if !( bufnr == buf_num.thread
+				\ || ( py3eval('buf_kind()') ==# 'search' && bufnr != buf_num.search[b:notmuch.search_term] )
 				\ || py3eval('get_msg_id()') !=? '' )
 				return
 	endif
-	if sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':line('.') })[0].signs == []
-		for l:i in range(l:beg, l:end)
-			if sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':l:i })[0].signs == []
-				call sign_place(0, 'mark_thread', 'notmuch', '',{'lnum':l:i})
+	if sign_getplaced('', {name: 'notmuch', group: 'mark_thread', lnum: line('.')})[0].signs == []
+		for i in range(args[0], args[1])
+			if sign_getplaced('', {name: 'notmuch', group: 'mark_thread', lnum: i})[0].signs == []
+				sign_place(0, 'mark_thread', 'notmuch', '', {lnum: i})
 			endif
 		endfor
 	else
-		for l:i in range(l:beg, l:end)
-			let l:id = sign_getplaced('', {'name':'notmuch', 'group':'mark_thread', 'lnum':l:i })[0].signs
-			if l:id != []
-				call sign_unplace('mark_thread', {'name':'notmuch', 'buffer':'', 'id':l:id[0].id })
+		for i in range(args[0], args[1])
+			var id: list<dict<any>> = sign_getplaced('', {name: 'notmuch', group: 'mark_thread', lnum: i})[0].signs
+			if id != []
+				sign_unplace('mark_thread', {name: 'notmuch', buffer: '', id: id[0].id})
 			endif
 		endfor
 	endif
-	if l:beg == l:end
+	if args[0] == args[1]
 		py3 fold_open()
 		normal! j
 		py3 fold_open()
 	endif
-endfunction
+enddef
 
 def CutThread(args: list<any>): void
 	py3 cut_thread(get_msg_id(), [])
@@ -1031,10 +1029,10 @@ def ConnectThread(args: list<any>): void
 	py3 connect_thread_tree()
 enddef
 
-function CommandMarked(args) abort " マークしたメールに纏めてコマンド実行
-	call remove(a:args, 0, 1)
-	py3 command_marked(vim.eval('a:args'))
-endfunction
+def CommandMarked(args: list<any>): void
+	remove(args, 0, 1)
+	py3eval($'command_marked({args})')
+enddef
 
 export def CompAllArgs(ArgLead: string, CmdLine: string, CursorPos: number): list<any>
 	var cmdline: string = substitute(CmdLine, '[\n\r]\+', ' ', 'g')
@@ -1171,9 +1169,9 @@ def CompleteCommand(CmdLine: string, CursorPos: number, direct_command: bool): l
 	return snippet
 enddef
 
-function NotmuchSearch(args) abort " notmuch search
-	py3 notmuch_search(vim.eval('a:args'))
-endfunction
+def NotmuchSearch(args: list<any>): void
+	py3eval($'notmuch_search({args})')
+enddef
 
 def NotmuchThread(args: list<any>): void
 	py3 notmuch_thread()
@@ -1250,21 +1248,21 @@ def ToggleThread(args: list<any>): void
 	endif
 enddef
 
-function ThreadChangeSort(args) abort
-	py3 thread_change_sort(vim.eval('a:args'))
-endfunction
+def ThreadChangeSort(args: list<any>): void
+	py3eval($'thread_change_sort({args})')
+enddef
 
-function SetFcc(s) abort
-	py3 set_fcc(vim.eval('a:s'))
-endfunction
+def SetFcc(s: list<any>): void
+	py3eval($'set_fcc({s})')
+enddef
 
-function SetAttach(s) abort
-	py3 set_attach(vim.eval('a:s'))
-endfunction
+def SetAttach(s: list<any>): void
+	py3eval($'set_attach({s})')
+enddef
 
-function SetEncrypt(s) abort
-	py3 set_encrypt(vim.eval('a:s'))
-endfunction
+def SetEncrypt(s: list<any>): void
+	py3eval($'set_encrypt({s})')
+enddef
 
 def IsSametabThread(): bool
 	var type = py3eval('buf_kind()')
