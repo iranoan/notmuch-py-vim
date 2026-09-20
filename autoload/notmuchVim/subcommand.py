@@ -906,7 +906,7 @@ def get_unread_in_THREAD_LISTS(search_term):
 
 def open_thread_from_vim(select_unread, remake):  # 実際にスレッドを印字←フォルダ・リストがアクティブ前提
     line = vim.current.window.cursor[0]
-    vim.command('MakeThreadList()')
+    vim.Function('MakeThreadList')()
     open_thread(line, select_unread, remake)
     if is_same_tabpage('show', ''):
         open_mail()
@@ -1204,10 +1204,10 @@ def change_buffer_vars_core():
         b_v['tags'] = emoji_tags + ' '.join(tags)
 
 
-def vim_escape(s):
-    """ Vim と文字列をやり取りする時に、' をエスケープする """
-    # return s.replace('\\', '\\\\').replace("'", "''")
-    return s.replace("'", "''")
+# def vim_escape(s):
+#     """ Vim と文字列をやり取りする時に、' をエスケープする """
+#     # return s.replace('\\', '\\\\').replace("'", "''")
+#     return s.replace("'", "''")
 
 
 def replace_charset(s):  # 日本/中国語で上位互換の文字コードに置き換える
@@ -1319,7 +1319,7 @@ def reopen(kind, search_term):
     if type(search_term) is bytes:
         search_term = search_term.decode()
     # まずタブの移動
-    vim.command('ChangeExistTabpage("' + kind + '", \'' + vim_escape(search_term) + '\')')
+    vim.Function('ChangeExistTabpage')(kind, search_term)
     if kind == 'search' or kind == 'view':
         buf_num = s_buf_num(kind, search_term)
     else:
@@ -1342,11 +1342,11 @@ def reopen(kind, search_term):
         if kind == 'thread':
             open_way = vim.vars['notmuch_open_way']['show'].decode()
             if open_way != 'enew' and open_way != 'tabedit' and open_way != 'tabnew':
-                vim.command('MakeShow()')
+                vim.Function('MakeShow')()
         elif kind == 'search':
             open_way = vim.vars['notmuch_open_way']['view'].decode()
             if open_way != 'enew' and open_way != 'tabedit' and open_way != 'tabnew':
-                vim.command('call s:MakeView(\'' + vim_escape(search_term) + '\')')
+                vim.Function('MakeView')(search_term)
         vim_goto_bufwinid(buf_num)
 
 
@@ -2151,9 +2151,9 @@ def open_mail_by_msgid(search_term, msg_id, active_win, mail_reload):
     # date = thread_b_v['date']
     # tags = thread_b_v['tags']
     if not_search:
-        vim.command('MakeShow()')
+        vim.Function('MakeShow')()
     else:
-        vim.command('MakeView(\'' + vim_escape(search_term) + '\')')
+        vim.Function('MakeView')(search_term)
     b = vim.current.buffer
     b_v = b.vars['notmuch']
     b_w = vim.current.window
@@ -2222,7 +2222,8 @@ def get_msg_id():
     if not ('folders' in s_bufnum):
         # notmuch-folders に対して :bwipeout が実行され、更新された notmuch-edit/draft が有り
         # buf_num['folders'] がない状態になり、notmuch-thread がアクティブだとこの関数が呼ばれることがある
-        vim.command('new | only | call s:MakeFoldersList()')
+        vim.command('new | only')
+        vim.Function('MakeFoldersList')()
         reopen('thread', '')
         return ''
     if bufnr == s_bufnum['folders'] or b[0] == '':
@@ -2635,7 +2636,7 @@ def unread_before(active_win):
         if active_win == s_buf_num('folders', ''):
             msg_id = ''
             if not ('thread' in s_buf_num_dic()):
-                vim.command('MakeThreadList()')
+                vim.Function('MakeThreadList')()
             active_win = s_buf_num('thread', '')
             search_term = vim.vars['notmuch_folders'][vim.current.window.cursor[0] - 1][1]
         else:
@@ -3672,17 +3673,18 @@ def open_original(msg_id, search_term, args):
         b_v['tags'] = tags
         f_type = buf_kind()
         if f_type == 'search' or f_type == 'view':
-            vim.command('AuEdit(' + str(active_win) + ', "' + search_term + '", 1)')
+            vim.Function('AuEdit')(active_win, search_term, 1)
         else:
-            vim.command('AuEdit(' + str(active_win) + ', "", 1)')
+            vim.Function('AuEdit')(active_win, '', 1)
         if get_mailbox_type() == 'Maildir':
             draft_dir = PATH + os.sep + '.draft'
         else:
             draft_dir = PATH + os.sep + 'draft'
         if filename.startswith(draft_dir + os.sep) or 'draft' in tags.decode().split(' '):
-            vim.command('setlocal filetype=notmuch-draft | call s:AuWriteDraft() | cd '
-                        + os.path.dirname(
-                            vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
+            vim.command('setlocal filetype=notmuch-draft')
+            vim.Function('AuWriteDraft')()
+            vim.command('cd ' + os.path.dirname(
+                        vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
         else:
             vim.command('setlocal filetype=notmuch-edit')
     if message != '':
@@ -4665,7 +4667,7 @@ def new_mail(s):
     for header in headers:
         b.append(header + ': ' + headers[header])
     after_make_draft(b, None, add_head)
-    vim.command('AuNewMail()')
+    vim.Function('AuNewMail')()
 
 
 def address2ls(adr):
@@ -4809,7 +4811,7 @@ def reply_mail():
     # date = email.utils.parsedate_to_datetime(msg.header('Date')).strftime(DATE_FORMAT)
     # ↑同じローカル時間同士でやり取りするとは限らない
     after_make_draft(b, msg, add_head | 0x0E)
-    vim.command('AuReplyMail()')
+    vim.Function('AuReplyMail')()
 
 
 def forward_mail():
@@ -4863,7 +4865,7 @@ def forward_mail():
     # 本文との境界線作成終了
     b_v['org_mail_body'] = msg_data
     after_make_draft(b, msg, add_head | 0x04)
-    vim.command('AuForwardMail()')
+    vim.Function('AuForwardMail')()
 
 
 def forward_mail_attach():
@@ -4895,7 +4897,7 @@ def forward_mail_attach():
         else:
             b.append(h + ': ')
     after_make_draft(b, msg, add_head | 0x1C)
-    vim.command('AuNewMail()')
+    vim.Function('AuNewMail')()
 
 
 def forward_mail_resent():
@@ -4927,7 +4929,7 @@ def forward_mail_resent():
     b.append('Other Resent-xxx headers and body contents are ignored.')
     b.append('If delete Resent-From, became a normal mail.')
     b.options['modified'] = 0
-    vim.command('AuResentMail()')
+    vim.Function('AuResentMail')()
 
 
 def before_make_draft(active_win):
@@ -4966,7 +4968,7 @@ def before_make_draft(active_win):
         f = draft_dir + os.sep + f
     vim.current.buffer.name = f
     vim.command('setlocal filetype=notmuch-draft')
-    vim.command('AuEdit(' + str(active_win) + ', \'' + vim_escape(search_term) + '\', 0)')
+    vim.Function('AuEdit')(active_win, search_term, 0)
 
 
 def after_make_draft(b, msg, add_head):
@@ -5003,7 +5005,7 @@ def after_make_draft(b, msg, add_head):
     if 'folders' in s_buf_num_dic():
         vim.command('silent cd ' + os.path.dirname(
             vim_getbufinfo(s_buf_num('folders', ''))[0]['name'].decode()[17:]))
-    vim.command('AuWriteDraft()')
+    vim.Function('AuWriteDraft')()
 
 
 def save_draft():
@@ -6086,7 +6088,7 @@ def notmuch_search(search_term):
         print_error('notmuch2.XapianError: Check search term: ' + search_term + '.')
         return
     db.close()
-    vim.command('MakeSearchList(\'' + vim_escape(search_term) + '\')')
+    vim.Function('MakeSearchList')(search_term)
     b_num = s_buf_num('search', search_term)
     print_thread(b_num, search_term, False, False)
     if is_same_tabpage('view', search_term):
@@ -6184,7 +6186,7 @@ def notmuch_duplication(remake):
             return
         ls.sort(key=attrgetter('_date', '_from'))
         THREAD_LISTS['*'] = {'list': ls, 'sort': ['date', 'list']}
-    vim.command('MakeSearchList(\'*\')')
+    vim.Function('MakeSearchList')('*')
     b_num = s_buf_num('search', '*')
     print_thread(b_num, '*', False, False)
     if is_same_tabpage('view', '*'):
