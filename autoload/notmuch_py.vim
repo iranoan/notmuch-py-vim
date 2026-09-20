@@ -1286,7 +1286,6 @@ def IsSametabThread(): bool
 	return false
 enddef
 
-var refined_search_term: string
 def NotmuchRefine(s: list<any>): void
 	py3eval('notmuch_refine("' .. escape(join(s[2 : ], ' '), '"') .. '")')
 enddef

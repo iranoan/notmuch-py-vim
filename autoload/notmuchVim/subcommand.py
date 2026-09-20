@@ -6478,7 +6478,11 @@ def set_encrypt(args):
             b.append('Encrypt: PGP', l_encrypt)
 
 
+REFINED_SEARCH_TERM = ''
+
+
 def notmuch_refine(args):
+    global REFINED_SEARCH_TERM
     b = vim.current.buffer
     if b.number == s_buf_num('folders', ''):
         return
@@ -6495,7 +6499,7 @@ def notmuch_refine(args):
             return
     if not check_search_term(args):
         return
-    vim.command('refined_search_term = \'' + vim_escape(args) + '\'')
+    REFINED_SEARCH_TERM = args
     notmuch_down_refine()
 
 
@@ -6517,14 +6521,14 @@ def get_refine_index():
         and not (search_term in s_buf_num('view', '')
                  and b_num != s_buf_num('view', search_term)):
         return -1, '', []
-    if vim.bindeval('refined_search_term') == b'':
+    if REFINED_SEARCH_TERM == '':
         print_warring('Do not execute \'search-refine\'')
         return -1, '', []
     msg_id = get_msg_id()
     dbase = notmuch2.Database()
     index = [i for i, msg in enumerate(THREAD_LISTS[search_term]['list'])
-             if dbase.count_messages('id:"' + msg._msg_id + '" and ('
-                                     + vim.bindeval('refined_search_term').decode() + ')')]
+             if dbase.count_messages('id:"' + msg._msg_id
+                                     + '" and (' + REFINED_SEARCH_TERM + ')')]
     if not index:
         return -1, '', []
     dbase.close()
