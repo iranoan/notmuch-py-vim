@@ -635,7 +635,7 @@ def set_subcmd_start():
             'mail-import': ['ImportMail', 0x05],
             'mail-info': ['ViewMailInfo', 0x0c],
             'mail-move': ['MoveMail', 0x07],
-            'mail-new': ['NewMail', 0x07],
+            'mail-new': ['NewMail', 0x05],
             'mail-reply': ['ReplyMail', 0x04],
             'mail-reindex': ['ReindexMail', 0x06],
             'mail-resent-forward': ['ForwardMailResent', 0x04],
@@ -6001,10 +6001,26 @@ def command_marked(cmdline):
     if cmd != '':
         cmd_arg.append([cmds_dic[cmd][0].decode(), args])
     # 実際にここのメールにコマンド実行
+    vim2PyCmd = {
+        'AddTags': 'add_tags',
+        'DeleteTags': 'delete_tags',
+        'SetTags': 'set_tags',
+        'ToggleTags': 'toggle_tags',
+        'DeleteMail': 'delete_mail',
+        'ExportMail': 'export_mail',
+        'MoveMail': 'move_mail',
+        'OpenOriginal': 'edit_mail',
+        'ReindexMail': 'reindex_mail',
+        'RunShellProgram': 'run_shell_program',
+        'DeleteAttachment': 'delete_attachment',
+        'SaveAttachment': 'save_attachment',
+        'ConnectThread': 'connect_thread_tree',
+        'CutThread': 'cut_thread',
+    }
     for i, cmd in enumerate(cmd_arg):
         for line in marked_line:
+            py_cmd = vim2PyCmd[cmd[0]]
             msg_id = THREAD_LISTS[search_term]['list'][line]._msg_id
-            py_cmd = cmd[0].lower()
             if py_cmd in [  # 複数選択対応で do_mail() から呼び出されるものは search_term が必要
                 # 不要な場合はダミーの文字列
                 'add_tags',

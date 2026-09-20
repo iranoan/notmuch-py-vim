@@ -463,6 +463,7 @@ g:notmuch_command                                    *g:notmuch_command*
 								- 0x01:	引数を持つ、もしくは持てるか?
 								- 0x02:	mark-command (|notmuch-python-vim-mark-command|) で
 												呼び出し可能か?
+												自作コマンド未対応
 								- 0x04:	|{F-WIN}|/|{T-WIN}|/|{S-WIN}| で使用可能か?
 								- 0x08:	送信メール・バッファ
 									(|notmuch-python-vim-sending-buffer|) で使用可能か?
