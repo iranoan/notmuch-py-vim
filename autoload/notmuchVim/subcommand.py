@@ -756,7 +756,7 @@ def set_folder_format():
 
 
 def format_folder(folder, search_term):
-    global DBASE
+    # global DBASE
     try:  # search_term チェック
         all_mail = DBASE.count_messages(search_term)  # メール総数
     except notmuch2.XapianError:
@@ -822,7 +822,7 @@ def reprint_folder2():
 
 
 def set_folder_b_vars(v):
-    global DBASE
+    # global DBASE
     """ フォルダ・リストのバッファ変数セット """
     v['all_mail'] = DBASE.count_messages('')
     v['unread_mail'] = DBASE.count_messages('tag:unread')
@@ -897,7 +897,7 @@ def print_thread_view(search_term):
 
 
 def get_unread_in_THREAD_LISTS(search_term):
-    global DBASE
+    # global DBASE
     """ THREAD_LISTS から未読を探す """
     return [i for i, x in enumerate(THREAD_LISTS[search_term]['list'])
             if get_message('id:' + x._msg_id) is not None  # 削除済みメール・ファイルがデータベースに残っていると起きる
@@ -989,7 +989,7 @@ def print_thread_core(b_num, search_term, select_unread, remake):
                 ts = ts + str(FROM_LENGTH + 2) + ','
         b.options['vartabstop'] = ts + '1'
 
-    global DBASE
+    # global DBASE
     if search_term == '':
         return
     try:  # search_term チェック
@@ -2260,7 +2260,7 @@ def change_tags_before(msg_id):
 
 
 def change_tags_before_core(msg_id):
-    global DBASE
+    # global DBASE
     try:
         msg = DBASE.find(msg_id)
     except LookupError:
@@ -2279,7 +2279,7 @@ def get_msg_all_tags_list(tmp):
 
 
 def get_msg_all_tags_list_core():
-    global DBASE
+    # global DBASE
     tags = list(DBASE.tags)
     tags += ['flagged', 'inbox', 'draft', 'passed', 'replied', 'unread', 'Trash', 'Spam']
     tags = list(set(tags))
@@ -2555,7 +2555,7 @@ def get_search_snippet(word):
 
 
 def change_tags_after(msg, change_b_tags):
-    global DBASE
+    # global DBASE
     """ 追加/削除した時の後始末 """
     # change_b_tags: thread, show の b:tags を書き換えるか?
     # ↑インポート、送信時は書き換え不要
@@ -3354,7 +3354,7 @@ def delete_attachment(args):
             print_warring('Don\'t delete: Encrypted/Local/Virtual!')
 
     import time
-    global DBASE
+    # global DBASE
     b = vim.current.buffer
     bufnr = b.number
     b_v = b.vars['notmuch']
@@ -3737,7 +3737,7 @@ def marge_tag(msg_id, send):
     下書きバッファと notmuch database のタグをマージ
     send 送信時か?→draft, unread タグは削除
     """
-    global DBASE
+    # global DBASE
     b = vim.current.buffer
     msg = change_tags_before(msg_id)
     if msg is None:
@@ -3827,7 +3827,7 @@ def send_str(msg_data, msgid):
             return True
         path = os.path.expandvars(os.path.expanduser(path))
         if not os.path.isfile(path):
-            print_err('Not exit: ' + path)
+            print_err('Not exist: ' + path)
             return False
         # 添付ファイルの各 part のヘッダ部に付けるファイル情報
         for charset in sent_charset:
@@ -4972,7 +4972,7 @@ def before_make_draft(active_win):
 
 
 def after_make_draft(b, msg, add_head):
-    global DBASE
+    # global DBASE
     now = email.utils.localtime()
     msg_id = email.utils.make_msgid()
     b_v = vim.current.buffer.vars
